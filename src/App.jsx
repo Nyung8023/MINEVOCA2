@@ -1517,15 +1517,21 @@ if (userDataDoc.exists()) {
     }
 
     try {
+      // 기존 데이터를 먼저 가져와서 classId/className 보존
+      const userDataRef = doc(db, 'userData', currentUser.uid);
+      const existingDoc = await getDoc(userDataRef);
+      const existingData = existingDoc.exists() ? existingDoc.data() : {};
+
       const dataToSave = {
         books: books,
         words: words,
         learningStats: learningStats,
         examName: examName,
         examDate: examDate,
-        classId: classId,
-        className: className,
-        userName: userName,
+        // classId와 className은 기존 값이 있으면 유지, 없으면 state 값 사용
+        classId: existingData.classId || classId,
+        className: existingData.className || className,
+        userName: userName || existingData.userName,
         lastUpdated: new Date().toISOString()
       };
       console.log('💾 데이터 저장 중:', currentUser.email);
@@ -1536,7 +1542,7 @@ if (userDataDoc.exists()) {
       console.log('  - userName:', dataToSave.userName);
       console.log('  - examName:', dataToSave.examName);
       console.log('  - examDate:', dataToSave.examDate);
-      await setDoc(doc(db, 'userData', currentUser.uid), dataToSave);
+      await setDoc(userDataRef, dataToSave);
       console.log('✅ 데이터 저장 성공!');
     } catch (error) {
       console.error('❌ 데이터 저장 오류:', error);
