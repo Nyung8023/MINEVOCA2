@@ -1256,17 +1256,22 @@ if (userDataDoc.exists()) {
 
       // classes.students 배열과 userData.classId 모두에서 학생 찾기
       let studentIds = [...(selectedClass.students || [])];
+      console.log('📋 classes.students에서 찾은 학생:', studentIds.length);
 
       // userData에서 해당 반에 속한 학생들도 찾기
       const userDataSnapshot = await getDocs(collection(db, 'userData'));
-      userDataSnapshot.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.classId === classId && !studentIds.includes(doc.id)) {
-          studentIds.push(doc.id);
+      userDataSnapshot.docs.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.classId === classId && !studentIds.includes(docSnap.id)) {
+          studentIds.push(docSnap.id);
+          console.log('📌 userData.classId로 추가된 학생:', docSnap.id);
         }
       });
 
+      console.log('👥 총 발견된 학생 수:', studentIds.length);
+
       if (studentIds.length === 0) {
+        console.log('❌ 학생이 없어서 조회 종료');
         setClassBooks([]);
         setIsLoadingClassBooks(false);
         return;
@@ -1283,10 +1288,13 @@ if (userDataDoc.exists()) {
           if (userDataDoc.exists()) {
             const userData = userDataDoc.data();
             const books = userData.books || [];
+            console.log(`📚 학생 ${studentId}의 전체 단어장:`, books.length, '개');
+
             // 교재단어장만 필터링
             const textbookBooks = books.filter(b =>
               b.category === '교재단어장' || b.classId
             );
+            console.log(`📖 학생 ${studentId}의 교재단어장:`, textbookBooks.length, '개', textbookBooks.map(b => b.name));
 
             for (const book of textbookBooks) {
               if (!bookMap.has(book.name)) {
@@ -1300,6 +1308,8 @@ if (userDataDoc.exists()) {
                 existing.studentCount++;
               }
             }
+          } else {
+            console.log(`⚠️ 학생 ${studentId}의 userData가 존재하지 않음`);
           }
         } catch (err) {
           console.error(`학생 ${studentId} 데이터 로드 실패:`, err);
@@ -1309,6 +1319,7 @@ if (userDataDoc.exists()) {
       const aggregatedBooks = Array.from(bookMap.values()).sort((a, b) =>
         new Date(b.createdAt) - new Date(a.createdAt)
       );
+      console.log('✅ 최종 집계된 단어장:', aggregatedBooks.length, '개');
       setClassBooks(aggregatedBooks);
     } catch (error) {
       console.error('반별 단어장 로드 오류:', error);
