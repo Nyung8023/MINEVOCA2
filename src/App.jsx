@@ -228,6 +228,11 @@ const cancelEdit = () => {
   const [isExcelUploading, setIsExcelUploading] = useState(false);
   const [selectedUploadClassId, setSelectedUploadClassId] = useState('');
 
+  // 반별 단어장 관리 상태
+  const [selectedClassForBooks, setSelectedClassForBooks] = useState('');
+  const [classBooks, setClassBooks] = useState([]);
+  const [isLoadingClassBooks, setIsLoadingClassBooks] = useState(false);
+
   // 관리자 로그인
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD; 
 
@@ -420,7 +425,11 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
               name: bookName,
               wordCount: 0,
               icon: '📖',
-              isExamRange: false
+              isExamRange: false,
+              category: '교재단어장',
+              classId: selectedUploadClassId,
+              className: selectedClass.className,
+              createdAt: new Date().toISOString()
             };
             updatedBooks.push(targetBook);
           }
@@ -1173,6 +1182,102 @@ if (userDataDoc.exists()) {
       await loadAllStudents();
     } catch (error) {
       console.error('학생 반 배정 오류:', error);
+    }
+  };
+
+  // 반별 단어장 목록 조회 (관리자용)
+  const loadClassBooks = async (classId) => {
+    if (!classId) {
+      setClassBooks([]);
+      return;
+    }
+
+    setIsLoadingClassBooks(true);
+    try {
+      const selectedClass = classes.find(c => c.id === classId);
+      if (!selectedClass || !selectedClass.students || selectedClass.students.length === 0) {
+        setClassBooks([]);
+        setIsLoadingClassBooks(false);
+        return;
+      }
+
+      // 해당 반의 첫 번째 학생의 교재단어장 목록을 가져옴
+      const firstStudentId = selectedClass.students[0];
+      const userDataRef = doc(db, 'userData', firstStudentId);
+      const userDataDoc = await getDoc(userDataRef);
+
+      if (userDataDoc.exists()) {
+        const userData = userDataDoc.data();
+        const books = userData.books || [];
+        // 교재단어장만 필터링 (category가 '교재단어장'이거나, classId가 있는 것)
+        const textbookBooks = books.filter(b =>
+          b.category === '교재단어장' || b.classId
+        );
+        setClassBooks(textbookBooks);
+      } else {
+        setClassBooks([]);
+      }
+    } catch (error) {
+      console.error('반별 단어장 로드 오류:', error);
+      setClassBooks([]);
+    }
+    setIsLoadingClassBooks(false);
+  };
+
+  // 반별 단어장 삭제 (해당 반의 모든 학생에게서 삭제)
+  const deleteClassBook = async (bookName, classId) => {
+    if (!window.confirm(`"${bookName}" 단어장을 해당 반의 모든 학생에게서 삭제하시겠습니까?\n\n⚠️ 이 작업은 되돌릴 수 없습니다.`)) {
+      return;
+    }
+
+    try {
+      const selectedClass = classes.find(c => c.id === classId);
+      if (!selectedClass || !selectedClass.students) {
+        alert('반 정보를 찾을 수 없습니다.');
+        return;
+      }
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const studentId of selectedClass.students) {
+        try {
+          const userDataRef = doc(db, 'userData', studentId);
+          const userDataDoc = await getDoc(userDataRef);
+
+          if (userDataDoc.exists()) {
+            const userData = userDataDoc.data();
+            const existingBooks = userData.books || [];
+            const existingWords = userData.words || [];
+
+            // 해당 단어장 찾기
+            const targetBook = existingBooks.find(b => b.name === bookName);
+            if (targetBook) {
+              // 단어장과 해당 단어장의 단어들 삭제
+              const updatedBooks = existingBooks.filter(b => b.name !== bookName);
+              const updatedWords = existingWords.filter(w => w.bookId !== targetBook.id);
+
+              await setDoc(userDataRef, {
+                ...userData,
+                books: updatedBooks,
+                words: updatedWords,
+                lastUpdated: new Date().toISOString()
+              });
+              successCount++;
+            }
+          }
+        } catch (error) {
+          console.error(`학생 ${studentId} 단어장 삭제 실패:`, error);
+          failCount++;
+        }
+      }
+
+      alert(`✅ 삭제 완료!\n\n성공: ${successCount}명\n실패: ${failCount}명`);
+      // 목록 새로고침
+      await loadClassBooks(classId);
+    } catch (error) {
+      console.error('반별 단어장 삭제 오류:', error);
+      alert('단어장 삭제 중 오류가 발생했습니다.');
     }
   };
 
@@ -5084,6 +5189,49 @@ if (currentView === 'admin' && isAdmin) {
           </div>
         </button>
 
+        {/* 반별 단어장 관리 버튼 */}
+        <button
+          onClick={() => {
+            setCurrentView('classWordManagement');
+            loadAllClasses();
+          }}
+          style={{
+            width: '100%',
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '16px',
+            padding: '24px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            marginBottom: '16px',
+            border: '2px solid rgba(251, 191, 36, 0.5)',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.12)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Album size={28} strokeWidth={2.5} style={{ color: '#f59e0b' }} />
+              <div style={{ textAlign: 'left' }}>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#172f0b', margin: 0 }}>
+                  반별 단어장 관리
+                </h2>
+                <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                  반 단위로 교재단어장 배포 및 관리
+                </p>
+              </div>
+            </div>
+            <div style={{ fontSize: '1.5rem', color: '#94a3b8' }}>→</div>
+          </div>
+        </button>
+
         {/* 중복 단어 통합 버튼 */}
         <button
           onClick={() => {
@@ -6304,6 +6452,452 @@ if (currentView === 'testManagement' && isAdmin) {
               ))}
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 반별 단어장 관리 화면
+if (currentView === 'classWordManagement' && isAdmin) {
+  return (
+    <div style={{
+      background: 'linear-gradient(to bottom right, #f1f5f9, #fafaf9, #ecfdf5)',
+      minHeight: '100vh',
+      width: '100vw',
+      margin: 0,
+      padding: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      overflowY: 'auto',
+      boxSizing: 'border-box'
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
+        @font-face {
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
+        }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
+      `}</style>
+
+      {/* 헤더 */}
+      <div style={{
+        background: 'transparent',
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '16px',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
+        <button
+          onClick={() => setCurrentView('admin')}
+          style={{
+            background: 'white',
+            border: '2px solid #e2e8f0',
+            color: '#172f0b',
+            fontSize: '0.85rem',
+            fontWeight: '600',
+            cursor: 'pointer',
+            padding: '6px 12px',
+            borderRadius: '10px'
+          }}
+        >
+          ← 뒤로
+        </button>
+        <h1 style={{
+          fontFamily: "'Gamja Flower', cursive",
+          fontWeight: 700,
+          fontSize: '1.3rem',
+          margin: 0,
+          color: '#172f0b',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          <Album size={24} strokeWidth={2.5} style={{ color: '#f59e0b' }} />
+          반별 단어장 관리
+        </h1>
+        <div style={{ width: '70px' }}></div>
+      </div>
+
+      <div style={{
+        width: '100%',
+        maxWidth: '1400px',
+        margin: '0 auto',
+        padding: '0 24px 24px',
+        boxSizing: 'border-box'
+      }}>
+        {/* 교재단어장 엑셀 업로드 섹션 */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          padding: '20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          marginBottom: '16px',
+          border: '2px solid rgba(251, 191, 36, 0.5)'
+        }}>
+          <div style={{ marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#172f0b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              📚 교재단어장 배포
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
+              엑셀 파일명 = 단어장 이름 (예: 박준언3과.xlsx)
+            </p>
+          </div>
+
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
+              📌 대상 반 선택
+            </label>
+            <select
+              value={selectedUploadClassId}
+              onChange={(e) => setSelectedUploadClassId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '2px solid #fcd34d',
+                borderRadius: '10px',
+                fontSize: '0.9rem',
+                background: 'white'
+              }}
+            >
+              <option value="">-- 반을 선택하세요 --</option>
+              {classes.map(cls => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.className} ({cls.students?.length || 0}명)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
+              📄 엑셀 파일 업로드 (.xlsx, .xls)
+            </label>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleExcelUpload}
+              disabled={isExcelUploading || !selectedUploadClassId}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '2px dashed #fcd34d',
+                borderRadius: '10px',
+                background: selectedUploadClassId ? '#fffbeb' : '#f3f4f6',
+                cursor: selectedUploadClassId ? 'pointer' : 'not-allowed'
+              }}
+            />
+            <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '6px 0 0 0' }}>
+              첫 번째 행: 헤더 (영어, 한글) | 두 번째 행부터: 단어 데이터
+            </p>
+          </div>
+
+          {excelUploadStatus && (
+            <div style={{
+              background: isExcelUploading ? '#fef3c7' : '#d1fae5',
+              padding: '12px',
+              borderRadius: '10px',
+              fontSize: '0.9rem',
+              whiteSpace: 'pre-line',
+              border: isExcelUploading ? '2px solid #fcd34d' : '2px solid #6ee7b7'
+            }}>
+              {excelUploadStatus}
+            </div>
+          )}
+        </div>
+
+        {/* 반별 단어장 조회 및 관리 섹션 */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          padding: '20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          marginBottom: '16px',
+          border: '2px solid rgba(14, 165, 233, 0.5)'
+        }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#172f0b', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <BookOpen size={20} strokeWidth={2.5} style={{ color: '#0ea5e9' }} />
+            반별 단어장 조회
+          </h2>
+
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
+              🔍 조회할 반 선택
+            </label>
+            <select
+              value={selectedClassForBooks}
+              onChange={(e) => {
+                setSelectedClassForBooks(e.target.value);
+                loadClassBooks(e.target.value);
+              }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '2px solid #7dd3fc',
+                borderRadius: '10px',
+                fontSize: '0.9rem',
+                background: 'white'
+              }}
+            >
+              <option value="">-- 반을 선택하세요 --</option>
+              {classes.map(cls => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.className} ({cls.students?.length || 0}명)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {isLoadingClassBooks && (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+              📚 단어장 로딩 중...
+            </div>
+          )}
+
+          {selectedClassForBooks && !isLoadingClassBooks && (
+            <div>
+              <div style={{
+                background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)',
+                borderRadius: '12px',
+                padding: '12px',
+                marginBottom: '14px',
+                border: '2px solid #7dd3fc'
+              }}>
+                <p style={{ fontSize: '0.9rem', fontWeight: '600', color: '#0369a1', margin: 0 }}>
+                  📖 {classes.find(c => c.id === selectedClassForBooks)?.className || ''}의 교재단어장
+                  <span style={{ marginLeft: '8px', fontSize: '0.85rem', color: '#0ea5e9' }}>
+                    ({classBooks.length}개)
+                  </span>
+                </p>
+              </div>
+
+              {classBooks.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '30px',
+                  color: '#64748b',
+                  background: '#f8fafc',
+                  borderRadius: '12px',
+                  border: '2px dashed #cbd5e1'
+                }}>
+                  <p style={{ margin: 0, fontSize: '1rem' }}>📭 배포된 단어장이 없습니다</p>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '0.85rem' }}>위에서 엑셀 파일을 업로드하여 단어장을 배포하세요</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {classBooks.map(book => (
+                    <div
+                      key={book.id}
+                      style={{
+                        background: 'white',
+                        borderRadius: '12px',
+                        padding: '14px',
+                        border: '2px solid #e2e8f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = '#fcd34d';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(251, 191, 36, 0.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#e2e8f0';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{
+                          width: '44px',
+                          height: '44px',
+                          borderRadius: '12px',
+                          background: 'linear-gradient(135deg, #fbbf24, #f97316)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.3rem',
+                          boxShadow: '0 2px 6px rgba(251, 191, 36, 0.3)'
+                        }}>
+                          {book.icon || '📖'}
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1e293b', margin: '0 0 4px 0' }}>
+                            {book.name}
+                          </h3>
+                          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
+                            📝 {book.wordCount}개 단어
+                            {book.createdAt && (
+                              <span style={{ marginLeft: '8px' }}>
+                                | 📅 {new Date(book.createdAt).toLocaleDateString('ko-KR')}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => deleteClassBook(book.name, selectedClassForBooks)}
+                        style={{
+                          padding: '8px 14px',
+                          background: '#fee2e2',
+                          color: '#dc2626',
+                          border: '2px solid #fca5a5',
+                          borderRadius: '10px',
+                          fontSize: '0.85rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#fecaca';
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = '#fee2e2';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        <Trash2 size={16} strokeWidth={2.5} />
+                        삭제
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 반 관리 섹션 */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          padding: '20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          marginBottom: '16px',
+          border: '2px solid rgba(226, 232, 240, 0.5)'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '14px'
+          }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#172f0b', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Album size={20} strokeWidth={2.5} style={{ color: '#0369a1' }} />
+              반 관리 ({classes.length}개)
+            </h2>
+            <button
+              onClick={() => setShowClassForm(!showClassForm)}
+              style={{
+                padding: '6px 12px',
+                background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)',
+                color: '#0369a1',
+                border: '2px solid #0ea5e9',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              ➕ 새 반 만들기
+            </button>
+          </div>
+
+          {showClassForm && (
+            <div style={{
+              background: 'linear-gradient(135deg, #e0f2fe, #bae6fd)',
+              borderRadius: '12px',
+              padding: '14px',
+              marginBottom: '14px',
+              border: '2px solid #7dd3fc'
+            }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  value={newClassName}
+                  onChange={(e) => setNewClassName(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && createClass()}
+                  placeholder="반 이름 입력 (예: 복자여고1)"
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    border: '2px solid #7dd3fc',
+                    borderRadius: '10px',
+                    fontSize: '0.9rem'
+                  }}
+                />
+                <button
+                  onClick={createClass}
+                  style={{
+                    padding: '10px 16px',
+                    background: '#0ea5e9',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '0.9rem',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  생성
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {classes.map(cls => (
+              <div
+                key={cls.id}
+                style={{
+                  background: 'white',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  border: '2px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #bae6fd, #7dd3fc)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Album size={20} strokeWidth={2.5} style={{ color: '#0369a1' }} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#1e293b', margin: '0 0 2px 0' }}>
+                      {cls.className}
+                    </h3>
+                    <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
+                      👥 {cls.students?.length || 0}명
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
