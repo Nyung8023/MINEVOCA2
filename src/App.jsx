@@ -3,6 +3,7 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 import React, { useState, useEffect, useCallback } from 'react';
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Volume2, Check, X, Plus, Trash2, Edit2, BookOpen, Album, Brain, GraduationCap, Star, Eye, Settings, Gift, Target, TrendingUp, Award, Calendar, BarChart3, Shuffle, Headphones, Pencil, Lightbulb, ClipboardList, CheckCircle, Book } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 
 // Firebase 설정
@@ -222,6 +223,11 @@ const cancelEdit = () => {
   const [selectedTestWordIds, setSelectedTestWordIds] = useState([]);
   const [selectedTestClassId, setSelectedTestClassId] = useState(''); // 시험 대상 반
 
+  // 교재단어장 엑셀 업로드 상태
+  const [excelUploadStatus, setExcelUploadStatus] = useState('');
+  const [isExcelUploading, setIsExcelUploading] = useState(false);
+  const [selectedUploadClassId, setSelectedUploadClassId] = useState('');
+
   // 관리자 로그인
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD; 
 
@@ -331,6 +337,159 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
     };
 
     reader.readAsText(file);
+  };
+
+  // 엑셀 파일로 교재단어장 자동 생성 및 단어 추가
+  const handleExcelUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!selectedUploadClassId) {
+      alert('반을 먼저 선택해주세요.');
+      event.target.value = '';
+      return;
+    }
+
+    setIsExcelUploading(true);
+    setExcelUploadStatus('📂 엑셀 파일 읽는 중...');
+
+    try {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data);
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      // 파일명에서 단어장 이름 추출 (.xlsx, .xls 제거)
+      const bookName = file.name.replace(/\.(xlsx|xls)$/i, '').trim();
+
+      if (!bookName) {
+        setExcelUploadStatus('❌ 파일명이 비어있습니다.');
+        setIsExcelUploading(false);
+        return;
+      }
+
+      // 헤더 제외하고 데이터만 추출
+      const dataRows = jsonData.slice(1).filter(row => row.length >= 2 && row[0] && row[1]);
+
+      if (dataRows.length === 0) {
+        setExcelUploadStatus('❌ 엑셀 파일에 단어가 없습니다.\n첫 번째 열: 영어, 두 번째 열: 한글');
+        setIsExcelUploading(false);
+        return;
+      }
+
+      setExcelUploadStatus(`📚 "${bookName}" 단어장 생성 중...\n총 ${dataRows.length}개 단어`);
+
+      // 선택된 반의 학생 목록 가져오기
+      const selectedClass = classes.find(c => c.id === selectedUploadClassId);
+      if (!selectedClass || !selectedClass.students || selectedClass.students.length === 0) {
+        setExcelUploadStatus('❌ 선택된 반에 학생이 없습니다.');
+        setIsExcelUploading(false);
+        return;
+      }
+
+      const studentIds = selectedClass.students;
+      let successCount = 0;
+      let failCount = 0;
+
+      // 각 학생에게 단어장 생성 및 단어 추가
+      for (const studentId of studentIds) {
+        try {
+          setExcelUploadStatus(`👤 학생 ${successCount + 1}/${studentIds.length} 처리 중...`);
+
+          // 학생의 userData 가져오기
+          const userDataRef = doc(db, 'userData', studentId);
+          const userDataDoc = await getDoc(userDataRef);
+
+          if (!userDataDoc.exists()) {
+            failCount++;
+            continue;
+          }
+
+          const userData = userDataDoc.data();
+          const existingBooks = userData.books || [];
+          const existingWords = userData.words || [];
+
+          // 새 단어장 생성 (기존에 같은 이름이 있으면 새로 만들지 않음)
+          let targetBook = existingBooks.find(b => b.name === bookName);
+          let updatedBooks = [...existingBooks];
+
+          if (!targetBook) {
+            targetBook = {
+              id: Date.now() + Math.random(),
+              name: bookName,
+              wordCount: 0,
+              icon: '📖',
+              isExamRange: false
+            };
+            updatedBooks.push(targetBook);
+          }
+
+          // 단어 추가 (중복 체크)
+          const newWords = [];
+          for (const row of dataRows) {
+            const english = String(row[0]).trim();
+            const korean = String(row[1]).trim();
+
+            if (!english || !korean) continue;
+
+            // 이미 같은 단어장에 같은 영어 단어가 있는지 확인
+            const isDuplicate = existingWords.some(
+              w => w.bookId === targetBook.id && w.english.toLowerCase() === english.toLowerCase()
+            );
+
+            if (!isDuplicate) {
+              newWords.push({
+                id: Date.now() + Math.random(),
+                bookId: targetBook.id,
+                originalBookId: targetBook.id,
+                english: english,
+                korean: korean,
+                example: '',
+                pronunciation: '',
+                synonyms: [],
+                antonyms: [],
+                mastered: false,
+                nextReviewDate: new Date().toISOString(),
+                lastReviewDate: null,
+                reviewCount: 0,
+                correctStreak: 0
+              });
+            }
+          }
+
+          // 단어장의 wordCount 업데이트
+          const finalWords = [...existingWords, ...newWords];
+          const bookWordCount = finalWords.filter(w => w.bookId === targetBook.id).length;
+          updatedBooks = updatedBooks.map(b =>
+            b.id === targetBook.id ? { ...b, wordCount: bookWordCount } : b
+          );
+
+          // Firestore에 저장
+          await setDoc(userDataRef, {
+            ...userData,
+            books: updatedBooks,
+            words: finalWords,
+            lastUpdated: new Date().toISOString()
+          });
+
+          successCount++;
+        } catch (error) {
+          console.error(`학생 ${studentId} 처리 실패:`, error);
+          failCount++;
+        }
+      }
+
+      setExcelUploadStatus(
+        `✅ 완료!\n\n📚 단어장: "${bookName}"\n📝 단어 수: ${dataRows.length}개\n\n✅ 성공: ${successCount}명\n❌ 실패: ${failCount}명`
+      );
+      setIsExcelUploading(false);
+      event.target.value = ''; // 파일 입력 초기화
+    } catch (error) {
+      console.error('엑셀 업로드 오류:', error);
+      setExcelUploadStatus(`❌ 오류 발생: ${error.message}`);
+      setIsExcelUploading(false);
+    }
   };
 
  // DB에서 단어 정보 검색
@@ -4967,6 +5126,95 @@ if (currentView === 'admin' && isAdmin) {
             <div style={{ fontSize: '1.5rem', color: '#94a3b8' }}>→</div>
           </div>
         </button>
+
+        {/* 교재단어장 업로드 섹션 */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          padding: '20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          marginBottom: '16px',
+          border: '2px solid rgba(254, 243, 199, 0.8)'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '14px'
+          }}>
+            <div style={{ fontSize: '1.5rem' }}>📚</div>
+            <div>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#172f0b', margin: 0 }}>
+                교재단어장 업로드
+              </h2>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                엑셀 파일명 = 단어장 이름 (예: 교과서 3과.xlsx)
+              </p>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
+              📌 대상 반 선택
+            </label>
+            <select
+              value={selectedUploadClassId}
+              onChange={(e) => setSelectedUploadClassId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '2px solid #fcd34d',
+                borderRadius: '10px',
+                fontSize: '0.9rem',
+                background: 'white'
+              }}
+            >
+              <option value="">-- 반을 선택하세요 --</option>
+              {classes.map(cls => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.className} ({cls.students?.length || 0}명)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ marginBottom: '14px' }}>
+            <label style={{ fontSize: '0.9rem', fontWeight: '600', color: '#374151', marginBottom: '6px', display: 'block' }}>
+              📄 엑셀 파일 업로드 (.xlsx, .xls)
+            </label>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleExcelUpload}
+              disabled={isExcelUploading || !selectedUploadClassId}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '2px dashed #fcd34d',
+                borderRadius: '10px',
+                background: selectedUploadClassId ? '#fffbeb' : '#f3f4f6',
+                cursor: selectedUploadClassId ? 'pointer' : 'not-allowed'
+              }}
+            />
+            <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '6px 0 0 0' }}>
+              첫 번째 행: 헤더 (영어, 한글) | 두 번째 행부터: 단어 데이터
+            </p>
+          </div>
+
+          {excelUploadStatus && (
+            <div style={{
+              background: isExcelUploading ? '#fef3c7' : '#d1fae5',
+              padding: '12px',
+              borderRadius: '10px',
+              fontSize: '0.9rem',
+              whiteSpace: 'pre-line',
+              border: isExcelUploading ? '2px solid #fcd34d' : '2px solid #6ee7b7'
+            }}>
+              {excelUploadStatus}
+            </div>
+          )}
+        </div>
 
         {/* 반 관리 섹션 */}
         <div style={{
