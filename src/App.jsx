@@ -514,6 +514,11 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
       );
       setIsExcelUploading(false);
       event.target.value = ''; // 파일 입력 초기화
+
+      // 배포 후 자동으로 해당 반의 단어장 목록 새로고침
+      if (selectedClassForBooks === selectedUploadClassId) {
+        await loadClassBooks(selectedUploadClassId);
+      }
     } catch (error) {
       console.error('엑셀 업로드 오류:', error);
       setExcelUploadStatus(`❌ 오류 발생: ${error.message}`);
