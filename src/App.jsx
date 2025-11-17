@@ -387,13 +387,33 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
       // 선택된 반의 학생 목록 가져오기
       const selectedClass = classes.find(c => c.id === selectedUploadClassId);
-      if (!selectedClass || !selectedClass.students || selectedClass.students.length === 0) {
-        setExcelUploadStatus('❌ 선택된 반에 학생이 없습니다.');
+      if (!selectedClass) {
+        setExcelUploadStatus('❌ 선택된 반 정보를 찾을 수 없습니다.');
         setIsExcelUploading(false);
         return;
       }
 
-      const studentIds = selectedClass.students;
+      // classes.students 배열과 userData.classId 모두에서 학생 찾기
+      setExcelUploadStatus(`🔍 "${selectedClass.className}" 반 학생 검색 중...`);
+      let studentIds = [...(selectedClass.students || [])];
+
+      // userData에서 해당 반에 속한 학생들도 찾기
+      const userDataSnapshot = await getDocs(collection(db, 'userData'));
+      userDataSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.classId === selectedUploadClassId && !studentIds.includes(doc.id)) {
+          studentIds.push(doc.id);
+        }
+      });
+
+      if (studentIds.length === 0) {
+        setExcelUploadStatus('❌ 선택된 반에 학생이 없습니다.\n학생 관리에서 학생을 반에 배정해주세요.');
+        setIsExcelUploading(false);
+        return;
+      }
+
+      setExcelUploadStatus(`📚 "${bookName}" 단어장 생성 중...\n총 ${dataRows.length}개 단어\n👥 ${studentIds.length}명 학생 발견`);
+
       let successCount = 0;
       let failCount = 0;
 
@@ -1223,7 +1243,25 @@ if (userDataDoc.exists()) {
     setIsLoadingClassBooks(true);
     try {
       const selectedClass = classes.find(c => c.id === classId);
-      if (!selectedClass || !selectedClass.students || selectedClass.students.length === 0) {
+      if (!selectedClass) {
+        setClassBooks([]);
+        setIsLoadingClassBooks(false);
+        return;
+      }
+
+      // classes.students 배열과 userData.classId 모두에서 학생 찾기
+      let studentIds = [...(selectedClass.students || [])];
+
+      // userData에서 해당 반에 속한 학생들도 찾기
+      const userDataSnapshot = await getDocs(collection(db, 'userData'));
+      userDataSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.classId === classId && !studentIds.includes(doc.id)) {
+          studentIds.push(doc.id);
+        }
+      });
+
+      if (studentIds.length === 0) {
         setClassBooks([]);
         setIsLoadingClassBooks(false);
         return;
@@ -1231,9 +1269,8 @@ if (userDataDoc.exists()) {
 
       // 모든 학생의 교재단어장을 집계
       const bookMap = new Map(); // bookName -> { book, studentCount }
-      let checkedStudents = 0;
 
-      for (const studentId of selectedClass.students) {
+      for (const studentId of studentIds) {
         try {
           const userDataRef = doc(db, 'userData', studentId);
           const userDataDoc = await getDoc(userDataRef);
@@ -1251,14 +1288,13 @@ if (userDataDoc.exists()) {
                 bookMap.set(book.name, {
                   ...book,
                   studentCount: 1,
-                  totalStudents: selectedClass.students.length
+                  totalStudents: studentIds.length
                 });
               } else {
                 const existing = bookMap.get(book.name);
                 existing.studentCount++;
               }
             }
-            checkedStudents++;
           }
         } catch (err) {
           console.error(`학생 ${studentId} 데이터 로드 실패:`, err);
@@ -1284,15 +1320,27 @@ if (userDataDoc.exists()) {
 
     try {
       const selectedClass = classes.find(c => c.id === classId);
-      if (!selectedClass || !selectedClass.students) {
+      if (!selectedClass) {
         alert('반 정보를 찾을 수 없습니다.');
         return;
       }
 
+      // classes.students 배열과 userData.classId 모두에서 학생 찾기
+      let studentIds = [...(selectedClass.students || [])];
+
+      // userData에서 해당 반에 속한 학생들도 찾기
+      const userDataSnapshot = await getDocs(collection(db, 'userData'));
+      userDataSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.classId === classId && !studentIds.includes(doc.id)) {
+          studentIds.push(doc.id);
+        }
+      });
+
       let successCount = 0;
       let failCount = 0;
 
-      for (const studentId of selectedClass.students) {
+      for (const studentId of studentIds) {
         try {
           const userDataRef = doc(db, 'userData', studentId);
           const userDataDoc = await getDoc(userDataRef);
