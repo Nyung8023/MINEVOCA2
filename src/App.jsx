@@ -968,6 +968,12 @@ if (userDataDoc.exists()) {
     wasMigrated: needsMigration
   });
 
+  // 교재단어장 디버깅
+  const textbookBooks = migratedBooks.filter(b => b.category === '교재단어장');
+  const otherBooks = migratedBooks.filter(b => !b.category || b.category !== '교재단어장');
+  console.log('📚 교재단어장:', textbookBooks.length, '개', textbookBooks.map(b => ({ name: b.name, category: b.category })));
+  console.log('📖 나의학습단어장:', otherBooks.length, '개', otherBooks.map(b => ({ name: b.name, category: b.category })));
+
   setBooks(migratedBooks);
         setLearningStats(data.learningStats || {
           todayStudied: 0,
@@ -1007,7 +1013,10 @@ if (userDataDoc.exists()) {
       } else {
         // 새 사용자: 기본 데이터 생성
         console.log('🆕 새 사용자 - 기본 데이터 생성');
-        const defaultBooks = [];
+        const defaultBooks = [
+          { id: 1, name: '이번 시험범위', wordCount: 0, isExamRange: true, icon: '🎯' },
+          { id: 2, name: '일단 OK', wordCount: 0, isExamRange: false, icon: '👍' }
+        ];
 
         // Firestore에 초기 데이터 저장
         console.log('💾 새 사용자 데이터를 Firestore에 저장합니다...');
