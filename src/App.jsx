@@ -1149,8 +1149,11 @@ if (userDataDoc.exists()) {
       const studentDataRef = doc(db, 'userData', studentId);
       const studentDataDoc = await getDoc(studentDataRef);
 
+      let previousClassId = null;
+
       if (studentDataDoc.exists()) {
         const currentData = studentDataDoc.data();
+        previousClassId = currentData.classId; // 이전 반 ID 저장
         await setDoc(studentDataRef, {
           ...currentData,
           classId: classId,
@@ -1178,8 +1181,33 @@ if (userDataDoc.exists()) {
         });
       }
 
+      // 이전 반에서 학생 제거
+      if (previousClassId && previousClassId !== classId) {
+        const prevClassRef = doc(db, 'classes', previousClassId);
+        const prevClassDoc = await getDoc(prevClassRef);
+        if (prevClassDoc.exists()) {
+          const prevClassData = prevClassDoc.data();
+          const updatedStudents = (prevClassData.students || []).filter(id => id !== studentId);
+          await updateDoc(prevClassRef, { students: updatedStudents });
+        }
+      }
+
+      // 새 반에 학생 추가
+      if (classId) {
+        const newClassRef = doc(db, 'classes', classId);
+        const newClassDoc = await getDoc(newClassRef);
+        if (newClassDoc.exists()) {
+          const newClassData = newClassDoc.data();
+          const currentStudents = newClassData.students || [];
+          if (!currentStudents.includes(studentId)) {
+            await updateDoc(newClassRef, { students: [...currentStudents, studentId] });
+          }
+        }
+      }
+
       console.log('✅ 학생 반 배정 완료:', studentName, '→', className);
       await loadAllStudents();
+      await loadAllClasses(); // 반 목록도 새로고침
     } catch (error) {
       console.error('학생 반 배정 오류:', error);
     }
@@ -1201,22 +1229,46 @@ if (userDataDoc.exists()) {
         return;
       }
 
-      // 해당 반의 첫 번째 학생의 교재단어장 목록을 가져옴
-      const firstStudentId = selectedClass.students[0];
-      const userDataRef = doc(db, 'userData', firstStudentId);
-      const userDataDoc = await getDoc(userDataRef);
+      // 모든 학생의 교재단어장을 집계
+      const bookMap = new Map(); // bookName -> { book, studentCount }
+      let checkedStudents = 0;
 
-      if (userDataDoc.exists()) {
-        const userData = userDataDoc.data();
-        const books = userData.books || [];
-        // 교재단어장만 필터링 (category가 '교재단어장'이거나, classId가 있는 것)
-        const textbookBooks = books.filter(b =>
-          b.category === '교재단어장' || b.classId
-        );
-        setClassBooks(textbookBooks);
-      } else {
-        setClassBooks([]);
+      for (const studentId of selectedClass.students) {
+        try {
+          const userDataRef = doc(db, 'userData', studentId);
+          const userDataDoc = await getDoc(userDataRef);
+
+          if (userDataDoc.exists()) {
+            const userData = userDataDoc.data();
+            const books = userData.books || [];
+            // 교재단어장만 필터링
+            const textbookBooks = books.filter(b =>
+              b.category === '교재단어장' || b.classId
+            );
+
+            for (const book of textbookBooks) {
+              if (!bookMap.has(book.name)) {
+                bookMap.set(book.name, {
+                  ...book,
+                  studentCount: 1,
+                  totalStudents: selectedClass.students.length
+                });
+              } else {
+                const existing = bookMap.get(book.name);
+                existing.studentCount++;
+              }
+            }
+            checkedStudents++;
+          }
+        } catch (err) {
+          console.error(`학생 ${studentId} 데이터 로드 실패:`, err);
+        }
       }
+
+      const aggregatedBooks = Array.from(bookMap.values()).sort((a, b) =>
+        new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setClassBooks(aggregatedBooks);
     } catch (error) {
       console.error('반별 단어장 로드 오류:', error);
       setClassBooks([]);
@@ -6736,6 +6788,11 @@ if (currentView === 'classWordManagement' && isAdmin) {
                           </h3>
                           <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>
                             📝 {book.wordCount}개 단어
+                            {book.studentCount && (
+                              <span style={{ marginLeft: '8px' }}>
+                                | 👥 {book.studentCount}/{book.totalStudents}명 배포
+                              </span>
+                            )}
                             {book.createdAt && (
                               <span style={{ marginLeft: '8px' }}>
                                 | 📅 {new Date(book.createdAt).toLocaleDateString('ko-KR')}
