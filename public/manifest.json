@@ -1,0 +1,38 @@
+{
+  "name": "Mine Voca - 나만의 단어장",
+  "short_name": "Mine Voca",
+  "description": "암기 효율을 높이는 스마트 영단어 학습 앱",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0f5ee",
+  "theme_color": "#172f0b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "ko-KR"
+}

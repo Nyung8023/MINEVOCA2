@@ -1,0 +1,1293 @@
+import './App.css';
+import React, { useState, useEffect } from 'react';
+import { Plus, Trash2, BookOpen, Brain, Award, Check, X, LogOut, FolderPlus, Folder, Share2, Download, Upload, Volume2, Edit2, Save } from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection } from 'firebase/firestore';
+
+// Firebase 설정
+const firebaseConfig = {
+  apiKey: "AIzaSyAO_z9ZolVFueoAtlldsD6DJUxKIPDxP-U",
+  authDomain: "minevoca-bee9b.firebaseapp.com",
+  projectId: "minevoca-bee9b",
+  storageBucket: "minevoca-bee9b.firebasestorage.app",
+  messagingSenderId: "266001843539",
+  appId: "1:266001843539:web:5db6581d85b0b450f70da6",
+  measurementId: "G-MR6L3DWDP0"
+};
+
+// Firebase 초기화
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+export default function VocabApp() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authView, setAuthView] = useState('login');
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [signupForm, setSignupForm] = useState({ 
+    email: '', 
+    name: '', 
+    password: '', 
+    confirmPassword: '' 
+  });
+  const [authError, setAuthError] = useState('');
+
+  // 단어장 관련 상태
+  const [vocabBooks, setVocabBooks] = useState([]);
+  const [sharedBooks, setSharedBooks] = useState([]);
+  const [currentBook, setCurrentBook] = useState(null);
+  const [newBookName, setNewBookName] = useState('');
+  const [showBookModal, setShowBookModal] = useState(false);
+  const [editingBookId, setEditingBookId] = useState(null);
+  const [editingBookName, setEditingBookName] = useState('');
+
+  const [words, setWords] = useState([]);
+  const [currentView, setCurrentView] = useState('books');
+  const [newWord, setNewWord] = useState({ english: '', korean: '', example: '', partOfSpeech: '명사' });
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [quizAnswer, setQuizAnswer] = useState('');
+  const [quizResult, setQuizResult] = useState(null);
+  const [score, setScore] = useState({ correct: 0, total: 0 });
+
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+  
+  useEffect(() => {
+    if (isLoggedIn && currentUser) {
+      loadVocabBooks();
+      loadSharedBooks();
+    }
+  }, [isLoggedIn, currentUser]);
+
+  useEffect(() => {
+    if (currentBook) {
+      loadWords();
+    }
+  }, [currentBook]);
+
+  useEffect(() => {
+    if (isLoggedIn && currentUser) {
+      loadVocabBooks();
+      loadSharedBooks();
+    }
+  }, [isLoggedIn, currentUser]);
+
+  useEffect(() => {
+    if (currentBook) {
+      loadWords();
+    }
+  }, [currentBook]);
+
+  const checkLoginStatus = async () => {
+    try {
+      const userData = localStorage.getItem('current-user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setCurrentUser(user);
+        setIsLoggedIn(true);
+      }
+    } catch (error) {
+      console.log('로그인 필요');
+    }
+  };
+
+  const handleSignup = async () => {
+    setAuthError('');
+
+    if (!signupForm.email || !signupForm.name || !signupForm.password || !signupForm.confirmPassword) {
+      setAuthError('모든 항목을 입력해주세요');
+      return;
+    }
+
+    if (!/^\d{6}$/.test(signupForm.password)) {
+      setAuthError('비밀번호는 6자리 숫자여야 합니다');
+      return;
+    }
+
+    if (signupForm.password !== signupForm.confirmPassword) {
+      setAuthError('비밀번호가 일치하지 않습니다');
+      return;
+    }
+
+    try {
+      // Firestore에서 기존 사용자 확인
+      const userDocRef = doc(db, 'users', signupForm.email);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        setAuthError('이미 가입된 이메일입니다');
+        return;
+      }
+
+      const newUser = {
+        email: signupForm.email,
+        name: signupForm.name,
+        password: signupForm.password,
+        createdAt: new Date().toISOString()
+      };
+
+      // Firestore에 사용자 정보 저장
+      await setDoc(userDocRef, newUser);
+      
+      // 로컬에도 현재 사용자 정보 저장 (빠른 로그인 확인용)
+      localStorage.setItem('current-user', JSON.stringify(newUser));
+      
+      setCurrentUser(newUser);
+      setIsLoggedIn(true);
+      setSignupForm({ email: '', name: '', password: '', confirmPassword: '' });
+    } catch (error) {
+      console.error('회원가입 오류:', error);
+      setAuthError('회원가입 중 오류가 발생했습니다');
+    }
+  };
+
+  const handleLogin = async () => {
+    setAuthError('');
+
+    if (!loginForm.email || !loginForm.password) {
+      setAuthError('이메일과 비밀번호를 입력해주세요');
+      return;
+    }
+
+    try {
+      // Firestore에서 사용자 정보 가져오기
+      const userDocRef = doc(db, 'users', loginForm.email);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (!userDoc.exists()) {
+        setAuthError('가입되지 않은 이메일입니다');
+        return;
+      }
+
+      const user = userDoc.data();
+      if (user.password !== loginForm.password) {
+        setAuthError('비밀번호가 일치하지 않습니다');
+        return;
+      }
+
+      localStorage.setItem('current-user', JSON.stringify(user));
+      
+      setCurrentUser(user);
+      setIsLoggedIn(true);
+      setLoginForm({ email: '', password: '' });
+    } catch (error) {
+      console.error('로그인 오류:', error);
+      setAuthError('로그인 중 오류가 발생했습니다');
+    }
+  };
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem('current-user');
+      setCurrentUser(null);
+      setIsLoggedIn(false);
+      setVocabBooks([]);
+      setCurrentBook(null);
+      setWords([]);
+      setCurrentView('books');
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+    }
+  };
+
+  // 단어장 관련 함수
+  const loadVocabBooks = async () => {
+    if (!currentUser) return;
+    try {
+      const booksDocRef = doc(db, 'vocabBooks', currentUser.email);
+      const booksDoc = await getDoc(booksDocRef);
+      if (booksDoc.exists()) {
+        setVocabBooks(booksDoc.data().books || []);
+      } else {
+        setVocabBooks([]);
+      }
+    } catch (error) {
+      console.error('단어장 로드 오류:', error);
+      setVocabBooks([]);
+    }
+  };
+
+  const loadSharedBooks = async () => {
+    try {
+      const sharedDocRef = doc(db, 'sharedBooks', 'all');
+      const sharedDoc = await getDoc(sharedDocRef);
+      if (sharedDoc.exists()) {
+        setSharedBooks(sharedDoc.data().books || []);
+      } else {
+        setSharedBooks([]);
+      }
+    } catch (error) {
+      console.error('공유 단어장 로드 오류:', error);
+      setSharedBooks([]);
+    }
+  };
+
+  const createVocabBook = async () => {
+    if (!newBookName.trim()) {
+      alert('단어장 이름을 입력해주세요!');
+      return;
+    }
+
+    const newBook = {
+      id: Date.now(),
+      name: newBookName.trim(),
+      createdAt: new Date().toLocaleDateString()
+    };
+
+    try {
+      const updatedBooks = [...vocabBooks, newBook];
+      const booksDocRef = doc(db, 'vocabBooks', currentUser.email);
+      await setDoc(booksDocRef, { books: updatedBooks });
+      setVocabBooks(updatedBooks);
+      setNewBookName('');
+      setShowBookModal(false);
+    } catch (error) {
+      console.error('단어장 생성 오류:', error);
+      alert('단어장 생성 중 오류가 발생했습니다');
+    }
+  };
+
+  const deleteVocabBook = async (bookId) => {
+    if (!confirm('이 단어장을 삭제하시겠습니까?')) return;
+
+    try {
+      const updatedBooks = vocabBooks.filter(b => b.id !== bookId);
+      const booksDocRef = doc(db, 'vocabBooks', currentUser.email);
+      await setDoc(booksDocRef, { books: updatedBooks });
+      setVocabBooks(updatedBooks);
+      
+      // 단어 데이터도 삭제
+      const wordsDocRef = doc(db, 'vocabWords', `${currentUser.email}_${bookId}`);
+      await deleteDoc(wordsDocRef);
+
+      if (currentBook?.id === bookId) {
+        setCurrentBook(null);
+        setWords([]);
+        setCurrentView('books');
+      }
+    } catch (error) {
+      console.error('단어장 삭제 오류:', error);
+      alert('단어장 삭제 중 오류가 발생했습니다');
+    }
+  };
+
+  const startEditBookName = (book) => {
+    setEditingBookId(book.id);
+    setEditingBookName(book.name);
+  };
+
+  const saveBookName = async (bookId) => {
+    if (!editingBookName.trim()) {
+      alert('단어장 이름을 입력해주세요!');
+      return;
+    }
+
+    try {
+      const updatedBooks = vocabBooks.map(b => 
+        b.id === bookId ? { ...b, name: editingBookName.trim() } : b
+      );
+      const booksDocRef = doc(db, 'vocabBooks', currentUser.email);
+      await setDoc(booksDocRef, { books: updatedBooks });
+      setVocabBooks(updatedBooks);
+      
+      if (currentBook?.id === bookId) {
+        setCurrentBook({ ...currentBook, name: editingBookName.trim() });
+      }
+      
+      setEditingBookId(null);
+      setEditingBookName('');
+    } catch (error) {
+      console.error('단어장 이름 수정 오류:', error);
+      alert('단어장 이름 수정 중 오류가 발생했습니다');
+    }
+  };
+
+  const selectBook = (book) => {
+    setCurrentBook(book);
+    setCurrentView('list');
+  };
+
+  const copySharedBook = async (sharedBook) => {
+    try {
+      const sharedWordsDocRef = doc(db, 'sharedWords', sharedBook.id.toString());
+      const sharedWordsDoc = await getDoc(sharedWordsDocRef);
+      
+      if (!sharedWordsDoc.exists()) {
+        alert('공유 단어장에 단어가 없습니다');
+        return;
+      }
+
+      const sharedWords = sharedWordsDoc.data().words || [];
+      
+      const newBook = {
+        id: Date.now(),
+        name: sharedBook.name + ' (복사본)',
+        createdAt: new Date().toLocaleDateString()
+      };
+
+      const updatedBooks = [...vocabBooks, newBook];
+      const booksDocRef = doc(db, 'vocabBooks', currentUser.email);
+      await setDoc(booksDocRef, { books: updatedBooks });
+      setVocabBooks(updatedBooks);
+
+      const wordsDocRef = doc(db, 'vocabWords', `${currentUser.email}_${newBook.id}`);
+      await setDoc(wordsDocRef, { words: sharedWords });
+      
+      alert(`"${sharedBook.name}" 단어장을 내 단어장으로 복사했어요!`);
+    } catch (error) {
+      console.error('단어장 복사 오류:', error);
+      alert('단어장 복사 중 오류가 발생했습니다');
+    }
+  };
+
+  const loadWords = async () => {
+    if (!currentUser || !currentBook) return;
+    try {
+      const wordsDocRef = doc(db, 'vocabWords', `${currentUser.email}_${currentBook.id}`);
+      const wordsDoc = await getDoc(wordsDocRef);
+      if (wordsDoc.exists()) {
+        setWords(wordsDoc.data().words || []);
+      } else {
+        setWords([]);
+      }
+    } catch (error) {
+      console.error('단어 로드 오류:', error);
+      setWords([]);
+    }
+  };
+
+  const saveWords = async (updatedWords) => {
+    if (!currentUser || !currentBook) return;
+    try {
+      const wordsDocRef = doc(db, 'vocabWords', `${currentUser.email}_${currentBook.id}`);
+      await setDoc(wordsDocRef, { words: updatedWords });
+      setWords(updatedWords);
+    } catch (error) {
+      console.error('저장 실패:', error);
+      alert('단어 저장 중 오류가 발생했습니다');
+    }
+  };
+
+  const addWord = () => {
+    if (newWord.english.trim() && newWord.korean.trim()) {
+      const wordToAdd = {
+        id: Date.now(),
+        english: newWord.english.trim(),
+        korean: newWord.korean.trim(),
+        example: newWord.example.trim(),
+        partOfSpeech: newWord.partOfSpeech,
+        mastered: false,
+        addedDate: new Date().toLocaleDateString()
+      };
+      saveWords([...words, wordToAdd]);
+      setNewWord({ english: '', korean: '', example: '', partOfSpeech: '명사' });
+    }
+  };
+
+  const deleteWord = (id) => {
+    saveWords(words.filter(w => w.id !== id));
+  };
+
+  const toggleMastered = (id) => {
+    saveWords(words.map(w => 
+      w.id === id ? { ...w, mastered: !w.mastered } : w
+    ));
+  };
+
+  const speakWord = (word) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.8;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const generateExample = () => {
+    if (!newWord.english.trim()) {
+      alert('먼저 영어 단어를 입력해주세요!');
+      return;
+    }
+
+    const word = newWord.english.trim();
+    const userName = currentUser?.name.slice(1) || '학생';
+    
+    let patterns = [];
+    
+    switch(newWord.partOfSpeech) {
+      case '명사':
+        patterns = [
+          `${userName} likes ${word}.`,
+          `${userName} has a ${word}.`,
+          `This is a ${word}.`,
+        ];
+        break;
+      case '동사':
+        patterns = [
+          `${userName} ${word}s every day.`,
+          `${userName} can ${word} well.`,
+          `${userName} wants to ${word}.`,
+        ];
+        break;
+      case '형용사':
+        patterns = [
+          `${userName} is ${word}.`,
+          `${userName} looks ${word}.`,
+          `It is very ${word}.`,
+        ];
+        break;
+      case '부사':
+        patterns = [
+          `${userName} studies ${word}.`,
+          `${userName} speaks ${word}.`,
+        ];
+        break;
+      default:
+        patterns = [`This is about ${word}.`];
+    }
+    
+    const randomPattern = patterns[Math.floor(Math.random() * patterns.length)];
+    setNewWord({ ...newWord, example: randomPattern });
+  };
+
+  const exportWords = () => {
+    if (!currentBook) return;
+    const dataStr = JSON.stringify(words, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${currentBook.name}_${new Date().toLocaleDateString()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importWords = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedWords = JSON.parse(e.target.result);
+          if (Array.isArray(importedWords)) {
+            saveWords([...words, ...importedWords]);
+            alert(`${importedWords.length}개의 단어를 불러왔습니다!`);
+          }
+        } catch (error) {
+          alert('파일을 읽는 중 오류가 발생했습니다.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const nextCard = () => {
+    setShowAnswer(false);
+    setCurrentCardIndex((prev) => (prev + 1) % words.length);
+  };
+
+  const prevCard = () => {
+    setShowAnswer(false);
+    setCurrentCardIndex((prev) => (prev - 1 + words.length) % words.length);
+  };
+
+  const startQuiz = () => {
+    setCurrentView('quiz');
+    setCurrentCardIndex(Math.floor(Math.random() * words.length));
+    setQuizAnswer('');
+    setQuizResult(null);
+    setScore({ correct: 0, total: 0 });
+  };
+
+  const checkAnswer = () => {
+    const currentWord = words[currentCardIndex];
+    const isCorrect = quizAnswer.trim().toLowerCase() === currentWord.korean.toLowerCase();
+    setQuizResult(isCorrect);
+    setScore(prev => ({
+      correct: prev.correct + (isCorrect ? 1 : 0),
+      total: prev.total + 1
+    }));
+  };
+
+  const nextQuiz = () => {
+    setCurrentCardIndex(Math.floor(Math.random() * words.length));
+    setQuizAnswer('');
+    setQuizResult(null);
+  };
+
+  const masteredCount = words.filter(w => w.mastered).length;
+  const masteredPercentage = words.length > 0 ? Math.round((masteredCount / words.length) * 100) : 0;
+
+  // 로그인 화면
+  if (!isLoggedIn) {
+    return (
+      <div className="app-bg" 
+style={{ 
+    width: "100vw",
+    height: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "flex-start", // 중앙 → 위로 정렬 변경
+    paddingTop: "50px",           // 위쪽 여백 추가
+    background: "linear-gradient(128deg, #f5f9f3, #e8f3e5, #f0f5ee)"
+  }}
+>        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
+        `}</style>
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <h1 className="text-6xl mb-4" style={{ fontFamily: "'Gamja Flower', cursive", fontWeight: 700 }}>
+              <span style={{ letterSpacing: '-0.05em', marginRight: '0.1em', background: 'linear-gradient(to right, #172f0b, #2d5a1a)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>MINE</span>
+              <span style={{ opacity: 0.85, letterSpacing: '-0.05em', paddingRight: '0.15em', background: 'linear-gradient(to right, #172f0b, #2d5a1a)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>VOCA</span>
+            </h1>
+            <p className="text-gray-600" style={{fontFamily: "Uiyeun" }}>
+  나만의 영어 단어장
+</p>
+          </div>
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="flex gap-2 mb-6">
+              <button
+                onClick={() => {
+                  setAuthView('login');
+                  setAuthError('');
+                }}
+                className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+                  authView === 'login' 
+                    ? 'text-white' 
+                    : 'text-gray-500 bg-gray-100'
+                }`}
+                style={authView === 'login' ? { background: 'linear-gradient(to right, #172f0b, #2d5a1a)' } : {}}
+              >
+                로그인
+              </button>
+              <button
+                onClick={() => {
+                  setAuthView('signup');
+                  setAuthError('');
+                }}
+                className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
+                  authView === 'signup' 
+                    ? 'text-white' 
+                    : 'text-gray-500 bg-gray-100'
+                }`}
+                style={authView === 'signup' ? { background: 'linear-gradient(to right, #172f0b, #2d5a1a)' } : {}}
+              >
+                회원가입
+              </button>
+            </div>
+
+            {authError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                {authError}
+              </div>
+            )}
+
+            {authView === 'login' ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">이메일</label>
+                  <input
+                    type="email"
+                    value={loginForm.email}
+                    onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                    onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                    placeholder="example@email.com"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">비밀번호 (6자리 숫자)</label>
+                  <input
+                    type="password"
+                    maxLength={6}
+                    value={loginForm.password}
+                    onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value.replace(/\D/g, '') })}
+                    onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                    placeholder="123456"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                  />
+                </div>
+                <button
+                  onClick={handleLogin}
+                  className="w-full text-white py-4 rounded-lg font-bold text-lg hover:shadow-lg transition-all"
+                  style={{ background: 'linear-gradient(to right, #172f0b, #2d5a1a)' }}
+                >
+                  로그인
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">이메일</label>
+                  <input
+                    type="email"
+                    value={signupForm.email}
+                    onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
+                    placeholder="example@email.com"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">이름</label>
+                  <input
+                    type="text"
+                    value={signupForm.name}
+                    onChange={(e) => setSignupForm({ ...signupForm, name: e.target.value })}
+                    placeholder="홍길동"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">비밀번호 (6자리 숫자)</label>
+                  <input
+                    type="password"
+                    maxLength={6}
+                    value={signupForm.password}
+                    onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value.replace(/\D/g, '') })}
+                    placeholder="123456"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">비밀번호 확인</label>
+                  <input
+                    type="password"
+                    maxLength={6}
+                    value={signupForm.confirmPassword}
+                    onChange={(e) => setSignupForm({ ...signupForm, confirmPassword: e.target.value.replace(/\D/g, '') })}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSignup()}
+                    placeholder="123456"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                  />
+                </div>
+                <button
+                  onClick={handleSignup}
+                  className="w-full text-white py-4 rounded-lg font-bold text-lg hover:shadow-lg transition-all"
+                  style={{ background: 'linear-gradient(to right, #172f0b, #2d5a1a)' }}
+                >
+                  회원가입
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 단어장 선택 화면
+  if (currentView === 'books') {
+    return (
+      <div className="min-h-screen p-4" style={{ background: 'linear-gradient(to bottom right, #f5f9f3, #e8f3e5, #f0f5ee)' }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
+        `}</style>
+        <div className="max-w-4xl mx-auto">
+          {/* 헤더 */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-5xl mb-2" style={{ fontFamily: "'Gamja Flower', cursive", fontWeight: 700 }}>
+                  <span style={{ letterSpacing: '-0.05em', marginRight: '0.1em', background: 'linear-gradient(to right, #172f0b, #2d5a1a)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>MINE</span>
+                  <span style={{ opacity: 0.85, letterSpacing: '-0.05em', paddingRight: '0.15em', background: 'linear-gradient(to right, #172f0b, #2d5a1a)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>VOCA</span>
+                </h1>
+              </div>
+              <div className="text-right">
+                <button
+                  onClick={handleLogout}
+                  className="text-xs text-gray-500 hover:text-red-600 mb-1 transition-all"
+                >
+                  로그아웃
+                </button>
+                <p className="text-xl font-bold" style={{ color: '#172f0b', fontFamily: "'omyu_pretty', sans-serif" }}>우리 {currentUser?.name.slice(1)}, 화이팅🔥</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 내 단어장 */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <Folder className="w-6 h-6" style={{ color: '#172f0b' }} />
+                내 단어장 ({vocabBooks.length}개)
+              </h2>
+              <button
+                onClick={() => setShowBookModal(true)}
+                className="flex items-center gap-2 px-4 py-2 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+                style={{ background: 'linear-gradient(to right, #172f0b, #2d5a1a)' }}
+              >
+                <FolderPlus className="w-5 h-5" />
+                새 단어장
+              </button>
+            </div>
+
+            {vocabBooks.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <Folder className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p>아직 단어장이 없습니다</p>
+                <p className="text-sm">단어장을 만들어보세요!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {vocabBooks.map((book) => (
+                  <div
+                    key={book.id}
+                    className="border-2 border-gray-200 rounded-xl p-4 hover:border-green-400 transition-all cursor-pointer"
+                  >
+                    {editingBookId === book.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editingBookName}
+                          onChange={(e) => setEditingBookName(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && saveBookName(book.id)}
+                          className="flex-1 px-3 py-2 border-2 border-green-400 rounded-lg focus:outline-none"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => saveBookName(book.id)}
+                          className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                        >
+                          <Save className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingBookId(null);
+                            setEditingBookName('');
+                          }}
+                          className="p-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2 flex-1" onClick={() => selectBook(book)}>
+                            <BookOpen className="w-5 h-5 text-green-600 flex-shrink-0" />
+                            <h3 className="font-bold text-lg text-gray-800">{book.name}</h3>
+                          </div>
+                          <div className="flex gap-1 flex-shrink-0">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditBookName(book);
+                              }}
+                              className="p-1 hover:bg-gray-100 rounded"
+                            >
+                              <Edit2 className="w-4 h-4 text-gray-500" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteVocabBook(book.id);
+                              }}
+                              className="p-1 hover:bg-red-50 rounded"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                        <div onClick={() => selectBook(book)}>
+                          <p className="text-sm text-gray-500">생성일: {book.createdAt}</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 공유 단어장 */}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2 mb-4">
+              <Share2 className="w-6 h-6 text-purple-600" />
+              공유 단어장 ({sharedBooks.length}개)
+            </h2>
+
+            {sharedBooks.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <Share2 className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p>아직 공유된 단어장이 없습니다</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {sharedBooks.map((book) => (
+                  <div
+                    key={book.id}
+                    className="border-2 border-purple-200 rounded-xl p-4 hover:border-purple-400 transition-all"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <BookOpen className="w-5 h-5 text-purple-600" />
+                      <h3 className="font-bold text-lg text-gray-800">{book.name}</h3>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-3">원장님 제공</p>
+                    <button
+                      onClick={() => copySharedBook(book)}
+                      className="w-full py-2 bg-purple-100 text-purple-700 rounded-lg font-semibold hover:bg-purple-200 transition-all"
+                    >
+                      📥 내 단어장으로 복사
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 단어장 생성 모달 */}
+          {showBookModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+                <h3 className="text-xl font-bold mb-4">새 단어장 만들기</h3>
+                <input
+                  type="text"
+                  value={newBookName}
+                  onChange={(e) => setNewBookName(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && createVocabBook()}
+                  placeholder="단어장 이름 (예: 중간고사 대비)"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500 mb-4"
+                  autoFocus
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowBookModal(false);
+                      setNewBookName('');
+                    }}
+                    className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-all"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={createVocabBook}
+                    className="flex-1 py-3 text-white rounded-lg font-semibold hover:shadow-lg transition-all"
+                    style={{ background: 'linear-gradient(to right, #172f0b, #2d5a1a)' }}
+                  >
+                    만들기
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 단어 목록 화면
+  if (currentView === 'list') {
+    return (
+      <div className="min-h-screen p-4" style={{ background: 'linear-gradient(to bottom right, #f5f9f3, #e8f3e5, #f0f5ee)' }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
+        `}</style>
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <button
+              onClick={() => {
+                setCurrentBook(null);
+                setCurrentView('books');
+              }}
+              className="text-gray-600 hover:text-gray-800 font-semibold mb-4 flex items-center gap-2"
+            >
+              ← 단어장 목록으로
+            </button>
+            
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">📖 {currentBook?.name}</h1>
+
+            <div className="rounded-xl p-4" style={{ background: 'linear-gradient(to right, #e8f5e0, #d4edd0)' }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-gray-700">암기 완료</span>
+                <span className="text-lg font-bold" style={{ color: '#172f0b' }}>{masteredCount}/{words.length}개</span>
+              </div>
+              <div className="w-full bg-white rounded-full h-3 overflow-hidden">
+                <div 
+                  className="h-3 rounded-full transition-all duration-500"
+                  style={{ width: `${masteredPercentage}%`, background: 'linear-gradient(to right, #172f0b, #2d5a1a)' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              새 단어 추가
+            </h2>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  placeholder="영어 단어"
+                  value={newWord.english}
+                  onChange={(e) => setNewWord({ ...newWord, english: e.target.value })}
+                  className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                />
+                <input
+                  type="text"
+                  placeholder="한글 뜻"
+                  value={newWord.korean}
+                  onChange={(e) => setNewWord({ ...newWord, korean: e.target.value })}
+                  className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                />
+                <select
+                  value={newWord.partOfSpeech}
+                  onChange={(e) => setNewWord({ ...newWord, partOfSpeech: e.target.value })}
+                  className="px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500 bg-white"
+                >
+                  <option value="명사">명사</option>
+                  <option value="동사">동사</option>
+                  <option value="형용사">형용사</option>
+                  <option value="부사">부사</option>
+                </select>
+              </div>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  placeholder="예문 (선택)"
+                  value={newWord.example}
+                  onChange={(e) => setNewWord({ ...newWord, example: e.target.value })}
+                  onKeyPress={(e) => e.key === 'Enter' && addWord()}
+                  className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-green-500"
+                />
+                <button
+                  onClick={generateExample}
+                  className="px-4 py-3 bg-purple-100 text-purple-700 rounded-lg font-semibold hover:bg-purple-200 transition-all whitespace-nowrap"
+                >
+                  ✨ 자동
+                </button>
+                <button
+                  onClick={addWord}
+                  className="text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
+                  style={{ background: 'linear-gradient(to right, #172f0b, #2d5a1a)' }}
+                >
+                  추가
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {words.length > 0 && (
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <button
+                onClick={() => setCurrentView('flashcard')}
+                className="text-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all"
+                style={{ background: 'linear-gradient(to right, #2d5a1a, #3d7a2a)' }}
+              >
+                <Brain className="w-8 h-8 mx-auto mb-2" />
+                <div className="font-bold text-lg">플래시카드</div>
+                <div className="text-sm opacity-90">카드로 학습하기</div>
+              </button>
+              <button
+                onClick={startQuiz}
+                className="text-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all"
+                style={{ background: 'linear-gradient(to right, #3d7a2a, #4d9a3a)' }}
+              >
+                <Award className="w-8 h-8 mx-auto mb-2" />
+                <div className="font-bold text-lg">퀴즈</div>
+                <div className="text-sm opacity-90">실력 테스트</div>
+              </button>
+            </div>
+          )}
+
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800">전체 단어 ({words.length}개)</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={exportWords}
+                  disabled={words.length === 0}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  내보내기
+                </button>
+                <label className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all cursor-pointer flex items-center gap-2">
+                  <Upload className="w-4 h-4" />
+                  가져오기
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={importWords}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {words.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p>아직 추가된 단어가 없습니다</p>
+                <p className="text-sm">위에서 단어를 추가해보세요!</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {words.map((word) => (
+                  <div
+                    key={word.id}
+                    className={`flex items-start gap-4 p-4 rounded-lg border-2 transition-all ${
+                      word.mastered 
+                        ? 'bg-green-50 border-green-300' 
+                        : 'bg-white border-gray-200'
+                    }`}
+                  >
+                    <button
+                      onClick={() => toggleMastered(word.id)}
+                      className="flex-shrink-0 mt-1"
+                    >
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        word.mastered 
+                          ? 'border-green-500' 
+                          : 'border-gray-300'
+                      }`} style={{ backgroundColor: word.mastered ? '#172f0b' : 'transparent' }}>
+                        {word.mastered && <Check className="w-4 h-4 text-white" />}
+                      </div>
+                    </button>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="font-bold text-lg text-gray-800">{word.english}</div>
+                        <button
+                          onClick={() => speakWord(word.english)}
+                          className="p-1 hover:bg-gray-100 rounded-full transition-all"
+                        >
+                          <Volume2 className="w-4 h-4 text-gray-600" />
+                        </button>
+                        {word.partOfSpeech && (
+                          <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                            {word.partOfSpeech}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-gray-600">{word.korean}</div>
+                      {word.example && (
+                        <div className="text-sm text-gray-500 mt-1 italic">예: {word.example}</div>
+                      )}
+                      <div className="text-xs text-gray-400 mt-1">추가일: {word.addedDate}</div>
+                    </div>
+                    <button
+                      onClick={() => deleteWord(word.id)}
+                      className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all flex-shrink-0"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 플래시카드 화면
+  if (currentView === 'flashcard') {
+    if (words.length === 0) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(to bottom right, #f5f9f3, #e8f3e5, #f0f5ee)' }}>
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">단어를 먼저 추가해주세요</p>
+            <button
+              onClick={() => setCurrentView('list')}
+              className="text-white px-6 py-3 rounded-lg"
+              style={{ background: '#172f0b' }}
+            >
+              돌아가기
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const currentWord = words[currentCardIndex];
+
+    return (
+      <div className="min-h-screen p-4 flex flex-col" style={{ background: 'linear-gradient(to bottom right, #f5f9f3, #e8f3e5, #f0f5ee)' }}>
+        <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => setCurrentView('list')}
+              className="text-gray-600 hover:text-gray-800 font-semibold"
+            >
+              ← 목록으로
+            </button>
+            <div className="text-gray-600 font-semibold">
+              {currentCardIndex + 1} / {words.length}
+            </div>
+          </div>
+
+          <div className="flex-1 flex items-center justify-center mb-6">
+            <div
+              onClick={() => setShowAnswer(!showAnswer)}
+              className="w-full max-w-lg cursor-pointer"
+            >
+              <div className="bg-white rounded-3xl shadow-2xl p-12 text-center transform transition-all hover:scale-105">
+                <div className="text-sm text-gray-500 mb-4">
+                  {showAnswer ? '한글 뜻' : '영어 단어'}
+                </div>
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <div className="text-4xl font-bold text-gray-800">
+                    {showAnswer ? currentWord.korean : currentWord.english}
+                  </div>
+                  {!showAnswer && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        speakWord(currentWord.english);
+                      }}
+                      className="p-2 hover:bg-gray-100 rounded-full transition-all"
+                    >
+                      <Volume2 className="w-6 h-6 text-gray-600" />
+                    </button>
+                  )}
+                </div>
+                {showAnswer && currentWord.example && (
+                  <div className="text-sm text-gray-600 italic mb-4">예: {currentWord.example}</div>
+                )}
+                <div className="text-sm" style={{ color: '#172f0b' }}>
+                  {showAnswer ? '카드를 눌러 영어로' : '카드를 눌러 뜻 보기'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-4 justify-center mb-6">
+            <button
+              onClick={prevCard}
+              className="bg-white text-gray-700 px-8 py-4 rounded-xl shadow-lg font-semibold hover:shadow-xl transition-all"
+            >
+              ← 이전
+            </button>
+            <button
+              onClick={() => toggleMastered(currentWord.id)}
+              className="px-8 py-4 rounded-xl shadow-lg font-semibold hover:shadow-xl transition-all text-white"
+              style={{ background: currentWord.mastered ? '#172f0b' : '#e0e0e0', color: currentWord.mastered ? 'white' : '#666' }}
+            >
+              {currentWord.mastered ? '✓ 암기완료' : '암기하기'}
+            </button>
+            <button
+              onClick={nextCard}
+              className="bg-white text-gray-700 px-8 py-4 rounded-xl shadow-lg font-semibold hover:shadow-xl transition-all"
+            >
+              다음 →
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 퀴즈 화면
+  if (currentView === 'quiz') {
+    if (words.length === 0) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(to bottom right, #f5f9f3, #e8f3e5, #f0f5ee)' }}>
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">단어를 먼저 추가해주세요</p>
+            <button
+              onClick={() => setCurrentView('list')}
+              className="text-white px-6 py-3 rounded-lg"
+              style={{ background: '#172f0b' }}
+            >
+              돌아가기
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const currentWord = words[currentCardIndex];
+
+    return (
+      <div className="min-h-screen p-4" style={{ background: 'linear-gradient(to bottom right, #f5f9f3, #e8f3e5, #f0f5ee)' }}>
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => setCurrentView('list')}
+              className="text-gray-600 hover:text-gray-800 font-semibold"
+            >
+              ← 목록으로
+            </button>
+            <div className="bg-white rounded-full px-6 py-2 shadow-lg">
+              <span className="font-bold" style={{ color: '#172f0b' }}>{score.correct}</span>
+              <span className="text-gray-400 mx-2">/</span>
+              <span className="text-gray-600 font-bold">{score.total}</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-2xl p-8 mb-6">
+            <div className="text-center mb-8">
+              <div className="text-sm text-gray-500 mb-4">다음 단어의 뜻을 입력하세요</div>
+              <div className="flex items-center justify-center gap-3 mb-8">
+                <div className="text-5xl font-bold text-gray-800">
+                  {currentWord.english}
+                </div>
+                <button
+                  onClick={() => speakWord(currentWord.english)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-all"
+                >
+                  <Volume2 className="w-6 h-6 text-gray-600" />
+                </button>
+              </div>
+
+              {quizResult === null ? (
+                <div>
+                  <input
+                    type="text"
+                    value={quizAnswer}
+                    onChange={(e) => setQuizAnswer(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && checkAnswer()}
+                    placeholder="한글 뜻을 입력하세요"
+                    className="w-full px-6 py-4 text-xl border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 mb-4"
+                    autoFocus
+                  />
+                  <button
+                    onClick={checkAnswer}
+                    disabled={!quizAnswer.trim()}
+                    className="w-full text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transition-all disabled:opacity-50"
+                    style={{ background: 'linear-gradient(to right, #172f0b, #2d5a1a)' }}
+                  >
+                    정답 확인
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div className={`text-2xl font-bold mb-4 ${quizResult ? 'text-green-600' : 'text-red-600'}`}>
+                    {quizResult ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Check className="w-8 h-8" />
+                        정답입니다! 🎉
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <X className="w-8 h-8" />
+                          틀렸습니다
+                        </div>
+                        <div className="text-lg text-gray-600">
+                          정답: <span style={{ color: '#172f0b' }}>{currentWord.korean}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={nextQuiz}
+                    className="w-full text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transition-all"
+                    style={{ background: 'linear-gradient(to right, #172f0b, #2d5a1a)' }}
+                  >
+                    다음 문제 →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}

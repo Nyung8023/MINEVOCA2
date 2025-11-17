@@ -1,0 +1,4 @@
+@font-face {
+  font-family: 'Locus_sangsang';
+  src: url('/Locus_sangsang.ttf') format('truetype');
+}
