@@ -435,7 +435,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
           const existingBooks = userData.books || [];
           const existingWords = userData.words || [];
 
-          // 새 단어장 생성 (기존에 같은 이름이 있으면 새로 만들지 않음)
+          // 새 단어장 생성 (기존에 같은 이름이 있으면 속성만 업데이트)
           let targetBook = existingBooks.find(b => b.name === bookName);
           let updatedBooks = [...existingBooks];
 
@@ -452,6 +452,17 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
               createdAt: new Date().toISOString()
             };
             updatedBooks.push(targetBook);
+          } else {
+            // 기존 단어장이 있으면 교재단어장 속성 추가
+            targetBook = {
+              ...targetBook,
+              category: '교재단어장',
+              classId: selectedUploadClassId,
+              className: selectedClass.className
+            };
+            updatedBooks = updatedBooks.map(b =>
+              b.name === bookName ? targetBook : b
+            );
           }
 
           // 단어 추가 (중복 체크)
