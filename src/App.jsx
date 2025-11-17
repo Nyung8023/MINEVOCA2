@@ -435,7 +435,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
           const existingBooks = userData.books || [];
           const existingWords = userData.words || [];
 
-          // 새 단어장 생성 (기존에 같은 이름이 있으면 새로 만들지 않음)
+          // 새 단어장 생성 (기존에 같은 이름이 있으면 속성만 업데이트)
           let targetBook = existingBooks.find(b => b.name === bookName);
           let updatedBooks = [...existingBooks];
 
@@ -452,6 +452,17 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
               createdAt: new Date().toISOString()
             };
             updatedBooks.push(targetBook);
+          } else {
+            // 기존 단어장이 있으면 교재단어장 속성 추가
+            targetBook = {
+              ...targetBook,
+              category: '교재단어장',
+              classId: selectedUploadClassId,
+              className: selectedClass.className
+            };
+            updatedBooks = updatedBooks.map(b =>
+              b.name === bookName ? targetBook : b
+            );
           }
 
           // 단어 추가 (중복 체크)
@@ -996,13 +1007,7 @@ if (userDataDoc.exists()) {
       } else {
         // 새 사용자: 기본 데이터 생성
         console.log('🆕 새 사용자 - 기본 데이터 생성');
-        const defaultBooks = [
-          { id: 1, name: '이번 시험범위', wordCount: 0, isExamRange: true, icon: '🎯' },
-          { id: 2, name: '일단 OK', wordCount: 0, isExamRange: false, icon: '👍' },
-          { id: 3, name: '교과서 ()과', wordCount: 0, isExamRange: false, icon: '📖' },
-          { id: 4, name: '교과서 ()과', wordCount: 0, isExamRange: false, icon: '📖' },
-          { id: 5, name: '모의고사', wordCount: 0, isExamRange: false, icon: '📝' }
-        ];
+        const defaultBooks = [];
 
         // Firestore에 초기 데이터 저장
         console.log('💾 새 사용자 데이터를 Firestore에 저장합니다...');
@@ -4133,21 +4138,21 @@ if (currentView === 'quizModeSelect') {
                 flexDirection: 'column',
                 gap: '12px'
               }}>
-                {books.filter(b => b.id === 1 || b.id === 2 || b.id === 5).map(book => (
+                {books.filter(b => !b.category || b.category !== '교재단어장').map(book => (
                   <div
                     key={book.id}
                     onClick={() => selectBook(book)}
                     style={{
                       position: 'relative',
-                      background: book.id === 1
+                      background: book.isExamRange
                         ? 'linear-gradient(to bottom right, #fef3c7, #fed7aa)'
                         : 'linear-gradient(to bottom right, #cffafe, #e0f2fe)',
-                      border: book.id === 1 ? '2px solid #fcd34d' : '2px solid #67e8f9',
+                      border: book.isExamRange ? '2px solid #fcd34d' : '2px solid #67e8f9',
                       borderRadius: '16px',
                       padding: '12px',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
-                      boxShadow: book.id === 1
+                      boxShadow: book.isExamRange
                         ? '0 2px 8px rgba(251, 191, 36, 0.15)'
                         : '0 2px 8px rgba(6, 182, 212, 0.15)',
                       display: 'flex',
@@ -4156,24 +4161,23 @@ if (currentView === 'quizModeSelect') {
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = book.id === 1
+                      e.currentTarget.style.boxShadow = book.isExamRange
                         ? '0 4px 16px rgba(251, 191, 36, 0.25)'
                         : '0 4px 16px rgba(6, 182, 212, 0.25)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = book.id === 1
+                      e.currentTarget.style.boxShadow = book.isExamRange
                         ? '0 2px 8px rgba(251, 191, 36, 0.15)'
                         : '0 2px 8px rgba(6, 182, 212, 0.15)';
                     }}
                   >
-                    {/* 오른쪽 상단 시험범위 체크박스 - bookId 1이 아닐 때만 표시 */}
-                    {book.id !== 1 && (
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleExamRange(book.id);
-                        }}
+                    {/* 오른쪽 상단 시험범위 체크박스 */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExamRange(book.id);
+                      }}
                         style={{
                           position: 'absolute',
                           top: '8px',
@@ -4196,7 +4200,6 @@ if (currentView === 'quizModeSelect') {
                           <span style={{ fontSize: '14px' }}>⭐</span>
                         )}
                       </div>
-                    )}
 
                     {/* 카드 내용 */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
@@ -4204,13 +4207,13 @@ if (currentView === 'quizModeSelect') {
                         width: '48px',
                         height: '48px',
                         borderRadius: '14px',
-                        background: book.id === 1
+                        background: book.isExamRange
                           ? 'linear-gradient(135deg, #fbbf24, #f97316)'
                           : 'linear-gradient(135deg, #67e8f9, #3b82f6)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: book.id === 1
+                        boxShadow: book.isExamRange
                           ? '0 4px 8px rgba(251, 191, 36, 0.3)'
                           : '0 4px 8px rgba(6, 182, 212, 0.3)'
                       }}>
@@ -4381,7 +4384,7 @@ if (currentView === 'quizModeSelect') {
                 flexDirection: 'column',
                 gap: '12px'
               }}>
-                {books.filter(b => b.id !== 1 && b.id !== 2 && b.id !== 5).map(book => (
+                {books.filter(b => b.category === '교재단어장').map(book => (
                   <div
                     key={book.id}
                     onClick={() => selectBook(book)}
