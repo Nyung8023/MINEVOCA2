@@ -527,9 +527,8 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
       event.target.value = ''; // 파일 입력 초기화
 
       // 배포 후 자동으로 해당 반의 단어장 목록 새로고침
-      if (selectedClassForBooks === selectedUploadClassId) {
-        await loadClassBooks(selectedUploadClassId);
-      }
+      setSelectedClassForBooks(selectedUploadClassId);
+      await loadClassBooks(selectedUploadClassId);
     } catch (error) {
       console.error('엑셀 업로드 오류:', error);
       setExcelUploadStatus(`❌ 오류 발생: ${error.message}`);
@@ -4138,7 +4137,7 @@ if (currentView === 'quizModeSelect') {
                   📚 나만의 단어장
                 </h3>
                 <span className="section-count" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
-                  ({books.filter(b => b.id === 1 || b.id === 2 || b.id === 5).length}개)
+                  ({books.filter(b => !b.category || b.category !== '교재단어장').length}개)
                 </span>
               </div>
               <span className="expand-icon" style={{ fontSize: '1.2rem' }}>
@@ -4384,7 +4383,7 @@ if (currentView === 'quizModeSelect') {
                   📖 교재 단어장
                 </h3>
                 <span className="section-count" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
-                  ({books.filter(b => b.id !== 1 && b.id !== 2 && b.id !== 5).length}개)
+                  ({books.filter(b => b.category === '교재단어장').length}개)
                 </span>
               </div>
               <span className="expand-icon" style={{ fontSize: '1.2rem' }}>
