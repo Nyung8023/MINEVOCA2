@@ -974,8 +974,7 @@ if (userDataDoc.exists()) {
 
   if (needsMigration) {
     migratedBooks = [
-      { id: 1, name: '이번 시험범위', wordCount: (migratedBooks[0]?.wordCount || 0), isExamRange: true, icon: '🎯' },
-      { id: 2, name: '일단 OK', wordCount: 0, isExamRange: false, icon: '👍' }
+      { id: 1, name: '이번 시험범위', wordCount: (migratedBooks[0]?.wordCount || 0), isExamRange: true, icon: '🎯' }
     ];
 
     // 마이그레이션한 경우 즉시 Firestore에 저장
@@ -985,13 +984,13 @@ if (userDataDoc.exists()) {
       books: migratedBooks
     });
   } else {
-    // 기존 사용자: 불필요한 기본 단어장(id 3, 4, 5) 제거
+    // 기존 사용자: 불필요한 기본 단어장(id 2, 3, 4, 5) 제거
     const cleanedBooks = migratedBooks.filter(book => {
       // 교재단어장은 모두 유지
       if (book.category === '교재단어장') return true;
 
-      // 나의학습단어장 중에서 id가 1, 2인 것만 유지
-      return book.id === 1 || book.id === 2;
+      // 나의학습단어장 중에서 id가 1인 것만 유지 (일단 OK 제거)
+      return book.id === 1;
     });
 
     // 변경이 있었으면 저장
@@ -1061,8 +1060,7 @@ if (userDataDoc.exists()) {
         // 새 사용자: 기본 데이터 생성
         console.log('🆕 새 사용자 - 기본 데이터 생성');
         const defaultBooks = [
-          { id: 1, name: '이번 시험범위', wordCount: 0, isExamRange: true, icon: '🎯' },
-          { id: 2, name: '일단 OK', wordCount: 0, isExamRange: false, icon: '👍' }
+          { id: 1, name: '이번 시험범위', wordCount: 0, isExamRange: true, icon: '🎯' }
         ];
 
         // Firestore에 초기 데이터 저장
@@ -2019,26 +2017,6 @@ const addWordFromClick = async (clickedWord) => {
       b.id === targetBookId
         ? { ...b, wordCount: b.wordCount + 1 }
         : b
-    ));
-  };
-
-  // OK 버튼 - 일단 OK 단어장(bookId 2)으로 이동
-  const moveToOkBook = (wordId) => {
-    const word = words.find(w => w.id === wordId);
-    if (!word) return;
-
-    // 현재 단어장에서 wordCount 감소
-    setBooks(books.map(b =>
-      b.id === word.bookId
-        ? { ...b, wordCount: Math.max(0, b.wordCount - 1) }
-        : b.id === 2
-        ? { ...b, wordCount: b.wordCount + 1 }
-        : b
-    ));
-
-    // 단어를 bookId 2로 이동
-    setWords(words.map(w =>
-      w.id === wordId ? { ...w, bookId: 2 } : w
     ));
   };
 
@@ -4336,7 +4314,7 @@ if (currentView === 'quizModeSelect') {
                       </div>
                     </div>
 
-                    {/* 버튼 행 - id 1과 2는 편집/삭제 불가 */}
+                    {/* 버튼 행 - id 1은 편집/삭제 불가 */}
                     <div style={{
                       display: 'flex',
                       gap: '6px',
@@ -4346,8 +4324,8 @@ if (currentView === 'quizModeSelect') {
                         ? '1px solid rgba(251, 191, 36, 0.2)'
                         : '1px solid rgba(6, 182, 212, 0.2)'
                     }}>
-                      {/* 이름 수정 버튼 - id 1과 2는 수정 불가 */}
-                      {book.id !== 1 && book.id !== 2 && (
+                      {/* 이름 수정 버튼 - id 1은 수정 불가 */}
+                      {book.id !== 1 && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -4383,8 +4361,8 @@ if (currentView === 'quizModeSelect') {
                         </button>
                       )}
 
-                      {/* 삭제 버튼 - id 1과 2는 삭제 불가 */}
-                      {book.id !== 1 && book.id !== 2 && (
+                      {/* 삭제 버튼 - id 1은 삭제 불가 */}
+                      {book.id !== 1 && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -8702,67 +8680,36 @@ if (currentView === 'list' && selectedBook) {
 
                 {/* 버튼 영역 - 파스텔톤 */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  {/* bookId 2 (일단 OK): 암기완료 버튼 / 나머지: OK 버튼 */}
-                  {selectedBook.id === 2 ? (
-                    <button
-                      onClick={() => markAsMastered(word.id)}
-                      style={{
-                        padding: '6px 12px',
-                        background: 'linear-gradient(135deg, #99f6e4, #5eead4)',
-                        border: '2px solid #2dd4bf',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '0.75rem',
-                        color: '#0d9488',
-                        fontWeight: '700',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 4px 8px rgba(45, 212, 191, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = 'none';
-                      }}
-                      title="암기완료로 이동"
-                    >
-                      <CheckCircle size={14} strokeWidth={2.5} />
-                      암기완료
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => moveToOkBook(word.id)}
-                      style={{
-                        padding: '6px 12px',
-                        background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-                        border: '2px solid #fbbf24',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '0.75rem',
-                        color: '#78350f',
-                        fontWeight: '700',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-2px)';
-                        e.target.style.boxShadow = '0 4px 8px rgba(251, 191, 36, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = 'none';
-                      }}
-                      title="일단 OK 단어장으로 이동"
-                    >
-                      👍 OK
-                    </button>
-                  )}
+                  {/* 암기완료 버튼 */}
+                  <button
+                    onClick={() => markAsMastered(word.id)}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'linear-gradient(135deg, #99f6e4, #5eead4)',
+                      border: '2px solid #2dd4bf',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                      color: '#0d9488',
+                      fontWeight: '700',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 4px 8px rgba(45, 212, 191, 0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                    title="암기완료로 이동"
+                  >
+                    <CheckCircle size={14} strokeWidth={2.5} />
+                    암기완료
+                  </button>
                   
                   <div style={{ display: 'flex', gap: '6px' }}>
                     {editingWordId === word.id ? (
