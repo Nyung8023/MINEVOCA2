@@ -4176,242 +4176,169 @@ if (currentView === 'quizModeSelect') {
         alignItems: 'start'
       }}>
 
-        {/* 왼쪽: 나만의 단어장 섹션 */}
-        <div style={{ minWidth: 0 }}>
-          <div style={{ marginBottom: '20px' }}>
-            {/* 섹션 헤더 */}
-            <div
-              onClick={() => setExpandedSections(prev => ({ ...prev, learning: !prev.learning }))}
-              className="section-header"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                background: 'rgba(255, 255, 255, 0.9)',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                marginBottom: expandedSections.learning ? '12px' : '0',
-                border: '2px solid rgba(226, 232, 240, 0.5)',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 className="section-title" style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                  📚 나만의 단어장
-                </h3>
-                <span className="section-count" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
-                  ({books.filter(b => !b.category || b.category !== '교재단어장').length}개)
-                </span>
+        {/* 나의 단어장 섹션 (2x2 그리드) */}
+        <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', marginBottom: '12px' }}>
+            📚 나의 단어장
+          </h3>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '10px'
+          }}>
+            {/* 이번 시험범위 */}
+            {books.filter(b => b.id === 1).map(book => (
+              <div
+                key={book.id}
+                onClick={() => selectBook(book)}
+                style={{
+                  background: 'white',
+                  border: '2px solid #fbbf24',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🎯</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>
+                  이번 시험범위
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                  {words.filter(w => w.bookId === book.id && !w.mastered).length}개
+                </div>
               </div>
-              <span className="expand-icon" style={{ fontSize: '1.2rem' }}>
-                {expandedSections.learning ? '▼' : '▶'}
-              </span>
-            </div>
+            ))}
 
-            {/* 단어장 목록 */}
-            {expandedSections.learning && (
-              <div style={{
+            {/* 암기완료 */}
+            <div
+              onClick={() => setCurrentView('memorized')}
+              style={{
+                background: 'white',
+                border: '2px solid #10b981',
+                borderRadius: '12px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px'
-              }}>
-                {books.filter(b => !b.category || b.category !== '교재단어장').map(book => (
-                  <div
-                    key={book.id}
-                    onClick={() => selectBook(book)}
-                    style={{
-                      background: 'white',
-                      border: book.isExamRange ? '2px solid #fbbf24' : '2px solid #e2e8f0',
-                      borderRadius: '12px',
-                      padding: '14px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
-                  >
-                    {/* 왼쪽: 아이콘 */}
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: book.isExamRange ? '#fef3c7' : '#f1f5f9',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      fontSize: '1.3rem'
-                    }}>
-                      {book.isExamRange ? '🎯' : '📘'}
-                    </div>
-
-                    {/* 중간: 이름과 개수 */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: '0.9rem',
-                        fontWeight: 600,
-                        color: '#1e293b',
-                        marginBottom: '2px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {book.name}
-                        {book.isExamRange && <span style={{ marginLeft: '4px', fontSize: '0.75rem' }}>⭐</span>}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        학습중 {words.filter(w => w.bookId === book.id && !w.mastered).length}개
-                      </div>
-                    </div>
-
-                    {/* 오른쪽: 버튼들 */}
-                    <div style={{
-                      display: 'flex',
-                      gap: '4px',
-                      flexShrink: 0
-                    }} onClick={(e) => e.stopPropagation()}>
-                      {/* 시험범위 토글 */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleExamRange(book.id);
-                        }}
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          background: book.isExamRange ? '#fef3c7' : '#f8fafc',
-                          border: book.isExamRange ? '1px solid #fbbf24' : '1px solid #e2e8f0',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontSize: '1rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        title={book.isExamRange ? '시험범위에서 제외' : '시험범위에 추가'}
-                      >
-                        {book.isExamRange ? '⭐' : '☆'}
-                      </button>
-
-                      {/* 이름 수정 버튼 - id 1은 수정 불가 */}
-                      {book.id !== 1 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startEditing(book);
-                          }}
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            background: '#f1f5f9',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          title="이름 수정"
-                        >
-                          ✏️
-                        </button>
-                      )}
-
-                      {/* 삭제 버튼 - id 1은 삭제 불가 */}
-                      {book.id !== 1 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteBook(book.id);
-                          }}
-                          style={{
-                            width: '32px',
-                            height: '32px',
-                            background: '#f1f5f9',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          title="삭제"
-                        >
-                          🗑️
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                alignItems: 'center',
+                textAlign: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>✅</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>
+                암기완료
               </div>
-            )}
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                {words.filter(w => w.mastered).length}개
+              </div>
+            </div>
+
+            {/* 오답노트 */}
+            <div
+              onClick={() => setCurrentView('wrongNote')}
+              style={{
+                background: 'white',
+                border: '2px solid #ef4444',
+                borderRadius: '12px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📝</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e293b', marginBottom: '4px' }}>
+                오답노트
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                {words.filter(w => w.wrongNote).length}개
+              </div>
+            </div>
+
+            {/* 새 단어장 추가 */}
+            <div
+              onClick={() => setShowBookInput(true)}
+              style={{
+                background: 'white',
+                border: '2px dashed #cbd5e1',
+                borderRadius: '12px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#94a3b8';
+                e.currentTarget.style.background = '#f8fafc';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '#cbd5e1';
+                e.currentTarget.style.background = 'white';
+              }}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: '8px', color: '#94a3b8' }}>+</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b' }}>
+                새 단어장
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* 가운데: 교재 단어장 섹션 */}
-        <div style={{ minWidth: 0 }}>
-          <div style={{ marginBottom: '20px' }}>
-            {/* 섹션 헤더 */}
-            <div
-              onClick={() => setExpandedSections(prev => ({ ...prev, textbook: !prev.textbook }))}
-              className="section-header"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                background: 'rgba(255, 255, 255, 0.9)',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                marginBottom: expandedSections.textbook ? '12px' : '0',
-                border: '2px solid rgba(226, 232, 240, 0.5)',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 className="section-title" style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                  📖 교재 단어장
-                </h3>
-                <span className="section-count" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
-                  ({books.filter(b => b.category === '교재단어장').length}개)
-                </span>
-              </div>
-              <span className="expand-icon" style={{ fontSize: '1.2rem' }}>
-                {expandedSections.textbook ? '▼' : '▶'}
-              </span>
+        {/* 교재 단어장 섹션 */}
+        <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', marginBottom: '12px' }}>
+            📖 교재 단어장
+          </h3>
+          {books.filter(b => b.category === '교재단어장').length === 0 ? (
+            <div style={{
+              background: 'white',
+              border: '2px dashed #cbd5e1',
+              borderRadius: '12px',
+              padding: '24px',
+              textAlign: 'center',
+              color: '#94a3b8'
+            }}>
+              아직 교재 단어장이 없습니다
             </div>
-
-            {/* 단어장 목록 */}
-            {expandedSections.textbook && (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                {books.filter(b => b.category === '교재단어장').map(book => (
-                  <div
+          ) : (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              {books.filter(b => b.category === '교재단어장').map(book => (
+                <div
                     key={book.id}
                     onClick={() => selectBook(book)}
                     style={{
@@ -4548,121 +4475,6 @@ if (currentView === 'quizModeSelect') {
           </div>
         </div>
 
-      </div>
-
-      {/* ✅ 암기완료 & 📝 오답노트 */}
-      <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {/* 암기완료 카드 */}
-          <div
-            onClick={() => setCurrentView('memorized')}
-            style={{
-              background: 'white',
-              border: '2px solid #10b981',
-              borderRadius: '12px',
-              padding: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            {/* 왼쪽: 아이콘 */}
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: '#d1fae5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              fontSize: '1.3rem'
-            }}>
-              ✅
-            </div>
-
-            {/* 중간: 이름과 개수 */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                color: '#1e293b',
-                marginBottom: '2px'
-              }}>
-                암기완료
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                완료 {words.filter(w => w.mastered).length}개
-              </div>
-            </div>
-
-            {/* 오른쪽: 화살표 */}
-            <div style={{ fontSize: '1.2rem', color: '#94a3b8', flexShrink: 0 }}>→</div>
-          </div>
-
-          {/* 오답노트 카드 */}
-          <div
-            onClick={() => setCurrentView('wrongNote')}
-            style={{
-              background: 'white',
-              border: '2px solid #ef4444',
-              borderRadius: '12px',
-              padding: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            {/* 왼쪽: 아이콘 */}
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '10px',
-              background: '#fee2e2',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              fontSize: '1.3rem'
-            }}>
-              📝
-            </div>
-
-            {/* 중간: 이름과 개수 */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                color: '#1e293b',
-                marginBottom: '2px'
-              }}>
-                오답노트
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                등록 {words.filter(w => w.wrongNote).length}개
-              </div>
-            </div>
-
-            {/* 오른쪽: 화살표 */}
-            <div style={{ fontSize: '1.2rem', color: '#94a3b8', flexShrink: 0 }}>→</div>
-          </div>
-        </div>
       </div>
 
       {/* 단어 시험 관리 버튼 (관리자 전용) */}
