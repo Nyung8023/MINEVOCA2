@@ -3852,7 +3852,7 @@ if (currentView === 'quizModeSelect') {
                   {examName}까지
                 </div>
                 <div className="dday-number" style={{ fontSize: '2rem', fontWeight: '700', color: '#6d28d9', marginBottom: '4px' }}>
-                  D-{dday}
+                  {dday > 0 ? `D-${dday}` : dday === 0 ? 'D-Day' : `D+${Math.abs(dday)}`}
                 </div>
                 <div style={{ fontSize: '1.5rem' }}>🎯</div>
               </>
