@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import React, { useState, useEffect, useCallback } from 'react';
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore';
 import { Volume2, Check, X, Plus, Trash2, Edit2, BookOpen, Album, Brain, GraduationCap, Star, Eye, Settings, Gift, Target, TrendingUp, Award, Calendar, BarChart3, Shuffle, Headphones, Pencil, Lightbulb, ClipboardList, CheckCircle, Book } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
