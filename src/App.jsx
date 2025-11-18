@@ -132,16 +132,24 @@ const startEditing = (book) => {
 
  // 단어장 수정
   const updateBook = async () => {
+  // 기본 단어장(id 1, 2)은 수정 불가
+  if (editingBook && (editingBook.id === 1 || editingBook.id === 2)) {
+    alert('기본 단어장은 수정할 수 없습니다.');
+    setEditingBook(null);
+    setShowEditModal(false);
+    return;
+  }
+
   if (editingBook && editingBook.name.trim()) {
-    const updatedBooks = books.map(b => 
-      b.id === editingBook.id 
+    const updatedBooks = books.map(b =>
+      b.id === editingBook.id
         ? { ...b, name: editingBook.name, icon: editingBook.icon || '📒' }
         : b
     );
     setBooks(updatedBooks);
     setEditingBook(null);
     setShowEditModal(false);
-    
+
     try {
       await window.storage.set('books', JSON.stringify(updatedBooks));
     } catch (error) {
@@ -1724,17 +1732,27 @@ if (userDataDoc.exists()) {
       const newBook = {
         id: Date.now(),
         name: newBookName,
-        wordCount: 0
+        wordCount: 0,
+        category: '교재단어장',  // 교재단어장으로 자동 분류
+        icon: '📖',
+        isExamRange: false,
+        createdAt: new Date().toISOString()
       };
       setBooks([...books, newBook]);
       setNewBookName('');
       setShowBookInput(false);
-      console.log('✅ 새 단어장 추가:', newBook.name);
+      console.log('✅ 새 교재단어장 추가:', newBook.name);
     }
   };
 
   // 단어장 삭제
   const deleteBook = (bookId) => {
+    // 기본 단어장(id 1, 2)은 삭제 불가
+    if (bookId === 1 || bookId === 2) {
+      alert('기본 단어장은 삭제할 수 없습니다.');
+      return;
+    }
+
     if (window.confirm('이 단어장을 삭제하시겠습니까?')) {
       setBooks(books.filter(b => b.id !== bookId));
       setWords(words.filter(w => w.bookId !== bookId));
