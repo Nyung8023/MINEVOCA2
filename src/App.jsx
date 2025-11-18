@@ -4220,127 +4220,93 @@ if (currentView === 'quizModeSelect') {
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px'
+                gap: '8px'
               }}>
                 {books.filter(b => !b.category || b.category !== '교재단어장').map(book => (
                   <div
                     key={book.id}
                     onClick={() => selectBook(book)}
                     style={{
-                      position: 'relative',
-                      background: book.isExamRange
-                        ? 'linear-gradient(to bottom right, #fef3c7, #fed7aa)'
-                        : 'linear-gradient(to bottom right, #cffafe, #e0f2fe)',
-                      border: book.isExamRange ? '2px solid #fcd34d' : '2px solid #67e8f9',
-                      borderRadius: '16px',
-                      padding: '12px',
+                      background: 'white',
+                      border: book.isExamRange ? '2px solid #fbbf24' : '2px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '14px',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
-                      boxShadow: book.isExamRange
-                        ? '0 2px 8px rgba(251, 191, 36, 0.15)'
-                        : '0 2px 8px rgba(6, 182, 212, 0.15)',
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px'
+                      alignItems: 'center',
+                      gap: '12px'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = book.isExamRange
-                        ? '0 4px 16px rgba(251, 191, 36, 0.25)'
-                        : '0 4px 16px rgba(6, 182, 212, 0.25)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = book.isExamRange
-                        ? '0 2px 8px rgba(251, 191, 36, 0.15)'
-                        : '0 2px 8px rgba(6, 182, 212, 0.15)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
-                    {/* 오른쪽 상단 시험범위 체크박스 */}
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleExamRange(book.id);
-                      }}
-                        style={{
-                          position: 'absolute',
-                          top: '8px',
-                          right: '8px',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '6px',
-                          border: book.isExamRange ? '2px solid #f59e0b' : '2px solid #cbd5e1',
-                          background: book.isExamRange ? '#fbbf24' : 'white',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          boxShadow: book.isExamRange ? '0 2px 6px rgba(251, 191, 36, 0.4)' : '0 1px 3px rgba(0,0,0,0.1)'
-                        }}
-                        title={book.isExamRange ? '시험범위 포함됨' : '시험범위에 추가'}
-                      >
-                        {book.isExamRange && (
-                          <span style={{ fontSize: '14px' }}>⭐</span>
-                        )}
-                      </div>
+                    {/* 왼쪽: 아이콘 */}
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      background: book.isExamRange ? '#fef3c7' : '#f1f5f9',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      fontSize: '1.3rem'
+                    }}>
+                      {book.isExamRange ? '🎯' : '📘'}
+                    </div>
 
-                    {/* 카드 내용 */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    {/* 중간: 이름과 개수 */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        width: '48px',
-                        height: '48px',
-                        borderRadius: '14px',
-                        background: book.isExamRange
-                          ? 'linear-gradient(135deg, #fbbf24, #f97316)'
-                          : 'linear-gradient(135deg, #67e8f9, #3b82f6)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: book.isExamRange
-                          ? '0 4px 8px rgba(251, 191, 36, 0.3)'
-                          : '0 4px 8px rgba(6, 182, 212, 0.3)'
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: '#1e293b',
+                        marginBottom: '2px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
                       }}>
-                        {book.icon || <Book size={24} strokeWidth={2.5} style={{ color: 'white' }} />}
+                        {book.name}
+                        {book.isExamRange && <span style={{ marginLeft: '4px', fontSize: '0.75rem' }}>⭐</span>}
                       </div>
-
-                      <div style={{ textAlign: 'center', width: '100%' }}>
-                        <h3 style={{
-                          fontSize: '0.85rem',
-                          fontWeight: 700,
-                          color: '#1e293b',
-                          margin: '0 0 4px 0',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {book.name}
-                        </h3>
-                        <p style={{
-                          fontSize: '0.7rem',
-                          color: '#475569',
-                          margin: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px'
-                        }}>
-                          <Album size={12} strokeWidth={2.5} style={{ color: '#475569' }} />
-                          <span>학습중 {words.filter(w => w.bookId === book.id && !w.mastered).length}개</span>
-                        </p>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        학습중 {words.filter(w => w.bookId === book.id && !w.mastered).length}개
                       </div>
                     </div>
 
-                    {/* 버튼 행 - id 1은 편집/삭제 불가 */}
+                    {/* 오른쪽: 버튼들 */}
                     <div style={{
                       display: 'flex',
-                      gap: '6px',
-                      justifyContent: 'center',
-                      paddingTop: '4px',
-                      borderTop: book.id === 1
-                        ? '1px solid rgba(251, 191, 36, 0.2)'
-                        : '1px solid rgba(6, 182, 212, 0.2)'
-                    }}>
+                      gap: '4px',
+                      flexShrink: 0
+                    }} onClick={(e) => e.stopPropagation()}>
+                      {/* 시험범위 토글 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExamRange(book.id);
+                        }}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          background: book.isExamRange ? '#fef3c7' : '#f8fafc',
+                          border: book.isExamRange ? '1px solid #fbbf24' : '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title={book.isExamRange ? '시험범위에서 제외' : '시험범위에 추가'}
+                      >
+                        {book.isExamRange ? '⭐' : '☆'}
+                      </button>
+
                       {/* 이름 수정 버튼 - id 1은 수정 불가 */}
                       {book.id !== 1 && (
                         <button
@@ -4349,32 +4315,20 @@ if (currentView === 'quizModeSelect') {
                             startEditing(book);
                           }}
                           style={{
-                            flex: 1,
+                            width: '32px',
                             height: '32px',
-                            background: '#3b82f6',
+                            background: '#f1f5f9',
+                            border: '1px solid #e2e8f0',
                             borderRadius: '8px',
-                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '4px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            fontSize: '0.75rem',
-                            color: 'white',
-                            fontWeight: 600
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#2563eb';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#3b82f6';
-                            e.currentTarget.style.transform = 'translateY(0)';
+                            justifyContent: 'center'
                           }}
                           title="이름 수정"
                         >
-                          <span>✏️</span>
+                          ✏️
                         </button>
                       )}
 
@@ -4386,32 +4340,20 @@ if (currentView === 'quizModeSelect') {
                             deleteBook(book.id);
                           }}
                           style={{
-                            flex: 1,
+                            width: '32px',
                             height: '32px',
-                            background: '#ef4444',
+                            background: '#f1f5f9',
+                            border: '1px solid #e2e8f0',
                             borderRadius: '8px',
-                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '4px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            fontSize: '0.75rem',
-                            color: 'white',
-                            fontWeight: 600
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#dc2626';
-                            e.currentTarget.style.transform = 'translateY(-1px)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = '#ef4444';
-                            e.currentTarget.style.transform = 'translateY(0)';
+                            justifyContent: 'center'
                           }}
                           title="삭제"
                         >
-                          <span>🗑️</span>
+                          🗑️
                         </button>
                       )}
                     </div>
@@ -4466,105 +4408,93 @@ if (currentView === 'quizModeSelect') {
               <div style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px'
+                gap: '8px'
               }}>
                 {books.filter(b => b.category === '교재단어장').map(book => (
                   <div
                     key={book.id}
                     onClick={() => selectBook(book)}
                     style={{
-                      position: 'relative',
-                      background: 'linear-gradient(to bottom right, #cffafe, #e0f2fe)',
-                      border: '2px solid #67e8f9',
-                      borderRadius: '16px',
-                      padding: '12px',
+                      background: 'white',
+                      border: book.isExamRange ? '2px solid #fbbf24' : '2px solid #e2e8f0',
+                      borderRadius: '12px',
+                      padding: '14px',
                       cursor: 'pointer',
                       transition: 'all 0.2s',
-                      boxShadow: '0 2px 8px rgba(6, 182, 212, 0.15)',
                       display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px'
+                      alignItems: 'center',
+                      gap: '12px'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(6, 182, 212, 0.25)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(6, 182, 212, 0.15)';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
-                    {/* 시험범위 체크박스 */}
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleExamRange(book.id);
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: '8px',
-                        right: '8px',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '6px',
-                        border: book.isExamRange ? '2px solid #f59e0b' : '2px solid #cbd5e1',
-                        background: book.isExamRange ? '#fbbf24' : 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                      title={book.isExamRange ? '시험범위 포함됨' : '시험범위에 추가'}
-                    >
-                      {book.isExamRange && <span style={{ fontSize: '14px' }}>⭐</span>}
+                    {/* 왼쪽: 아이콘 */}
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '10px',
+                      background: book.isExamRange ? '#fef3c7' : '#dbeafe',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      fontSize: '1.3rem'
+                    }}>
+                      📚
                     </div>
 
-                    {/* 카드 내용 */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                    {/* 중간: 이름과 개수 */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{
-                        width: '48px',
-                        height: '48px',
-                        borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #67e8f9, #3b82f6)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 4px 8px rgba(6, 182, 212, 0.3)'
+                        fontSize: '0.9rem',
+                        fontWeight: 600,
+                        color: '#1e293b',
+                        marginBottom: '2px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
                       }}>
-                        {book.icon || <Book size={24} strokeWidth={2.5} style={{ color: 'white' }} />}
+                        {book.name}
+                        {book.isExamRange && <span style={{ marginLeft: '4px', fontSize: '0.75rem' }}>⭐</span>}
                       </div>
-
-                      <div style={{ textAlign: 'center', width: '100%' }}>
-                        <h3 style={{
-                          fontSize: '0.85rem',
-                          fontWeight: 700,
-                          color: '#1e293b',
-                          margin: '0 0 4px 0',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {book.name}
-                        </h3>
-                        <p style={{
-                          fontSize: '0.7rem',
-                          color: '#475569',
-                          margin: 0
-                        }}>
-                          학습중 {words.filter(w => w.bookId === book.id && !w.mastered).length}개
-                        </p>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        학습중 {words.filter(w => w.bookId === book.id && !w.mastered).length}개
                       </div>
                     </div>
 
-                    {/* 버튼 행 */}
+                    {/* 오른쪽: 버튼들 */}
                     <div style={{
                       display: 'flex',
-                      gap: '6px',
-                      justifyContent: 'center',
-                      paddingTop: '4px',
-                      borderTop: '1px solid rgba(6, 182, 212, 0.2)'
-                    }}>
+                      gap: '4px',
+                      flexShrink: 0
+                    }} onClick={(e) => e.stopPropagation()}>
+                      {/* 시험범위 토글 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleExamRange(book.id);
+                        }}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          background: book.isExamRange ? '#fef3c7' : '#f8fafc',
+                          border: book.isExamRange ? '1px solid #fbbf24' : '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title={book.isExamRange ? '시험범위에서 제외' : '시험범위에 추가'}
+                      >
+                        {book.isExamRange ? '⭐' : '☆'}
+                      </button>
+
                       {/* 수정 버튼 */}
                       <button
                         onClick={(e) => {
@@ -4572,23 +4502,20 @@ if (currentView === 'quizModeSelect') {
                           startEditing(book);
                         }}
                         style={{
-                          flex: 1,
+                          width: '32px',
                           height: '32px',
-                          background: '#3b82f6',
+                          background: '#f1f5f9',
+                          border: '1px solid #e2e8f0',
                           borderRadius: '8px',
-                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          fontSize: '0.75rem',
-                          color: 'white',
-                          fontWeight: 600
+                          justifyContent: 'center'
                         }}
                         title="이름 수정"
                       >
-                        <span>✏️</span>
+                        ✏️
                       </button>
 
                       {/* 삭제 버튼 */}
@@ -4598,23 +4525,20 @@ if (currentView === 'quizModeSelect') {
                           deleteBook(book.id);
                         }}
                         style={{
-                          flex: 1,
+                          width: '32px',
                           height: '32px',
-                          background: '#ef4444',
+                          background: '#f1f5f9',
+                          border: '1px solid #e2e8f0',
                           borderRadius: '8px',
-                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          fontSize: '0.75rem',
-                          color: 'white',
-                          fontWeight: 600
+                          justifyContent: 'center'
                         }}
                         title="삭제"
                       >
-                        <span>🗑️</span>
+                        🗑️
                       </button>
                     </div>
                   </div>
