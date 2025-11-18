@@ -4085,94 +4085,72 @@ if (currentView === 'quizModeSelect') {
         console.log('🔍 시험 카드 표시:', test.title, '- needsRetest:', needsRetest);
 
         return (
-        <div key={test.id} style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
+        <div key={test.id} style={{ width: '100%', padding: '0 24px', marginBottom: '20px' }}>
           <div
             style={{
-              background: hasPassed
-                ? 'linear-gradient(135deg, #d1fae5, #a7f3d0, #6ee7b7)'
-                : 'linear-gradient(135deg, #fef3c7, #fde68a, #fed7aa)',
-              border: hasPassed ? '3px solid #10b981' : '3px solid #f59e0b',
-              borderRadius: '20px',
-              padding: '32px',
-              boxShadow: hasPassed
-                ? '0 8px 24px rgba(16, 185, 129, 0.3)'
-                : '0 8px 24px rgba(245, 158, 11, 0.3)',
+              background: needsRetest
+                ? 'linear-gradient(135deg, #fff1f2, #ffe4e6, #fecdd3)'
+                : 'linear-gradient(135deg, #ede9fe, #ddd6fe, #c4b5fd)',
+              border: needsRetest ? '2px solid #fb7185' : '2px solid #a78bfa',
+              borderRadius: '16px',
+              padding: '20px',
+              boxShadow: needsRetest
+                ? '0 4px 12px rgba(251, 113, 133, 0.15)'
+                : '0 4px 12px rgba(167, 139, 250, 0.15)',
               position: 'relative',
               overflow: 'hidden'
             }}
           >
-            {/* 배경 장식 */}
-            <div style={{
-              position: 'absolute',
-              top: '-50px',
-              right: '-50px',
-              width: '200px',
-              height: '200px',
-              background: 'rgba(251, 191, 36, 0.1)',
-              borderRadius: '50%'
-            }} />
-            <div style={{
-              position: 'absolute',
-              bottom: '-30px',
-              left: '-30px',
-              width: '150px',
-              height: '150px',
-              background: 'rgba(251, 191, 36, 0.1)',
-              borderRadius: '50%'
-            }} />
 
             <div style={{ position: 'relative', zIndex: 1 }}>
               {/* 헤더 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                <div style={{
-                  fontSize: '3rem',
-                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
-                }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '1.8rem' }}>
                   📝
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h2 style={{
-                    fontSize: '1.8rem',
-                    fontWeight: 900,
-                    color: '#78350f',
-                    margin: 0,
-                    textShadow: '0 2px 4px rgba(120, 53, 15, 0.1)'
-                  }}>
-                    오늘의 단어 시험
-                  </h2>
-                  <p style={{
-                    fontSize: '0.95rem',
-                    color: '#92400e',
-                    margin: '4px 0 0 0',
-                    fontWeight: 600
+                  <h3 style={{
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    color: needsRetest ? '#be123c' : '#5b21b6',
+                    margin: 0
                   }}>
                     {test.title}
+                  </h3>
+                  <p style={{
+                    fontSize: '0.8rem',
+                    color: needsRetest ? '#9f1239' : '#6d28d9',
+                    margin: '2px 0 0 0',
+                    fontWeight: 500,
+                    opacity: 0.8
+                  }}>
+                    단어 시험
                   </p>
                 </div>
               </div>
 
               {/* 시험 정보 */}
               <div style={{
-                background: 'rgba(255, 255, 255, 0.7)',
-                borderRadius: '16px',
-                padding: '20px',
-                marginBottom: '20px',
-                border: '2px solid rgba(251, 191, 36, 0.3)'
+                background: 'rgba(255, 255, 255, 0.6)',
+                borderRadius: '12px',
+                padding: '14px',
+                marginBottom: '14px',
+                border: '1px solid rgba(255, 255, 255, 0.5)'
               }}>
-                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '12px' }}>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 600, marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginBottom: '3px' }}>
                       단어 개수
                     </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#78350f' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: needsRetest ? '#be123c' : '#5b21b6' }}>
                       {test.wordIds.length}개
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 600, marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginBottom: '3px' }}>
                       마감 시간
                     </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#dc2626' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#dc2626' }}>
                       {new Date(test.deadline).toLocaleString('ko-KR', {
                         month: 'numeric',
                         day: 'numeric',
@@ -4182,10 +4160,10 @@ if (currentView === 'quizModeSelect') {
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: '#92400e', fontWeight: 600, marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginBottom: '3px' }}>
                       남은 시간
                     </div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ea580c' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#ea580c' }}>
                       {(() => {
                         const diff = new Date(test.deadline) - new Date();
                         const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -4201,18 +4179,18 @@ if (currentView === 'quizModeSelect') {
                   // 통과한 경우: 축하 메시지 표시 (버튼 없음)
                   <div style={{
                     width: '100%',
-                    padding: '24px',
+                    padding: '16px',
                     background: 'linear-gradient(135deg, #10b981, #059669)',
-                    borderRadius: '12px',
+                    borderRadius: '10px',
                     textAlign: 'center',
-                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)'
+                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
                   }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '12px' }}>✅</div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'white', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '6px' }}>✅</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'white', marginBottom: '4px' }}>
                       시험 통과!
                     </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'rgba(255, 255, 255, 0.95)' }}>
-                      {latestResult.score}%로 합격하셨습니다! 🎉
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255, 255, 255, 0.95)' }}>
+                      {latestResult.score}%로 합격 🎉
                     </div>
                   </div>
                 ) : needsRetest ? (
@@ -4248,32 +4226,32 @@ if (currentView === 'quizModeSelect') {
                     }}
                     style={{
                       width: '100%',
-                      padding: '20px',
-                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      padding: '14px',
+                      background: 'linear-gradient(135deg, #fb7185, #f43f5e)',
                       border: 'none',
-                      borderRadius: '12px',
-                      fontSize: '1.2rem',
-                      fontWeight: 900,
+                      borderRadius: '10px',
+                      fontSize: '0.95rem',
+                      fontWeight: 700,
                       color: 'white',
                       cursor: 'pointer',
-                      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
+                      boxShadow: '0 2px 8px rgba(251, 113, 133, 0.3)',
                       transition: 'all 0.2s',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px'
+                      gap: '6px'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.5)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(251, 113, 133, 0.4)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(251, 113, 133, 0.3)';
                     }}
                   >
-                    <span style={{ fontSize: '1.5rem' }}>🔄</span>
-                    재시험 보기 (이전 점수: {latestResult.score}%)
+                    <span style={{ fontSize: '1.2rem' }}>🔄</span>
+                    재시험 ({latestResult.score}%)
                   </button>
                 ) : (
                   // 아직 시험 보지 않은 경우: 일반 시험 버튼
@@ -4315,32 +4293,32 @@ if (currentView === 'quizModeSelect') {
                     }}
                     style={{
                       width: '100%',
-                      padding: '20px',
-                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      padding: '14px',
+                      background: 'linear-gradient(135deg, #a78bfa, #8b5cf6)',
                       border: 'none',
-                      borderRadius: '12px',
-                      fontSize: '1.2rem',
-                      fontWeight: 900,
+                      borderRadius: '10px',
+                      fontSize: '0.95rem',
+                      fontWeight: 700,
                       color: 'white',
                       cursor: 'pointer',
-                      boxShadow: '0 4px 12px rgba(217, 119, 6, 0.4)',
+                      boxShadow: '0 2px 8px rgba(167, 139, 250, 0.3)',
                       transition: 'all 0.2s',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '8px'
+                      gap: '6px'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(217, 119, 6, 0.5)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(167, 139, 250, 0.4)';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(217, 119, 6, 0.4)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(167, 139, 250, 0.3)';
                     }}
                   >
-                    <span style={{ fontSize: '1.5rem' }}>✏️</span>
-                    지금 시험 보기
+                    <span style={{ fontSize: '1.2rem' }}>✏️</span>
+                    시험 보기
                   </button>
                 )}
               </div>
