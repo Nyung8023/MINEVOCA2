@@ -8277,9 +8277,39 @@ if (currentView === 'list' && selectedBook) {
                   )}
                 </div>
 
-                {/* 동의어/반의어 - 파스텔톤 */}
+                {/* 영영풀이/동의어/반의어 - 파스텔톤 */}
                 {editingWordId === word.id ? (
                   <div style={{ marginBottom: '10px' }}>
+                    {/* 영영풀이 편집 */}
+                    <div style={{ marginBottom: '8px' }}>
+                      <label style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '4px' }}>
+                        영영풀이 (Definition)
+                      </label>
+                      <textarea
+                        value={word.definition || ''}
+                        onChange={(e) => {
+                          const updatedWords = words.map(w =>
+                            w.id === word.id
+                              ? { ...w, definition: e.target.value }
+                              : w
+                          );
+                          setWords(updatedWords);
+                        }}
+                        placeholder="영어 뜻 설명을 입력하세요"
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '2px solid #c4b5fd',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          background: '#f5f3ff',
+                          outline: 'none',
+                          minHeight: '60px',
+                          resize: 'vertical',
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                    </div>
                     {/* 동의어 편집 */}
                     <div style={{ marginBottom: '8px' }}>
                       <label style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '4px' }}>
@@ -8338,14 +8368,34 @@ if (currentView === 'list' && selectedBook) {
                     </div>
                   </div>
                 ) : (
-                  (word.synonyms?.length > 0 || word.antonyms?.length > 0) && (
-                    <div style={{
-                      marginBottom: '10px',
-                      display: 'flex',
-                      gap: '4px',
-                      alignItems: 'center',
-                      flexWrap: 'wrap'
-                    }}>
+                  <div>
+                    {/* 영영풀이 표시 */}
+                    {word.definition && (
+                      <div style={{
+                        marginBottom: '10px',
+                        padding: '10px',
+                        background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                        border: '2px solid #c4b5fd',
+                        borderRadius: '8px'
+                      }}>
+                        <div style={{ fontSize: '0.7rem', color: '#6d28d9', fontWeight: '600', marginBottom: '4px' }}>
+                          📖 Definition
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#172f0b', lineHeight: '1.4' }}>
+                          {word.definition}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 동의어/반의어 표시 */}
+                    {(word.synonyms?.length > 0 || word.antonyms?.length > 0) && (
+                      <div style={{
+                        marginBottom: '10px',
+                        display: 'flex',
+                        gap: '4px',
+                        alignItems: 'center',
+                        flexWrap: 'wrap'
+                      }}>
                       {/* 동의어 */}
                       {word.synonyms?.length > 0 && (
                         <>
@@ -8425,7 +8475,8 @@ if (currentView === 'list' && selectedBook) {
                         </>
                       )}
                     </div>
-                  )
+                    )}
+                  </div>
                 )}
 
                 {/* 버튼 영역 - 파스텔톤 */}
