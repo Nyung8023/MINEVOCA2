@@ -131,6 +131,9 @@ const [className, setClassName] = useState('');
 const [todayAttendance, setTodayAttendance] = useState([]);
 const [weeklyChampion, setWeeklyChampion] = useState(null); // { userName: '철수', count: 5 }
 
+// 오답노트 관련 상태
+const [wrongNoteSearchQuery, setWrongNoteSearchQuery] = useState('');
+
 const startEditing = (book) => {
   setEditingBook({ ...book });
   setShowEditModal(true);
@@ -182,7 +185,8 @@ const cancelEdit = () => {
   const [expandedSections, setExpandedSections] = useState({
     learning: true,   // 학습 단어장
     textbook: true,   // 교재 단어장
-    memorized: true   // 암기완료 단어장
+    memorized: true,  // 암기완료 단어장
+    wrongNote: true   // 오답노트
   });
 
   // 반 관리 상태
@@ -2041,6 +2045,13 @@ const addWordFromClick = async (clickedWord) => {
     // mastered = true로 설정
     setWords(words.map(w =>
       w.id === wordId ? { ...w, mastered: true } : w
+    ));
+  };
+
+  // 오답노트 추가/제거
+  const toggleWrongNote = (wordId) => {
+    setWords(words.map(w =>
+      w.id === wordId ? { ...w, wrongNote: !w.wrongNote } : w
     ));
   };
 
@@ -4709,6 +4720,104 @@ if (currentView === 'quizModeSelect') {
               </p>
             </div>
             <div style={{ fontSize: '1.2rem', color: '#10b981' }}>→</div>
+          </div>
+        )}
+      </div>
+
+      {/* 📝 오답노트 섹션 */}
+      <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
+        <div
+          onClick={() => setExpandedSections(prev => ({ ...prev, wrongNote: !prev.wrongNote }))}
+          className="section-header"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '12px 16px',
+            background: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: '12px',
+            cursor: 'pointer',
+            marginBottom: expandedSections.wrongNote ? '12px' : '0',
+            border: '2px solid rgba(226, 232, 240, 0.5)',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 className="section-title" style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+              📝 오답노트
+            </h3>
+            <span className="section-count" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
+              ({words.filter(w => w.wrongNote).length}개)
+            </span>
+          </div>
+          <span className="expand-icon" style={{ fontSize: '1.2rem' }}>
+            {expandedSections.wrongNote ? '▼' : '▶'}
+          </span>
+        </div>
+
+        {/* 오답노트 카드 */}
+        {expandedSections.wrongNote && (
+          <div
+            onClick={() => setCurrentView('wrongNote')}
+            style={{
+              background: 'linear-gradient(to bottom right, #fee2e2, #fecaca)',
+              border: '2px solid #f87171',
+              borderRadius: '16px',
+              padding: '16px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.25)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.15)';
+            }}
+          >
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, #f87171, #ef4444)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 8px rgba(239, 68, 68, 0.3)',
+              flexShrink: 0
+            }}>
+              <span style={{ fontSize: '24px' }}>📝</span>
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <h3 style={{
+                fontSize: '1rem',
+                fontWeight: 700,
+                color: '#1e293b',
+                margin: '0 0 4px 0'
+              }}>
+                오답노트
+              </h3>
+              <p style={{
+                fontSize: '0.8rem',
+                color: '#475569',
+                margin: 0
+              }}>
+                등록 {words.filter(w => w.wrongNote).length}개
+              </p>
+            </div>
+            <div style={{ fontSize: '1.2rem', color: '#ef4444' }}>→</div>
           </div>
         )}
       </div>
@@ -9046,6 +9155,297 @@ if (currentView === 'memorized') {
     </div>
   );
 }
+
+// 오답노트 화면
+if (currentView === 'wrongNote') {
+  const wrongNoteWords = words.filter(w => w.wrongNote === true);
+
+  // 검색 필터링
+  const searchedWords = wrongNoteSearchQuery.trim()
+    ? words.filter(w =>
+        !w.wrongNote && (
+          w.english.toLowerCase().includes(wrongNoteSearchQuery.toLowerCase()) ||
+          w.korean.includes(wrongNoteSearchQuery)
+        )
+      )
+    : [];
+
+  return (
+    <div style={{
+      background: 'linear-gradient(to bottom right, #fef2f2, #fee2e2, #fef5f5)',
+      minHeight: '100vh',
+      width: '100vw',
+      margin: 0,
+      padding: 0,
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      overflowY: 'auto',
+      boxSizing: 'border-box'
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
+        @font-face {
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
+        }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
+      `}</style>
+
+      <div style={{
+        width: '100%',
+        maxWidth: '500px',
+        margin: '0 auto',
+        padding: '12px',
+        boxSizing: 'border-box'
+      }}>
+
+        {/* 헤더 */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '16px'
+        }}>
+          <button
+            onClick={() => setCurrentView('home')}
+            style={{
+              background: 'white',
+              border: '2px solid #fee2e2',
+              color: '#7f1d1d',
+              padding: '6px 12px',
+              borderRadius: '10px',
+              fontSize: '0.85rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            ← 홈으로
+          </button>
+          <h1 style={{
+            fontSize: '1.2rem',
+            fontWeight: '700',
+            color: '#7f1d1d',
+            margin: 0
+          }}>
+            📝 오답노트
+          </h1>
+          <div style={{ width: '60px' }}></div>
+        </div>
+
+        {/* 검색창 */}
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '16px',
+          marginBottom: '14px',
+          boxShadow: '0 2px 8px rgba(239, 68, 68, 0.1)',
+          border: '2px solid #fecaca'
+        }}>
+          <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#7f1d1d', marginBottom: '10px' }}>
+            🔍 단어 검색 & 추가
+          </div>
+          <input
+            type="text"
+            placeholder="틀린 단어를 검색하세요..."
+            value={wrongNoteSearchQuery}
+            onChange={(e) => setWrongNoteSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: '10px',
+              border: '2px solid #fecaca',
+              fontSize: '0.9rem',
+              outline: 'none',
+              transition: 'border-color 0.2s'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#ef4444'}
+            onBlur={(e) => e.target.style.borderColor = '#fecaca'}
+          />
+
+          {/* 검색 결과 */}
+          {searchedWords.length > 0 && (
+            <div style={{ marginTop: '12px', maxHeight: '200px', overflowY: 'auto' }}>
+              {searchedWords.slice(0, 5).map(word => (
+                <div
+                  key={word.id}
+                  onClick={() => {
+                    toggleWrongNote(word.id);
+                    setWrongNoteSearchQuery('');
+                  }}
+                  style={{
+                    padding: '10px',
+                    background: '#fef2f2',
+                    borderRadius: '8px',
+                    marginBottom: '6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    border: '1px solid #fecaca',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#fee2e2';
+                    e.currentTarget.style.borderColor = '#ef4444';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#fef2f2';
+                    e.currentTarget.style.borderColor = '#fecaca';
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: '600', color: '#7f1d1d' }}>{word.english}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#991b1b' }}>{word.korean}</div>
+                  </div>
+                  <div style={{ fontSize: '1.2rem' }}>+</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 통계 카드 */}
+        <div style={{
+          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+          borderRadius: '16px',
+          padding: '20px',
+          marginBottom: '14px',
+          color: 'white',
+          textAlign: 'center',
+          boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+        }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>📝</div>
+          <div style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '6px' }}>
+            총 {wrongNoteWords.length}개 단어
+          </div>
+          <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>
+            틀린 단어를 복습하고 완벽하게 마스터하자!
+          </div>
+        </div>
+
+        {/* 오답노트 단어 목록 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {wrongNoteWords.length === 0 ? (
+            <div style={{
+              background: 'white',
+              borderRadius: '14px',
+              padding: '40px 20px',
+              textAlign: 'center',
+              color: '#888'
+            }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📝</div>
+              <div style={{ fontSize: '1rem', marginBottom: '6px' }}>아직 등록된 단어가 없어요</div>
+              <div style={{ fontSize: '0.85rem' }}>위 검색창에서 틀린 단어를 검색하고 추가해보세요!</div>
+            </div>
+          ) : (
+            wrongNoteWords.map((word) => (
+              <div
+                key={word.id}
+                style={{
+                  background: 'white',
+                  borderRadius: '14px',
+                  padding: '16px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                  border: '2px solid #ef4444'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '10px' }}>
+                  {/* X 아이콘 */}
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    background: '#ef4444',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <X size={18} color="white" />
+                  </div>
+
+                  {/* 단어 영역 */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <h3 style={{
+                        fontSize: '1.2rem',
+                        fontWeight: '700',
+                        color: '#7f1d1d',
+                        margin: 0
+                      }}>
+                        {word.english}
+                      </h3>
+                      <button
+                        onClick={() => speakWord(word.english)}
+                        style={{
+                          padding: '4px',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Volume2 size={16} color="#7f1d1d" />
+                      </button>
+                    </div>
+                    <p style={{
+                      fontSize: '0.95rem',
+                      color: '#991b1b',
+                      margin: '0 0 10px 0'
+                    }}>
+                      {word.korean}
+                    </p>
+
+                    {/* 영영풀이 */}
+                    {word.definition && (
+                      <div style={{
+                        background: '#fef2f2',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        marginBottom: '8px',
+                        border: '1px solid #fecaca'
+                      }}>
+                        <div style={{ fontSize: '0.75rem', color: '#991b1b', fontWeight: '600', marginBottom: '4px' }}>영영풀이</div>
+                        <div style={{ fontSize: '0.8rem', color: '#7f1d1d', lineHeight: '1.4' }}>{word.definition}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 제거 버튼 */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => toggleWrongNote(word.id)}
+                    style={{
+                      padding: '6px 12px',
+                      background: '#fef2f2',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#666',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    제거
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // 플래시카드 화면 - 겨울 파스텔 테마
 if (currentView === 'flashcard') {
   const currentWord = currentBookWords[currentCardIndex];
