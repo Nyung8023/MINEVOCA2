@@ -4327,7 +4327,8 @@ if (currentView === 'quizModeSelect') {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* 📊 내 시험 결과 섹션 */}
       {myTestResults && myTestResults.length > 0 && (
