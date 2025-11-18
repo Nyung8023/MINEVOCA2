@@ -234,6 +234,10 @@ const cancelEdit = () => {
   const [testDeadline, setTestDeadline] = useState('');
   const [selectedTestWordIds, setSelectedTestWordIds] = useState([]);
   const [selectedTestClassId, setSelectedTestClassId] = useState(''); // 시험 대상 반
+  const [testType, setTestType] = useState('regular'); // 'regular' | 'retest'
+  const [selectedTestBookIds, setSelectedTestBookIds] = useState([]); // 선택된 단어장 IDs
+  const [testWordCount, setTestWordCount] = useState(10); // 일반 시험 단어 개수
+  const [selectedRetestStudentIds, setSelectedRetestStudentIds] = useState([]); // 재시험 학생 선택
 
   // 교재단어장 엑셀 업로드 상태
   const [excelUploadStatus, setExcelUploadStatus] = useState('');
@@ -6344,7 +6348,15 @@ if (currentView === 'testManagement' && isAdmin) {
             </label>
             <select
               value={selectedTestClassId}
-              onChange={(e) => setSelectedTestClassId(e.target.value)}
+              onChange={(e) => {
+                const classId = e.target.value;
+                setSelectedTestClassId(classId);
+                setSelectedTestBookIds([]); // 반 변경 시 단어장 선택 초기화
+                setSelectedRetestStudentIds([]); // 학생 선택 초기화
+                if (classId) {
+                  loadClassBooks(classId); // 해당 반의 단어장 로드
+                }
+              }}
               style={{
                 width: '100%',
                 padding: '12px',
