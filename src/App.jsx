@@ -1744,6 +1744,14 @@ if (userDataDoc.exists()) {
     }
   }, [isAdmin]);
 
+  // 홈화면으로 돌아올 때마다 시험 결과 새로고침
+  useEffect(() => {
+    if (currentView === 'home' && currentUser && !isAdmin) {
+      console.log('🏠 홈화면 진입 - 시험 결과 새로고침');
+      loadMyTestResults(currentUser.uid);
+    }
+  }, [currentView, currentUser, isAdmin]);
+
   // 회원가입
   const handleSignup = async () => {
     setAuthError('');
