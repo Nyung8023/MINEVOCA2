@@ -4550,200 +4550,119 @@ if (currentView === 'quizModeSelect') {
 
       </div>
 
-      {/* ✅ 암기완료 단어장 섹션 - 아래에 별도 배치 */}
+      {/* ✅ 암기완료 & 📝 오답노트 */}
       <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
-        <div
-          onClick={() => setExpandedSections(prev => ({ ...prev, memorized: !prev.memorized }))}
-          className="section-header"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 16px',
-            background: 'rgba(255, 255, 255, 0.9)',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            marginBottom: expandedSections.memorized ? '12px' : '0',
-            border: '2px solid rgba(226, 232, 240, 0.5)',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h3 className="section-title" style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-              ✅ 암기완료
-            </h3>
-            <span className="section-count" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
-              ({words.filter(w => w.mastered).length}개)
-            </span>
-          </div>
-          <span className="expand-icon" style={{ fontSize: '1.2rem' }}>
-            {expandedSections.memorized ? '▼' : '▶'}
-          </span>
-        </div>
-
-        {/* 암기완료 카드 */}
-        {expandedSections.memorized && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* 암기완료 카드 */}
           <div
             onClick={() => setCurrentView('memorized')}
             style={{
-              background: 'linear-gradient(to bottom right, #d1fae5, #a7f3d0)',
-              border: '2px solid #6ee7b7',
-              borderRadius: '16px',
-              padding: '16px',
+              background: 'white',
+              border: '2px solid #10b981',
+              borderRadius: '12px',
+              padding: '14px',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.15)',
               display: 'flex',
               alignItems: 'center',
-              gap: '16px'
+              gap: '12px'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(16, 185, 129, 0.25)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.15)';
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
+            {/* 왼쪽: 아이콘 */}
             <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, #34d399, #10b981)',
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: '#d1fae5',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 8px rgba(16, 185, 129, 0.3)',
-              flexShrink: 0
+              flexShrink: 0,
+              fontSize: '1.3rem'
             }}>
-              <CheckCircle size={28} strokeWidth={2.5} style={{ color: 'white' }} />
+              ✅
             </div>
 
-            <div style={{ flex: 1 }}>
-              <h3 style={{
-                fontSize: '1rem',
-                fontWeight: 700,
+            {/* 중간: 이름과 개수 */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontSize: '0.9rem',
+                fontWeight: 600,
                 color: '#1e293b',
-                margin: '0 0 4px 0'
+                marginBottom: '2px'
               }}>
-                암기완료 단어장
-              </h3>
-              <p style={{
-                fontSize: '0.8rem',
-                color: '#475569',
-                margin: 0
-              }}>
+                암기완료
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                 완료 {words.filter(w => w.mastered).length}개
-              </p>
+              </div>
             </div>
-            <div style={{ fontSize: '1.2rem', color: '#10b981' }}>→</div>
-          </div>
-        )}
-      </div>
 
-      {/* 📝 오답노트 섹션 */}
-      <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
-        <div
-          onClick={() => setExpandedSections(prev => ({ ...prev, wrongNote: !prev.wrongNote }))}
-          className="section-header"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '12px 16px',
-            background: 'rgba(255, 255, 255, 0.9)',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            marginBottom: expandedSections.wrongNote ? '12px' : '0',
-            border: '2px solid rgba(226, 232, 240, 0.5)',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.9)';
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h3 className="section-title" style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-              📝 오답노트
-            </h3>
-            <span className="section-count" style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>
-              ({words.filter(w => w.wrongNote).length}개)
-            </span>
+            {/* 오른쪽: 화살표 */}
+            <div style={{ fontSize: '1.2rem', color: '#94a3b8', flexShrink: 0 }}>→</div>
           </div>
-          <span className="expand-icon" style={{ fontSize: '1.2rem' }}>
-            {expandedSections.wrongNote ? '▼' : '▶'}
-          </span>
-        </div>
 
-        {/* 오답노트 카드 */}
-        {expandedSections.wrongNote && (
+          {/* 오답노트 카드 */}
           <div
             onClick={() => setCurrentView('wrongNote')}
             style={{
-              background: 'linear-gradient(to bottom right, #fee2e2, #fecaca)',
-              border: '2px solid #f87171',
-              borderRadius: '16px',
-              padding: '16px',
+              background: 'white',
+              border: '2px solid #ef4444',
+              borderRadius: '12px',
+              padding: '14px',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              boxShadow: '0 2px 8px rgba(239, 68, 68, 0.15)',
               display: 'flex',
               alignItems: 'center',
-              gap: '16px'
+              gap: '12px'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(239, 68, 68, 0.25)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.15)';
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
+            {/* 왼쪽: 아이콘 */}
             <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, #f87171, #ef4444)',
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: '#fee2e2',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 8px rgba(239, 68, 68, 0.3)',
-              flexShrink: 0
+              flexShrink: 0,
+              fontSize: '1.3rem'
             }}>
-              <span style={{ fontSize: '24px' }}>📝</span>
+              📝
             </div>
 
-            <div style={{ flex: 1 }}>
-              <h3 style={{
-                fontSize: '1rem',
-                fontWeight: 700,
+            {/* 중간: 이름과 개수 */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontSize: '0.9rem',
+                fontWeight: 600,
                 color: '#1e293b',
-                margin: '0 0 4px 0'
+                marginBottom: '2px'
               }}>
                 오답노트
-              </h3>
-              <p style={{
-                fontSize: '0.8rem',
-                color: '#475569',
-                margin: 0
-              }}>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                 등록 {words.filter(w => w.wrongNote).length}개
-              </p>
+              </div>
             </div>
-            <div style={{ fontSize: '1.2rem', color: '#ef4444' }}>→</div>
+
+            {/* 오른쪽: 화살표 */}
+            <div style={{ fontSize: '1.2rem', color: '#94a3b8', flexShrink: 0 }}>→</div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* 단어 시험 관리 버튼 (관리자 전용) */}
