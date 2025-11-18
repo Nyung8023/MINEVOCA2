@@ -2246,9 +2246,11 @@ const addWordFromClick = async (clickedWord) => {
         setSelectedLetters([]); // 선택된 철자 초기화
       }
     } else {
+      console.log('🎉 퀴즈 완료! 결과 계산 중...');
       const finalCorrect = score.correct + (quizResult ? 1 : 0);
       const finalTotal = score.total + 1;
       const percentage = Math.round((finalCorrect / finalTotal) * 100);
+      console.log(`  - 최종 점수: ${finalCorrect}/${finalTotal} = ${percentage}%`);
 
       // 결과를 저장하고 결과 화면으로 전환
       const results = {
@@ -2257,12 +2259,14 @@ const addWordFromClick = async (clickedWord) => {
         percentage: percentage
       };
       setQuizResults(results);
+      console.log('  - quizResults state 설정 완료');
 
       // 시험 결과를 Firestore에 저장 (currentTest가 있는 경우)
-      if (currentTest && user) {
+      if (currentTest && currentUser) {
+        console.log('  - 시험 결과를 Firestore에 저장 중...');
         try {
           const resultData = {
-            userId: user.uid,
+            userId: currentUser.uid,
             testId: currentTest.id,
             testTitle: currentTest.title,
             score: percentage,
@@ -2273,14 +2277,19 @@ const addWordFromClick = async (clickedWord) => {
           };
 
           await addDoc(collection(db, 'testResults'), resultData);
-          await loadMyTestResults(user.uid); // 결과 목록 새로고침
-          console.log('✅ 시험 결과 저장 완료:', percentage + '%');
+          console.log('  - Firestore 저장 완료');
+          await loadMyTestResults(currentUser.uid); // 결과 목록 새로고침
+          console.log('  - 결과 목록 새로고침 완료');
         } catch (error) {
-          console.error('시험 결과 저장 오류:', error);
+          console.error('❌ 시험 결과 저장 오류:', error);
         }
+      } else {
+        console.log('  - currentTest 또는 currentUser 없음, Firestore 저장 건너뜀');
       }
 
+      console.log('  - 결과 화면으로 전환 중...');
       setCurrentView('quizResults');
+      console.log('✅ 결과 화면 전환 완료!');
     }
   };
 
