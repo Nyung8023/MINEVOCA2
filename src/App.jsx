@@ -963,13 +963,14 @@ if (userDataDoc.exists()) {
       books: migratedBooks
     });
   } else {
-    // 기존 사용자: 불필요한 기본 단어장(id 3, 4, 5) 제거
+    // 기존 사용자: 불필요한 기본 단어장(id 3, 4, 5)만 제거
     const cleanedBooks = migratedBooks.filter(book => {
       // 교재단어장은 모두 유지
       if (book.category === '교재단어장') return true;
 
-      // 나의학습단어장 중에서 id가 1, 2인 것만 유지
-      return book.id === 1 || book.id === 2;
+      // 나의학습단어장 중에서 id가 3, 4, 5인 구버전 기본 단어장만 제거
+      // id가 1, 2이거나 그 외의 숫자(사용자가 추가한 것)는 모두 유지
+      return book.id !== 3 && book.id !== 4 && book.id !== 5;
     });
 
     // 변경이 있었으면 저장
@@ -1615,25 +1616,10 @@ if (userDataDoc.exists()) {
     return () => unsubscribe();
   }, []);
   
-  // books state 변경 추적
-  useEffect(() => {
-    console.log('📚 books state 변경됨:', books);
-    console.log('  - 단어장 개수:', books.length);
-    console.log('  - 단어장 목록:', books.map(b => ({ id: b.id, name: b.name })));
-  }, [books]);
-
   // 데이터 자동 저장
   useEffect(() => {
-    console.log('💾 자동 저장 useEffect 트리거');
-    console.log('  - isLoggedIn:', isLoggedIn);
-    console.log('  - currentUser:', currentUser?.email);
-    console.log('  - loading:', loading);
-
     if (isLoggedIn && currentUser && !loading) {
-      console.log('  - 조건 충족! saveUserData 호출');
       saveUserData();
-    } else {
-      console.log('  - 조건 불충족, saveUserData 호출 안 함');
     }
   }, [books, words, learningStats, examName, examDate, classId, className, userName, isLoggedIn, currentUser, loading, saveUserData]);
 
@@ -1734,25 +1720,16 @@ if (userDataDoc.exists()) {
 
   // 단어장 추가
   const addBook = () => {
-    console.log('🔍 addBook 함수 호출됨');
-    console.log('  - newBookName:', newBookName);
-    console.log('  - newBookName.trim():', newBookName.trim());
-    console.log('  - 현재 books:', books);
-
     if (newBookName.trim()) {
       const newBook = {
         id: Date.now(),
         name: newBookName,
         wordCount: 0
       };
-      console.log('  - 새 단어장 생성:', newBook);
-      console.log('  - 업데이트할 books 배열:', [...books, newBook]);
       setBooks([...books, newBook]);
       setNewBookName('');
       setShowBookInput(false);
-      console.log('✅ 단어장 추가 완료');
-    } else {
-      console.log('❌ 단어장 이름이 비어있음');
+      console.log('✅ 새 단어장 추가:', newBook.name);
     }
   };
 
