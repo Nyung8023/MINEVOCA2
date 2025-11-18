@@ -6378,52 +6378,251 @@ if (currentView === 'testManagement' && isAdmin) {
             </select>
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
-              단어 선택 (체크박스로 선택)
-            </label>
-            <div style={{
-              border: '2px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '16px',
-              maxHeight: '300px',
-              overflowY: 'auto',
-              background: '#f9fafb'
-            }}>
-              {allWords.map(word => (
-                <label
-                  key={word.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px',
-                    cursor: 'pointer',
-                    borderRadius: '6px',
-                    marginBottom: '4px'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                >
+          {/* 시험 유형 선택 */}
+          {selectedTestClassId && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
+                시험 유형
+              </label>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <label style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: `2px solid ${testType === 'regular' ? '#fbbf24' : '#e5e7eb'}`,
+                  borderRadius: '8px',
+                  background: testType === 'regular' ? '#fffbeb' : 'white',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
                   <input
-                    type="checkbox"
-                    value={word.id}
-                    checked={selectedTestWordIds.includes(word.id)}
+                    type="radio"
+                    name="testType"
+                    value="regular"
+                    checked={testType === 'regular'}
                     onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedTestWordIds([...selectedTestWordIds, word.id]);
-                      } else {
-                        setSelectedTestWordIds(selectedTestWordIds.filter(id => id !== word.id));
-                      }
+                      setTestType(e.target.value);
+                      setSelectedTestBookIds([]);
+                      setSelectedRetestStudentIds([]);
                     }}
                   />
-                  <span style={{ fontWeight: 600, color: '#1e293b' }}>{word.english}</span>
-                  <span style={{ color: '#64748b' }}>-</span>
-                  <span style={{ color: '#64748b' }}>{word.korean}</span>
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#78350f' }}>🎯 일반 시험</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>단어장에서 랜덤 출제</div>
+                  </div>
                 </label>
-              ))}
+                <label style={{
+                  flex: 1,
+                  padding: '12px',
+                  border: `2px solid ${testType === 'retest' ? '#fbbf24' : '#e5e7eb'}`,
+                  borderRadius: '8px',
+                  background: testType === 'retest' ? '#fffbeb' : 'white',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <input
+                    type="radio"
+                    name="testType"
+                    value="retest"
+                    checked={testType === 'retest'}
+                    onChange={(e) => {
+                      setTestType(e.target.value);
+                      setSelectedTestBookIds([]);
+                      setSelectedRetestStudentIds([]);
+                    }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#78350f' }}>🔄 재시험</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>학생별 틀린 단어</div>
+                  </div>
+                </label>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* 단어장 선택 */}
+          {selectedTestClassId && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
+                {testType === 'retest' ? '단어장 선택 (하나만)' : '단어장 선택 (여러 개 가능)'}
+              </label>
+              <div style={{
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '16px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                background: '#f9fafb'
+              }}>
+                {classBooks.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
+                    이 반에 교재단어장이 없습니다
+                  </div>
+                ) : (
+                  classBooks
+                    .filter(book => book.category === '교재단어장')
+                    .map(book => (
+                      <label
+                        key={book.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px',
+                          cursor: 'pointer',
+                          borderRadius: '6px',
+                          marginBottom: '4px',
+                          background: selectedTestBookIds.includes(book.id) ? '#fef3c7' : 'transparent'
+                        }}
+                        onMouseEnter={(e) => !selectedTestBookIds.includes(book.id) && (e.currentTarget.style.background = '#f3f4f6')}
+                        onMouseLeave={(e) => !selectedTestBookIds.includes(book.id) && (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <input
+                          type={testType === 'retest' ? 'radio' : 'checkbox'}
+                          name={testType === 'retest' ? 'retestBook' : undefined}
+                          checked={selectedTestBookIds.includes(book.id)}
+                          onChange={(e) => {
+                            if (testType === 'retest') {
+                              setSelectedTestBookIds([book.id]);
+                              setSelectedRetestStudentIds([]);
+                            } else {
+                              if (e.target.checked) {
+                                setSelectedTestBookIds([...selectedTestBookIds, book.id]);
+                              } else {
+                                setSelectedTestBookIds(selectedTestBookIds.filter(id => id !== book.id));
+                              }
+                            }
+                          }}
+                        />
+                        <span style={{ fontWeight: 600, color: '#1e293b' }}>{book.name}</span>
+                        <span style={{ color: '#64748b', fontSize: '0.85rem' }}>({book.wordCount || 0}개)</span>
+                      </label>
+                    ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 일반 시험: 단어 개수 입력 */}
+          {selectedTestClassId && testType === 'regular' && selectedTestBookIds.length > 0 && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
+                출제할 단어 개수
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={testWordCount}
+                onChange={(e) => setTestWordCount(parseInt(e.target.value) || 10)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontFamily: 'inherit'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#fbbf24'}
+                onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+              />
+              <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '4px 0 0 0' }}>
+                선택된 단어장에서 랜덤으로 {testWordCount}개 출제됩니다
+              </p>
+            </div>
+          )}
+
+          {/* 재시험: 학생 선택 */}
+          {selectedTestClassId && testType === 'retest' && selectedTestBookIds.length === 1 && (() => {
+            const selectedClass = classes.find(c => c.id === selectedTestClassId);
+            const selectedBookId = selectedTestBookIds[0];
+
+            const studentsWithWrongWords = selectedClass?.students?.filter(studentId => {
+              const student = students.find(s => s.uid === studentId);
+              if (!student) return false;
+
+              const wrongWords = student.words?.filter(word =>
+                word.bookId === selectedBookId &&
+                word.correctStreak === 0 &&
+                word.reviewCount > 0
+              );
+
+              return wrongWords && wrongWords.length > 0;
+            }) || [];
+
+            return (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
+                  재시험 대상 학생 선택
+                </label>
+                <div style={{
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  background: '#f9fafb'
+                }}>
+                  {studentsWithWrongWords.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>
+                      이 단어장에서 틀린 단어가 있는 학생이 없습니다
+                    </div>
+                  ) : (
+                    studentsWithWrongWords.map(studentId => {
+                      const student = students.find(s => s.uid === studentId);
+                      const wrongWordCount = student?.words?.filter(word =>
+                        word.bookId === selectedBookId &&
+                        word.correctStreak === 0 &&
+                        word.reviewCount > 0
+                      ).length || 0;
+
+                      return (
+                        <label
+                          key={studentId}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px',
+                            cursor: 'pointer',
+                            borderRadius: '6px',
+                            marginBottom: '4px',
+                            background: selectedRetestStudentIds.includes(studentId) ? '#fef3c7' : 'transparent'
+                          }}
+                          onMouseEnter={(e) => !selectedRetestStudentIds.includes(studentId) && (e.currentTarget.style.background = '#f3f4f6')}
+                          onMouseLeave={(e) => !selectedRetestStudentIds.includes(studentId) && (e.currentTarget.style.background = 'transparent')}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedRetestStudentIds.includes(studentId)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedRetestStudentIds([...selectedRetestStudentIds, studentId]);
+                              } else {
+                                setSelectedRetestStudentIds(selectedRetestStudentIds.filter(id => id !== studentId));
+                              }
+                            }}
+                          />
+                          <span style={{ fontWeight: 600, color: '#1e293b' }}>{student?.userName || '이름 없음'}</span>
+                          <span style={{ color: '#ef4444', fontSize: '0.85rem' }}>
+                            (틀린 단어 {wrongWordCount}개)
+                          </span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+                {studentsWithWrongWords.length > 0 && (
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '8px 0 0 0' }}>
+                    선택된 학생들의 틀린 단어만 모아서 시험을 출제합니다
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           <button
             style={{
@@ -6448,21 +6647,78 @@ if (currentView === 'testManagement' && isAdmin) {
               e.currentTarget.style.boxShadow = '0 4px 12px rgba(217, 119, 6, 0.4)';
             }}
             onClick={async () => {
-              if (!testTitle || !testDeadline || !selectedTestClassId || selectedTestWordIds.length === 0) {
-                alert('모든 항목을 입력해주세요! (반 선택 포함)');
+              // 입력 검증
+              if (!testTitle || !testDeadline || !selectedTestClassId) {
+                alert('시험 제목, 마감 시간, 반을 선택해주세요!');
+                return;
+              }
+
+              if (selectedTestBookIds.length === 0) {
+                alert('단어장을 선택해주세요!');
+                return;
+              }
+
+              if (testType === 'retest' && selectedRetestStudentIds.length === 0) {
+                alert('재시험 대상 학생을 선택해주세요!');
                 return;
               }
 
               const testId = 'test_' + Date.now();
               const selectedClass = classes.find(c => c.id === selectedTestClassId);
+              let finalWordIds = [];
+
+              if (testType === 'regular') {
+                // 일반 시험: 선택된 단어장들에서 랜덤으로 N개 추출
+                const bookWords = allWords.filter(word =>
+                  selectedTestBookIds.includes(word.bookId)
+                );
+
+                if (bookWords.length === 0) {
+                  alert('선택된 단어장에 단어가 없습니다!');
+                  return;
+                }
+
+                // 랜덤 섞기
+                const shuffled = [...bookWords].sort(() => Math.random() - 0.5);
+                // testWordCount개만 선택 (또는 전체 단어 수보다 적으면 전체)
+                finalWordIds = shuffled.slice(0, Math.min(testWordCount, shuffled.length)).map(w => w.id);
+
+              } else {
+                // 재시험: 선택된 학생들의 틀린 단어만 모으기
+                const selectedBookId = selectedTestBookIds[0];
+                const wrongWordIds = new Set();
+
+                for (const studentId of selectedRetestStudentIds) {
+                  const student = students.find(s => s.uid === studentId);
+                  if (student && student.words) {
+                    const wrongWords = student.words.filter(word =>
+                      word.bookId === selectedBookId &&
+                      word.correctStreak === 0 &&
+                      word.reviewCount > 0
+                    );
+                    wrongWords.forEach(word => wrongWordIds.add(word.id));
+                  }
+                }
+
+                finalWordIds = Array.from(wrongWordIds);
+
+                if (finalWordIds.length === 0) {
+                  alert('선택된 학생들이 틀린 단어가 없습니다!');
+                  return;
+                }
+              }
 
               const newTest = {
                 id: testId,
                 title: testTitle,
                 deadline: new Date(testDeadline).toISOString(),
-                wordIds: selectedTestWordIds,
+                wordIds: finalWordIds,
                 classId: selectedTestClassId,
                 className: selectedClass?.className || '',
+                testType: testType,
+                bookIds: selectedTestBookIds,
+                wordCount: testType === 'regular' ? testWordCount : finalWordIds.length,
+                studentIds: testType === 'retest' ? selectedRetestStudentIds : null,
                 createdBy: currentUser.uid,
                 createdAt: new Date().toISOString()
               };
@@ -6474,10 +6730,14 @@ if (currentView === 'testManagement' && isAdmin) {
                 // 폼 초기화
                 setTestTitle('');
                 setTestDeadline('');
-                setSelectedTestWordIds([]);
+                setSelectedTestBookIds([]);
+                setSelectedRetestStudentIds([]);
                 setSelectedTestClassId('');
+                setTestType('regular');
+                setTestWordCount(10);
 
-                alert(`시험이 생성되었습니다! (${selectedClass?.className})`);
+                const testTypeLabel = testType === 'regular' ? '일반 시험' : '재시험';
+                alert(`${testTypeLabel}이 생성되었습니다!\n반: ${selectedClass?.className}\n단어 수: ${finalWordIds.length}개`);
                 await loadAllTests(); // 목록 새로고침
                 setCurrentView('admin');
               } catch (error) {
