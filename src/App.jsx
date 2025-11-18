@@ -989,8 +989,8 @@ if (userDataDoc.exists()) {
       // 교재단어장은 모두 유지
       if (book.category === '교재단어장') return true;
 
-      // 나의학습단어장 중에서 id가 1인 것만 유지 (일단 OK 제거)
-      return book.id === 1;
+      // 나의학습단어장 중에서 bookId 2 (일단 OK)만 제거
+      return book.id !== 2;
     });
 
     // 변경이 있었으면 저장
