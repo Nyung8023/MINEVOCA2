@@ -6494,9 +6494,16 @@ if (currentView === 'testManagement' && isAdmin) {
 
               if (testType === 'regular') {
                 // 일반 시험: 선택된 단어장들에서 랜덤으로 N개 추출
+                console.log('🔍 시험 출제 디버깅:');
+                console.log('  - 선택된 단어장 ID들:', selectedTestBookIds);
+                console.log('  - 전체 단어 수:', allWords.length);
+                console.log('  - 전체 단어의 bookId 샘플:', allWords.slice(0, 5).map(w => ({ english: w.english, bookId: w.bookId, bookName: w.bookName })));
+
                 const bookWords = allWords.filter(word =>
                   selectedTestBookIds.includes(word.bookId)
                 );
+
+                console.log('  - 필터링된 단어 수:', bookWords.length);
 
                 if (bookWords.length === 0) {
                   alert('선택된 단어장에 단어가 없습니다!');
