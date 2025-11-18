@@ -204,7 +204,8 @@ const cancelEdit = () => {
   const [quizMode, setQuizMode] = useState('typing');
   const [quizDirection, setQuizDirection] = useState('en-ko');
   const [multipleChoices, setMultipleChoices] = useState([]);
-  const [spellingInput, setSpellingInput] = useState([]);
+  const [spellingInput, setSpellingInput] = useState([]); // 선택 가능한 철자들 (섞인 상태)
+  const [selectedLetters, setSelectedLetters] = useState([]); // 사용자가 선택한 철자 순서
   const [quizWords, setQuizWords] = useState([]); // 섞인 퀴즈용 단어 배열
   const [quizResults, setQuizResults] = useState(null); // 퀴즈 결과 저장
 
@@ -2073,6 +2074,7 @@ const addWordFromClick = async (clickedWord) => {
       setMultipleChoices(generateMultipleChoices(shuffledWords[0], shuffledWords));
     } else if (mode === 'spelling') {
       setSpellingInput(generateSpellingPuzzle(shuffledWords[0]));
+      setSelectedLetters([]); // 선택된 철자 초기화
     }
 
     setCurrentView('quiz');
@@ -2116,7 +2118,8 @@ const addWordFromClick = async (clickedWord) => {
       const correctAnswer = quizDirection === 'en-ko' ? currentWord.korean : currentWord.english;
       isCorrect = quizAnswer === correctAnswer;
     } else if (quizMode === 'spelling') {
-      isCorrect = spellingInput.join('') === currentWord.english;
+      // 선택된 철자로 만든 단어가 정답과 일치하는지 확인
+      isCorrect = selectedLetters.join('') === currentWord.english;
     }
 
     setQuizResult(isCorrect);
@@ -2142,6 +2145,7 @@ const addWordFromClick = async (clickedWord) => {
         setMultipleChoices(generateMultipleChoices(quizWords[currentCardIndex + 1], quizWords));
       } else if (quizMode === 'spelling') {
         setSpellingInput(generateSpellingPuzzle(quizWords[currentCardIndex + 1]));
+        setSelectedLetters([]); // 선택된 철자 초기화
       }
     } else {
       const finalCorrect = score.correct + (quizResult ? 1 : 0);
@@ -9120,7 +9124,7 @@ if (currentView === 'quiz') {
           border: '2px solid rgba(226, 232, 240, 0.5)'
         }}>
           <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#172f0b', marginBottom: '20px', textAlign: 'center' }}>
-            {quizDirection === 'en-ko' ? currentWord.english : currentWord.korean}
+            {quizMode === 'spelling' ? currentWord.korean : (quizDirection === 'en-ko' ? currentWord.english : currentWord.korean)}
           </div>
 
           {quizMode === 'listening' && quizDirection === 'en-ko' && (
@@ -9216,10 +9220,11 @@ if (currentView === 'quiz') {
           {/* 철자 맞추기 */}
           {quizMode === 'spelling' && (
             <div>
-              <div style={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: '8px', 
+              {/* 선택된 철자 영역 (답안) */}
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
                 marginBottom: '20px',
                 minHeight: '60px',
                 padding: '14px',
@@ -9227,25 +9232,89 @@ if (currentView === 'quiz') {
                 borderRadius: '10px',
                 border: '2px solid #a78bfa'
               }}>
-                {spellingInput.map((letter, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      padding: '10px 14px',
-                      background: 'white',
-                      borderRadius: '8px',
-                      fontSize: '1.1rem',
-                      fontWeight: '700',
-                      color: '#6d28d9',
-                      border: '2px solid #a78bfa'
-                    }}
-                  >
-                    {letter}
+                {selectedLetters.length === 0 ? (
+                  <div style={{
+                    width: '100%',
+                    textAlign: 'center',
+                    color: '#9333ea',
+                    fontSize: '0.9rem',
+                    fontWeight: '600'
+                  }}>
+                    철자를 클릭하여 단어를 완성하세요
                   </div>
-                ))}
+                ) : (
+                  selectedLetters.map((letter, index) => (
+                    <button
+                      key={`selected-${index}`}
+                      onClick={() => {
+                        if (quizResult === null) {
+                          // 선택된 철자를 다시 제거
+                          setSelectedLetters(selectedLetters.filter((_, i) => i !== index));
+                        }
+                      }}
+                      disabled={quizResult !== null}
+                      style={{
+                        padding: '10px 14px',
+                        background: 'white',
+                        borderRadius: '8px',
+                        fontSize: '1.1rem',
+                        fontWeight: '700',
+                        color: '#6d28d9',
+                        border: '2px solid #a78bfa',
+                        cursor: quizResult === null ? 'pointer' : 'default',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {letter}
+                    </button>
+                  ))
+                )}
               </div>
+
+              {/* 선택 가능한 철자 버튼들 */}
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                marginBottom: '10px',
+                justifyContent: 'center'
+              }}>
+                {spellingInput.map((letter, index) => {
+                  // 이미 선택된 철자인지 확인 (첫 번째로 나타나는 것만)
+                  const selectedIndex = selectedLetters.indexOf(letter);
+                  const isUsed = selectedIndex !== -1 && selectedLetters.slice(0, selectedIndex + 1).filter(l => l === letter).length > spellingInput.slice(0, index + 1).filter(l => l === letter).length;
+
+                  return (
+                    <button
+                      key={`available-${index}`}
+                      onClick={() => {
+                        if (quizResult === null) {
+                          // 철자를 선택 영역에 추가
+                          setSelectedLetters([...selectedLetters, letter]);
+                        }
+                      }}
+                      disabled={quizResult !== null || isUsed}
+                      style={{
+                        padding: '10px 14px',
+                        background: isUsed ? '#f3f4f6' : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                        borderRadius: '8px',
+                        fontSize: '1.1rem',
+                        fontWeight: '700',
+                        color: isUsed ? '#9ca3af' : '#92400e',
+                        border: `2px solid ${isUsed ? '#e5e7eb' : '#f59e0b'}`,
+                        cursor: (quizResult === null && !isUsed) ? 'pointer' : 'not-allowed',
+                        transition: 'all 0.2s',
+                        opacity: isUsed ? 0.4 : 1
+                      }}
+                    >
+                      {letter}
+                    </button>
+                  );
+                })}
+              </div>
+
               <div style={{ fontSize: '0.85rem', color: '#64748b', textAlign: 'center' }}>
-                글자를 순서대로 배열하세요 (준비중)
+                아래 철자를 클릭하여 단어를 완성하세요. 선택한 철자를 다시 클릭하면 취소됩니다.
               </div>
             </div>
           )}
@@ -9273,17 +9342,17 @@ if (currentView === 'quiz') {
           {quizResult === null ? (
             <button
               onClick={checkAnswer}
-              disabled={!quizAnswer && quizMode !== 'spelling'}
+              disabled={quizMode === 'spelling' ? selectedLetters.length === 0 : !quizAnswer}
               style={{
                 flex: 1,
                 padding: '14px',
-                background: (!quizAnswer && quizMode !== 'spelling') ? '#e2e8f0' : 'linear-gradient(135deg, #99f6e4, #5eead4)',
-                color: (!quizAnswer && quizMode !== 'spelling') ? '#94a3b8' : '#0d9488',
-                border: (!quizAnswer && quizMode !== 'spelling') ? '2px solid #e2e8f0' : '2px solid #2dd4bf',
+                background: (quizMode === 'spelling' ? selectedLetters.length === 0 : !quizAnswer) ? '#e2e8f0' : 'linear-gradient(135deg, #99f6e4, #5eead4)',
+                color: (quizMode === 'spelling' ? selectedLetters.length === 0 : !quizAnswer) ? '#94a3b8' : '#0d9488',
+                border: (quizMode === 'spelling' ? selectedLetters.length === 0 : !quizAnswer) ? '2px solid #e2e8f0' : '2px solid #2dd4bf',
                 borderRadius: '12px',
                 fontSize: '1rem',
                 fontWeight: '700',
-                cursor: (!quizAnswer && quizMode !== 'spelling') ? 'not-allowed' : 'pointer'
+                cursor: (quizMode === 'spelling' ? selectedLetters.length === 0 : !quizAnswer) ? 'not-allowed' : 'pointer'
               }}
             >
               확인
