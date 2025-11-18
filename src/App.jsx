@@ -1480,16 +1480,27 @@ if (userDataDoc.exists()) {
 
   // 모든 단어 로드 (관리자용)
   const loadAllWords = async () => {
+    console.log('🔄 loadAllWords 함수 시작...');
     try {
+      console.log('📚 dictionary 컬렉션에서 단어 가져오는 중...');
       const wordsSnapshot = await getDocs(collection(db, 'dictionary'));
+      console.log('📊 가져온 문서 수:', wordsSnapshot.docs.length);
+
       const wordsList = wordsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+
+      console.log('📝 단어 목록 샘플 (처음 3개):', wordsList.slice(0, 3).map(w => ({
+        english: w.english,
+        bookId: w.bookId,
+        bookName: w.bookName
+      })));
+
       setAllWords(wordsList);
       console.log('✅ 단어 로드 완료:', wordsList.length, '개');
     } catch (error) {
-      console.error('단어 로드 오류:', error);
+      console.error('❌ 단어 로드 오류:', error);
     }
   };
 
