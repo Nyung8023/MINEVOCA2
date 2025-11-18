@@ -4135,15 +4135,18 @@ if (currentView === 'quizModeSelect') {
                 {/* 시험 시작 버튼 */}
                 <button
                   onClick={async () => {
-                    // 시험용 단어들을 Firebase에서 직접 로드
+                    // 시험용 단어들을 현재 학생의 userData에서 로드
                     try {
-                      const testWords = [];
-                      for (const wordId of currentTest.wordIds) {
-                        const wordDoc = await getDoc(doc(db, 'dictionary', wordId));
-                        if (wordDoc.exists()) {
-                          testWords.push({ id: wordDoc.id, ...wordDoc.data() });
-                        }
-                      }
+                      console.log('🎯 시험 시작 - 단어 로드 중...');
+                      console.log('  - 시험 단어 ID 개수:', currentTest.wordIds.length);
+                      console.log('  - 현재 사용자의 전체 단어 수:', words.length);
+
+                      // 현재 로그인한 학생의 단어에서 시험 단어만 필터링
+                      const testWords = words.filter(word =>
+                        currentTest.wordIds.includes(word.id)
+                      );
+
+                      console.log('  - 필터링된 시험 단어 수:', testWords.length);
 
                       if (testWords.length === 0) {
                         alert('시험 단어를 불러올 수 없습니다.');
@@ -4159,8 +4162,9 @@ if (currentView === 'quizModeSelect') {
                       setQuizResult(null);
                       setScore({ correct: 0, total: 0 });
                       setCurrentView('quiz');
+                      console.log('✅ 시험 시작 완료!');
                     } catch (error) {
-                      console.error('시험 단어 로드 오류:', error);
+                      console.error('❌ 시험 단어 로드 오류:', error);
                       alert('시험을 시작할 수 없습니다.');
                     }
                   }}
@@ -10014,13 +10018,16 @@ if (currentView === 'quizResults' && quizResults) {
               onClick={async () => {
                 // 재시험 시작
                 try {
-                  const testWords = [];
-                  for (const wordId of currentTest.wordIds) {
-                    const wordDoc = await getDoc(doc(db, 'dictionary', wordId));
-                    if (wordDoc.exists()) {
-                      testWords.push({ id: wordDoc.id, ...wordDoc.data() });
-                    }
-                  }
+                  console.log('🔄 재시험 시작 - 단어 로드 중...');
+                  console.log('  - 시험 단어 ID 개수:', currentTest.wordIds.length);
+                  console.log('  - 현재 사용자의 전체 단어 수:', words.length);
+
+                  // 현재 로그인한 학생의 단어에서 시험 단어만 필터링
+                  const testWords = words.filter(word =>
+                    currentTest.wordIds.includes(word.id)
+                  );
+
+                  console.log('  - 필터링된 시험 단어 수:', testWords.length);
 
                   if (testWords.length === 0) {
                     alert('시험 단어를 불러올 수 없습니다.');
@@ -10037,8 +10044,9 @@ if (currentView === 'quizResults' && quizResults) {
                   setScore({ correct: 0, total: 0 });
                   setQuizResults(null);
                   setCurrentView('quiz');
+                  console.log('✅ 재시험 시작 완료!');
                 } catch (error) {
-                  console.error('재시험 시작 오류:', error);
+                  console.error('❌ 재시험 시작 오류:', error);
                   alert('재시험을 시작할 수 없습니다.');
                 }
               }}
