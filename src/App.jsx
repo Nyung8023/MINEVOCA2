@@ -6504,27 +6504,53 @@ if (currentView === 'testManagement' && isAdmin) {
               let finalWordIds = [];
 
               if (testType === 'regular') {
-                // 일반 시험: 선택된 단어장들에서 랜덤으로 N개 추출
+                // 일반 시험: 선택된 반 학생들의 단어장에서 랜덤으로 N개 추출
                 console.log('🔍 시험 출제 디버깅:');
                 console.log('  - 선택된 단어장 ID들:', selectedTestBookIds);
-                console.log('  - 전체 단어 수:', allWords.length);
-                console.log('  - 전체 단어의 bookId 샘플:', allWords.slice(0, 5).map(w => ({ english: w.english, bookId: w.bookId, bookName: w.bookName })));
+                console.log('  - 선택된 반 ID:', selectedTestClassId);
 
-                const bookWords = allWords.filter(word =>
-                  selectedTestBookIds.includes(word.bookId)
-                );
+                // 선택된 반의 모든 학생들에게서 단어 수집
+                const studentIds = selectedClass?.students || [];
+                console.log('  - 반의 학생 수:', studentIds.length);
 
-                console.log('  - 필터링된 단어 수:', bookWords.length);
+                const allClassWords = [];
+                for (const studentId of studentIds) {
+                  try {
+                    const userDataDoc = await getDoc(doc(db, 'userData', studentId));
+                    if (userDataDoc.exists()) {
+                      const userData = userDataDoc.data();
+                      const studentWords = userData.words || [];
 
-                if (bookWords.length === 0) {
+                      // 선택된 단어장의 단어만 필터링
+                      const filteredWords = studentWords.filter(w =>
+                        selectedTestBookIds.includes(w.bookId)
+                      );
+
+                      allClassWords.push(...filteredWords);
+                    }
+                  } catch (error) {
+                    console.error('학생 단어 로드 오류:', studentId, error);
+                  }
+                }
+
+                console.log('  - 수집된 전체 단어 수:', allClassWords.length);
+
+                if (allClassWords.length === 0) {
                   alert('선택된 단어장에 단어가 없습니다!');
                   return;
                 }
 
+                // 중복 제거 (같은 단어가 여러 학생에게 있을 수 있음)
+                const uniqueWords = Array.from(
+                  new Map(allClassWords.map(w => [w.id, w])).values()
+                );
+                console.log('  - 중복 제거 후 단어 수:', uniqueWords.length);
+
                 // 랜덤 섞기
-                const shuffled = [...bookWords].sort(() => Math.random() - 0.5);
+                const shuffled = [...uniqueWords].sort(() => Math.random() - 0.5);
                 // testWordCount개만 선택 (또는 전체 단어 수보다 적으면 전체)
                 finalWordIds = shuffled.slice(0, Math.min(testWordCount, shuffled.length)).map(w => w.id);
+                console.log('  - 최종 선택된 단어 수:', finalWordIds.length);
 
               } else {
                 // 재시험: 선택된 학생들의 틀린 단어만 모으기
