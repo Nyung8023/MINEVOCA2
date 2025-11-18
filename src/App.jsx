@@ -7407,6 +7407,50 @@ book,책`}
                           border: '2px solid #e2e8f0',
                           borderRadius: '8px',
                           fontSize: '0.9rem',
+                          marginBottom: '8px'
+                        }}
+                      />
+                      <textarea
+                        value={editingWord.definition || ''}
+                        onChange={(e) => setEditingWord({ ...editingWord, definition: e.target.value })}
+                        placeholder="영영풀이 (선택)"
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '2px solid #e2e8f0',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          marginBottom: '8px',
+                          minHeight: '60px',
+                          resize: 'vertical',
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                      <input
+                        type="text"
+                        value={editingWord.synonyms || ''}
+                        onChange={(e) => setEditingWord({ ...editingWord, synonyms: e.target.value })}
+                        placeholder="동의어 (선택, 쉼표로 구분)"
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '2px solid #e2e8f0',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          marginBottom: '8px'
+                        }}
+                      />
+                      <input
+                        type="text"
+                        value={editingWord.antonyms || ''}
+                        onChange={(e) => setEditingWord({ ...editingWord, antonyms: e.target.value })}
+                        placeholder="반의어 (선택, 쉼표로 구분)"
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '2px solid #e2e8f0',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
                           marginBottom: '12px'
                         }}
                       />
@@ -7414,7 +7458,10 @@ book,책`}
                         <button
                           onClick={() => updateWord(editingWord.id, {
                             english: editingWord.english,
-                            korean: editingWord.korean
+                            korean: editingWord.korean,
+                            definition: editingWord.definition || '',
+                            synonyms: editingWord.synonyms || '',
+                            antonyms: editingWord.antonyms || ''
                           })}
                           style={{
                             flex: 1,
@@ -7455,9 +7502,53 @@ book,책`}
                         <div style={{ fontSize: '1rem', fontWeight: '700', color: '#172f0b', marginBottom: '4px' }}>
                           {word.english}
                         </div>
-                        <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                        <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '8px' }}>
                           {word.korean}
                         </div>
+
+                        {/* 영영풀이 */}
+                        {word.definition && (
+                          <div style={{
+                            fontSize: '0.85rem',
+                            color: '#475569',
+                            padding: '8px',
+                            background: 'rgba(255, 255, 255, 0.6)',
+                            borderRadius: '6px',
+                            marginBottom: '6px',
+                            borderLeft: '3px solid #6366f1'
+                          }}>
+                            <div style={{ fontWeight: '600', color: '#6366f1', marginBottom: '2px' }}>📖 Definition</div>
+                            {word.definition}
+                          </div>
+                        )}
+
+                        {/* 동의어 */}
+                        {word.synonyms && (
+                          <div style={{
+                            fontSize: '0.85rem',
+                            color: '#475569',
+                            padding: '6px 8px',
+                            background: 'rgba(34, 197, 94, 0.1)',
+                            borderRadius: '6px',
+                            marginBottom: '4px'
+                          }}>
+                            <span style={{ fontWeight: '600', color: '#16a34a' }}>✓ 동의어:</span> {word.synonyms}
+                          </div>
+                        )}
+
+                        {/* 반의어 */}
+                        {word.antonyms && (
+                          <div style={{
+                            fontSize: '0.85rem',
+                            color: '#475569',
+                            padding: '6px 8px',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            borderRadius: '6px',
+                            marginBottom: '4px'
+                          }}>
+                            <span style={{ fontWeight: '600', color: '#dc2626' }}>✗ 반의어:</span> {word.antonyms}
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button
