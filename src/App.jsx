@@ -378,7 +378,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
       const dataRows = jsonData.slice(1).filter(row => row.length >= 2 && row[0] && row[1]);
 
       if (dataRows.length === 0) {
-        setExcelUploadStatus('❌ 엑셀 파일에 단어가 없습니다.\n첫 번째 열: 영어, 두 번째 열: 한글');
+        setExcelUploadStatus('❌ 엑셀 파일에 단어가 없습니다.\n\n📋 열 순서:\n1열: 영어\n2열: 한글 뜻\n3열: 동의어 (선택, 쉼표로 구분)\n4열: 반의어 (선택, 쉼표로 구분)\n5열: 영영풀이 (선택)');
         setIsExcelUploading(false);
         return;
       }
@@ -468,10 +468,17 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
           // 단어 추가 (중복 체크)
           const newWords = [];
           for (const row of dataRows) {
-            const english = String(row[0]).trim();
-            const korean = String(row[1]).trim();
+            const english = String(row[0] || '').trim();
+            const korean = String(row[1] || '').trim();
+            const synonymsRaw = String(row[2] || '').trim();
+            const antonymsRaw = String(row[3] || '').trim();
+            const definition = String(row[4] || '').trim();
 
             if (!english || !korean) continue;
+
+            // 동의어/반의어 배열로 변환 (쉼표로 구분, 빈 문자열 제거)
+            const synonyms = synonymsRaw ? synonymsRaw.split(',').map(s => s.trim()).filter(s => s) : [];
+            const antonyms = antonymsRaw ? antonymsRaw.split(',').map(s => s.trim()).filter(s => s) : [];
 
             // 이미 같은 단어장에 같은 영어 단어가 있는지 확인
             const isDuplicate = existingWords.some(
@@ -487,8 +494,9 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
                 korean: korean,
                 example: '',
                 pronunciation: '',
-                synonyms: [],
-                antonyms: [],
+                synonyms: synonyms,
+                antonyms: antonyms,
+                definition: definition,
                 mastered: false,
                 nextReviewDate: new Date().toISOString(),
                 lastReviewDate: null,
@@ -505,11 +513,13 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             b.id === targetBook.id ? { ...b, wordCount: bookWordCount } : b
           );
 
-          // Firestore에 저장
+          // Firestore에 저장 (classId/className도 함께 설정)
           await setDoc(userDataRef, {
             ...userData,
             books: updatedBooks,
             words: finalWords,
+            classId: selectedUploadClassId,
+            className: selectedClass.className,
             lastUpdated: new Date().toISOString()
           });
 
@@ -943,10 +953,7 @@ if (userDataDoc.exists()) {
   if (needsMigration) {
     migratedBooks = [
       { id: 1, name: '이번 시험범위', wordCount: (migratedBooks[0]?.wordCount || 0), isExamRange: true, icon: '🎯' },
-      { id: 2, name: '일단 OK', wordCount: 0, isExamRange: false, icon: '👍' },
-      { id: 3, name: '교과서 ()과', wordCount: 0, isExamRange: false, icon: '📖' },
-      { id: 4, name: '교과서 ()과', wordCount: 0, isExamRange: false, icon: '📖' },
-      { id: 5, name: '모의고사', wordCount: 0, isExamRange: false, icon: '📝' }
+      { id: 2, name: '일단 OK', wordCount: 0, isExamRange: false, icon: '👍' }
     ];
 
     // 마이그레이션한 경우 즉시 Firestore에 저장
@@ -955,6 +962,25 @@ if (userDataDoc.exists()) {
       ...data,
       books: migratedBooks
     });
+  } else {
+    // 기존 사용자: 불필요한 기본 단어장(id 3, 4, 5) 제거
+    const cleanedBooks = migratedBooks.filter(book => {
+      // 교재단어장은 모두 유지
+      if (book.category === '교재단어장') return true;
+
+      // 나의학습단어장 중에서 id가 1, 2인 것만 유지
+      return book.id === 1 || book.id === 2;
+    });
+
+    // 변경이 있었으면 저장
+    if (cleanedBooks.length !== migratedBooks.length) {
+      console.log('🧹 불필요한 단어장 제거:', migratedBooks.length, '→', cleanedBooks.length);
+      migratedBooks = cleanedBooks;
+      await setDoc(doc(db, 'userData', userId), {
+        ...data,
+        books: migratedBooks
+      });
+    }
   }
 
   // words 설정 (모든 경우에 적용)
@@ -1527,9 +1553,9 @@ if (userDataDoc.exists()) {
         learningStats: learningStats,
         examName: examName,
         examDate: examDate,
-        // classId와 className은 기존 값이 있으면 유지, 없으면 state 값 사용
-        classId: existingData.classId || classId,
-        className: existingData.className || className,
+        // classId와 className은 항상 기존 DB 값 우선 (관리자가 배정한 값 보호)
+        classId: existingData.classId !== undefined ? existingData.classId : classId,
+        className: existingData.className !== undefined ? existingData.className : className,
         userName: userName || existingData.userName,
         lastUpdated: new Date().toISOString()
       };
@@ -5430,7 +5456,10 @@ if (currentView === 'admin' && isAdmin) {
                 교재단어장 업로드
               </h2>
               <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
-                엑셀 파일명 = 단어장 이름 (예: 교과서 3과.xlsx)
+                엑셀 파일명 = 단어장 이름 (예: 3과.xlsx)
+              </p>
+              <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '4px 0 0 0', lineHeight: '1.4' }}>
+                📋 열 순서: 1열-영어 | 2열-한글뜻 | 3열-동의어(선택) | 4열-반의어(선택) | 5열-영영풀이(선택)
               </p>
             </div>
           </div>
@@ -6681,7 +6710,10 @@ if (currentView === 'classWordManagement' && isAdmin) {
               📚 교재단어장 배포
             </h2>
             <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
-              엑셀 파일명 = 단어장 이름 (예: 박준언3과.xlsx)
+              엑셀 파일명 = 단어장 이름 (예: 3과.xlsx)
+            </p>
+            <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '4px 0 0 0', lineHeight: '1.4' }}>
+              📋 열 순서: 1열-영어 | 2열-한글뜻 | 3열-동의어(선택) | 4열-반의어(선택) | 5열-영영풀이(선택)
             </p>
           </div>
 
@@ -8858,17 +8890,66 @@ if (currentView === 'flashcard') {
           </button>
 
           {showAnswer ? (
-            <div style={{ 
-              fontSize: '1.6rem', 
-              fontWeight: '600', 
-              color: '#059669',
-              textAlign: 'center',
-              background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
-              padding: '16px 24px',
-              borderRadius: '12px',
-              border: '2px solid #6ee7b7'
-            }}>
-              {currentWord.korean}
+            <div style={{ width: '100%' }}>
+              <div style={{
+                fontSize: '1.6rem',
+                fontWeight: '600',
+                color: '#059669',
+                textAlign: 'center',
+                background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                border: '2px solid #6ee7b7',
+                marginBottom: '16px'
+              }}>
+                {currentWord.korean}
+              </div>
+
+              {/* 영영풀이 */}
+              {currentWord.definition && (
+                <div style={{
+                  fontSize: '0.85rem',
+                  color: '#475569',
+                  background: 'rgba(241, 245, 249, 0.8)',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  marginBottom: '12px',
+                  lineHeight: '1.5',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <div style={{ fontWeight: '700', color: '#334155', marginBottom: '4px' }}>📖 Definition</div>
+                  {currentWord.definition}
+                </div>
+              )}
+
+              {/* 동의어 */}
+              {currentWord.synonyms && currentWord.synonyms.length > 0 && (
+                <div style={{
+                  fontSize: '0.85rem',
+                  color: '#0369a1',
+                  background: 'rgba(224, 242, 254, 0.8)',
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  marginBottom: '8px',
+                  border: '1px solid #bae6fd'
+                }}>
+                  <span style={{ fontWeight: '700' }}>🔄 동의어:</span> {currentWord.synonyms.join(', ')}
+                </div>
+              )}
+
+              {/* 반의어 */}
+              {currentWord.antonyms && currentWord.antonyms.length > 0 && (
+                <div style={{
+                  fontSize: '0.85rem',
+                  color: '#be123c',
+                  background: 'rgba(254, 242, 242, 0.8)',
+                  padding: '10px 16px',
+                  borderRadius: '10px',
+                  border: '1px solid #fecaca'
+                }}>
+                  <span style={{ fontWeight: '700' }}>↔️ 반의어:</span> {currentWord.antonyms.join(', ')}
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ fontSize: '0.9rem', color: '#94a3b8', textAlign: 'center' }}>
