@@ -3245,6 +3245,15 @@ if (currentView === 'quizModeSelect') {
 
 //홈 화면
  if (currentView === 'home') {
+  // 디버깅: 모든 단어장 출력
+  console.log('🔍 홈 화면 렌더링 - 전체 단어장 목록:', books);
+  console.log('📊 단어장 상세 정보:');
+  books.forEach((book, index) => {
+    console.log(`  ${index + 1}. id: ${book.id}, name: ${book.name}, category: ${book.category || '(없음)'}, wordCount: ${book.wordCount}`);
+  });
+  console.log(`📚 나만의 단어장: ${books.filter(b => !b.category || b.category !== '교재단어장').length}개`);
+  console.log(`📖 교재 단어장: ${books.filter(b => b.category === '교재단어장').length}개`);
+
   const dday = examDate ? Math.ceil((new Date(examDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
   return (
     <div style={{ 
