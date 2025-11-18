@@ -505,11 +505,13 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             b.id === targetBook.id ? { ...b, wordCount: bookWordCount } : b
           );
 
-          // Firestore에 저장
+          // Firestore에 저장 (classId/className도 함께 설정)
           await setDoc(userDataRef, {
             ...userData,
             books: updatedBooks,
             words: finalWords,
+            classId: selectedUploadClassId,
+            className: selectedClass.className,
             lastUpdated: new Date().toISOString()
           });
 
@@ -1527,9 +1529,9 @@ if (userDataDoc.exists()) {
         learningStats: learningStats,
         examName: examName,
         examDate: examDate,
-        // classId와 className은 기존 값이 있으면 유지, 없으면 state 값 사용
-        classId: existingData.classId || classId,
-        className: existingData.className || className,
+        // classId와 className은 항상 기존 DB 값 우선 (관리자가 배정한 값 보호)
+        classId: existingData.classId !== undefined ? existingData.classId : classId,
+        className: existingData.className !== undefined ? existingData.className : className,
         userName: userName || existingData.userName,
         lastUpdated: new Date().toISOString()
       };
