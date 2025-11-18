@@ -4472,7 +4472,6 @@ if (currentView === 'quizModeSelect') {
                 ))}
               </div>
             )}
-          </div>
         </div>
 
       </div>
