@@ -243,6 +243,7 @@ const cancelEdit = () => {
   const [currentTest, setCurrentTest] = useState(null); // 현재 진행 중인 시험 (학생용)
   const [allTests, setAllTests] = useState([]); // 모든 시험 목록 (관리자용)
   const [myTestResults, setMyTestResults] = useState([]); // 내 시험 결과 목록
+  const [allTestResults, setAllTestResults] = useState([]); // 모든 시험 결과 (관리자용)
 
   // 시험 만들기 폼 상태
   const [testTitle, setTestTitle] = useState('');
@@ -1228,6 +1229,29 @@ if (userDataDoc.exists()) {
       }));
       setAllTests(testsList);
       console.log('✅ 모든 시험 로드:', testsList.length);
+
+      // 모든 시험 결과도 로드
+      const resultsSnapshot = await getDocs(collection(db, 'testResults'));
+      const allResults = resultsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // 각 결과에 학생 이름 추가
+      const resultsWithNames = await Promise.all(
+        allResults.map(async (result) => {
+          try {
+            const userDoc = await getDoc(doc(db, 'userData', result.userId));
+            const userName = userDoc.exists() ? userDoc.data().userName || '학생' : '학생';
+            return { ...result, userName };
+          } catch (error) {
+            return { ...result, userName: '학생' };
+          }
+        })
+      );
+
+      setAllTestResults(resultsWithNames);
+      console.log('✅ 모든 시험 결과 로드:', resultsWithNames.length);
     } catch (error) {
       console.error('모든 시험 로드 오류:', error);
     }
@@ -4203,6 +4227,70 @@ if (currentView === 'quizModeSelect') {
         </div>
       )}
 
+      {/* 📊 내 시험 결과 섹션 */}
+      {myTestResults && myTestResults.length > 0 && (
+        <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
+          <h3 style={{
+            fontSize: '1.2rem',
+            fontWeight: 700,
+            color: '#1e293b',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            📊 내 시험 결과
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {myTestResults.slice().reverse().map(result => (
+              <div
+                key={result.id}
+                style={{
+                  background: result.passed
+                    ? 'linear-gradient(135deg, #d1fae5, #a7f3d0)'
+                    : 'linear-gradient(135deg, #fee2e2, #fecaca)',
+                  border: result.passed ? '2px solid #10b981' : '2px solid #ef4444',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
+                      {result.testTitle}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                      {new Date(result.completedAt).toLocaleDateString('ko-KR')} {new Date(result.completedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: 900,
+                      color: result.passed ? '#059669' : '#dc2626',
+                      marginBottom: '4px'
+                    }}>
+                      {result.score}%
+                    </div>
+                    <div style={{
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      color: result.passed ? '#059669' : '#dc2626'
+                    }}>
+                      {result.passed ? '✅ 통과' : '❌ 재시험 필요'}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
+                      {result.correct} / {result.total} 정답
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 📚 단어장 섹션 - 탭 레이아웃 */}
       <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
         {/* 탭 헤더 */}
@@ -6711,6 +6799,94 @@ if (currentView === 'testManagement' && isAdmin) {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* 학생별 시험 결과 */}
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '24px',
+          marginTop: '24px',
+          border: '2px solid #3b82f6',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#1e40af', marginBottom: '16px' }}>
+            📊 학생별 시험 결과
+          </h2>
+
+          {allTests.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '48px', color: '#64748b' }}>
+              시험 결과가 없습니다.
+            </div>
+          ) : (
+            allTests.map(test => {
+              const testResults = allTestResults.filter(result => result.testId === test.id);
+
+              if (testResults.length === 0) return null;
+
+              return (
+                <div key={test.id} style={{ marginBottom: '24px' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '12px' }}>
+                    {test.title}
+                  </h3>
+                  <div style={{ display: 'grid', gap: '12px' }}>
+                    {testResults
+                      .sort((a, b) => b.score - a.score) // 점수 높은 순
+                      .map(result => (
+                        <div
+                          key={result.id}
+                          style={{
+                            background: result.passed
+                              ? 'linear-gradient(135deg, #d1fae5, #a7f3d0)'
+                              : 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                            border: result.passed ? '2px solid #10b981' : '2px solid #f59e0b',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', marginBottom: '4px' }}>
+                              {result.userName}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                              {new Date(result.completedAt).toLocaleString('ko-KR')}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{
+                              fontSize: '1.8rem',
+                              fontWeight: 900,
+                              color: result.passed ? '#059669' : '#d97706',
+                              marginBottom: '4px'
+                            }}>
+                              {result.score}%
+                            </div>
+                            <div style={{
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              color: result.passed ? '#059669' : '#d97706'
+                            }}>
+                              {result.correct} / {result.total} 정답
+                            </div>
+                            <div style={{
+                              fontSize: '0.85rem',
+                              fontWeight: 700,
+                              color: result.passed ? '#059669' : '#dc2626',
+                              marginTop: '4px'
+                            }}>
+                              {result.passed ? '✅ 통과' : '❌ 재시험'}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
