@@ -4059,12 +4059,22 @@ if (currentView === 'quizModeSelect') {
       {/* 📝 오늘의 단어 시험 - 크고 눈에 띄게 */}
       {currentTest && new Date(currentTest.deadline) > new Date() && (() => {
         // 이 시험에 대한 최신 결과 찾기
+        console.log('🔍 테스트 카드 렌더링 디버깅:');
+        console.log('  - currentTest.id:', currentTest.id);
+        console.log('  - myTestResults 전체:', myTestResults);
+
         const testResults = myTestResults.filter(r => r.testId === currentTest.id);
+        console.log('  - testResults (필터된):', testResults);
+
         const latestResult = testResults.length > 0
           ? testResults.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0]
           : null;
+        console.log('  - latestResult:', latestResult);
+
         const hasPassed = latestResult && latestResult.passed;
         const needsRetest = latestResult && !latestResult.passed;
+        console.log('  - hasPassed:', hasPassed);
+        console.log('  - needsRetest:', needsRetest);
 
         return (
         <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
