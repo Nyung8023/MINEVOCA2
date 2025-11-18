@@ -53,6 +53,17 @@ const fetchSynonymsAndAntonyms = async (word) => {
     return { synonyms: [], antonyms: [] };
   }
 };
+
+// 품사 표시 제거 함수 ([명], [동], [형], [부] 등)
+const removePartOfSpeechTags = (text) => {
+  if (!text) return text;
+  // [명], [동], [형], [부], [전], [접], [감], [대], [관], [조] 등 모든 한글 품사 표시 제거
+  // (명), (동) 같은 형태도 제거
+  return text
+    .replace(/\[[가-힣]+\]/g, '') // [명], [동] 등 제거
+    .replace(/\([가-힣]+\)/g, '') // (명), (동) 등 제거
+    .trim(); // 앞뒤 공백 제거
+};
 export default function MineVocaApp() {
 
   useEffect(() => {
@@ -473,13 +484,19 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             const korean = String(row[1] || '').trim();
             const synonymsRaw = String(row[2] || '').trim();
             const antonymsRaw = String(row[3] || '').trim();
-            const definition = String(row[4] || '').trim();
+            const definitionRaw = String(row[4] || '').trim();
 
             if (!english || !korean) continue;
 
-            // 동의어/반의어 배열로 변환 (쉼표로 구분, 빈 문자열 제거)
-            const synonyms = synonymsRaw ? synonymsRaw.split(',').map(s => s.trim()).filter(s => s) : [];
-            const antonyms = antonymsRaw ? antonymsRaw.split(',').map(s => s.trim()).filter(s => s) : [];
+            // 동의어/반의어 배열로 변환 (쉼표로 구분, 빈 문자열 제거, 품사 표시 제거)
+            const synonyms = synonymsRaw
+              ? synonymsRaw.split(',').map(s => removePartOfSpeechTags(s.trim())).filter(s => s)
+              : [];
+            const antonyms = antonymsRaw
+              ? antonymsRaw.split(',').map(s => removePartOfSpeechTags(s.trim())).filter(s => s)
+              : [];
+            // 영영풀이에서도 품사 표시 제거
+            const definition = removePartOfSpeechTags(definitionRaw);
 
             // 이미 같은 단어장에 같은 영어 단어가 있는지 확인
             const isDuplicate = existingWords.some(
@@ -1455,9 +1472,21 @@ if (userDataDoc.exists()) {
   // 단어 수정
   const updateWord = async (wordId, updatedData) => {
     try {
+      // 품사 표시 제거
+      const cleanedData = { ...updatedData };
+      if (cleanedData.definition) {
+        cleanedData.definition = removePartOfSpeechTags(cleanedData.definition);
+      }
+      if (cleanedData.synonyms) {
+        cleanedData.synonyms = removePartOfSpeechTags(cleanedData.synonyms);
+      }
+      if (cleanedData.antonyms) {
+        cleanedData.antonyms = removePartOfSpeechTags(cleanedData.antonyms);
+      }
+
       const wordRef = doc(db, 'dictionary', wordId);
       await updateDoc(wordRef, {
-        ...updatedData,
+        ...cleanedData,
         updatedAt: new Date().toISOString()
       });
       console.log('✅ 단어 수정 완료:', wordId);
@@ -1548,9 +1577,21 @@ if (userDataDoc.exists()) {
       const existingDoc = await getDoc(userDataRef);
       const existingData = existingDoc.exists() ? existingDoc.data() : {};
 
+      // 저장하기 전에 모든 단어에서 품사 표시 제거
+      const cleanedWords = words.map(word => ({
+        ...word,
+        definition: word.definition ? removePartOfSpeechTags(word.definition) : word.definition,
+        synonyms: Array.isArray(word.synonyms)
+          ? word.synonyms.map(s => removePartOfSpeechTags(s)).filter(s => s)
+          : word.synonyms,
+        antonyms: Array.isArray(word.antonyms)
+          ? word.antonyms.map(a => removePartOfSpeechTags(a)).filter(a => a)
+          : word.antonyms
+      }));
+
       const dataToSave = {
         books: books,
-        words: words,
+        words: cleanedWords,
         learningStats: learningStats,
         examName: examName,
         examDate: examDate,
