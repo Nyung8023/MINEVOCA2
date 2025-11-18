@@ -240,7 +240,8 @@ const cancelEdit = () => {
 
   // 단어 시험 상태
   const [wordTests, setWordTests] = useState([]); // 관리자가 만든 시험 목록
-  const [currentTest, setCurrentTest] = useState(null); // 현재 진행 중인 시험 (학생용)
+  const [currentTest, setCurrentTest] = useState(null); // 현재 진행 중인 시험 (학생용) - 호환성 유지
+  const [myTests, setMyTests] = useState([]); // 내가 봐야 할 모든 시험 목록
   const [allTests, setAllTests] = useState([]); // 모든 시험 목록 (관리자용)
   const [myTestResults, setMyTestResults] = useState([]); // 내 시험 결과 목록
   const [allTestResults, setAllTestResults] = useState([]); // 모든 시험 결과 (관리자용)
@@ -1207,14 +1208,15 @@ if (userDataDoc.exists()) {
   const loadMyClassTests = async (userClassId) => {
     try {
       const testsSnapshot = await getDocs(collection(db, 'tests'));
-      const myTests = testsSnapshot.docs
+      const myTestsList = testsSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(test => test.classId === userClassId && new Date(test.deadline) > new Date());
 
-      if (myTests.length > 0) {
-        setCurrentTest(myTests[0]); // 가장 최근 시험 표시
+      setMyTests(myTestsList); // 모든 시험 저장
+      if (myTestsList.length > 0) {
+        setCurrentTest(myTestsList[0]); // 호환성 유지
       }
-      console.log('✅ 내 반 시험 로드:', myTests.length);
+      console.log('✅ 내 반 시험 로드:', myTestsList.length);
     } catch (error) {
       console.error('시험 로드 오류:', error);
     }
@@ -4064,28 +4066,26 @@ if (currentView === 'quizModeSelect') {
         </div>
       )}
 
-      {/* 📝 오늘의 단어 시험 - 크고 눈에 띄게 */}
-      {currentTest && new Date(currentTest.deadline) > new Date() && (() => {
+      {/* 📝 오늘의 단어 시험들 - 통과하지 않은 시험만 표시 */}
+      {myTests.filter(test => new Date(test.deadline) > new Date()).map((test) => {
         // 이 시험에 대한 최신 결과 찾기
-        console.log('🔍 테스트 카드 렌더링 디버깅:');
-        console.log('  - currentTest.id:', currentTest.id);
-        console.log('  - myTestResults 전체:', myTestResults);
-
-        const testResults = myTestResults.filter(r => r.testId === currentTest.id);
-        console.log('  - testResults (필터된):', testResults);
-
+        const testResults = myTestResults.filter(r => r.testId === test.id);
         const latestResult = testResults.length > 0
           ? testResults.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0]
           : null;
-        console.log('  - latestResult:', latestResult);
-
         const hasPassed = latestResult && latestResult.passed;
         const needsRetest = latestResult && !latestResult.passed;
-        console.log('  - hasPassed:', hasPassed);
-        console.log('  - needsRetest:', needsRetest);
+
+        // 통과한 시험은 표시하지 않음
+        if (hasPassed) {
+          console.log('✅ 시험 통과로 카드 숨김:', test.title);
+          return null;
+        }
+
+        console.log('🔍 시험 카드 표시:', test.title, '- needsRetest:', needsRetest);
 
         return (
-        <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
+        <div key={test.id} style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
           <div
             style={{
               background: hasPassed
@@ -4146,7 +4146,7 @@ if (currentView === 'quizModeSelect') {
                     margin: '4px 0 0 0',
                     fontWeight: 600
                   }}>
-                    {currentTest.title}
+                    {test.title}
                   </p>
                 </div>
               </div>
@@ -4165,7 +4165,7 @@ if (currentView === 'quizModeSelect') {
                       단어 개수
                     </div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#78350f' }}>
-                      {currentTest.wordIds.length}개
+                      {test.wordIds.length}개
                     </div>
                   </div>
                   <div>
@@ -4173,7 +4173,7 @@ if (currentView === 'quizModeSelect') {
                       마감 시간
                     </div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#dc2626' }}>
-                      {new Date(currentTest.deadline).toLocaleString('ko-KR', {
+                      {new Date(test.deadline).toLocaleString('ko-KR', {
                         month: 'numeric',
                         day: 'numeric',
                         hour: '2-digit',
@@ -4187,7 +4187,7 @@ if (currentView === 'quizModeSelect') {
                     </div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#ea580c' }}>
                       {(() => {
-                        const diff = new Date(currentTest.deadline) - new Date();
+                        const diff = new Date(test.deadline) - new Date();
                         const hours = Math.floor(diff / (1000 * 60 * 60));
                         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                         return `${hours}시간 ${minutes}분`;
@@ -4221,8 +4221,9 @@ if (currentView === 'quizModeSelect') {
                     onClick={async () => {
                       try {
                         console.log('🔄 재시험 시작 - 단어 로드 중...');
+                        setCurrentTest(test); // 현재 시험 설정
                         const testWords = words.filter(word =>
-                          currentTest.wordIds.includes(word.id)
+                          test.wordIds.includes(word.id)
                         );
 
                         if (testWords.length === 0) {
@@ -4281,12 +4282,13 @@ if (currentView === 'quizModeSelect') {
                       // 시험용 단어들을 현재 학생의 userData에서 로드
                       try {
                         console.log('🎯 시험 시작 - 단어 로드 중...');
-                        console.log('  - 시험 단어 ID 개수:', currentTest.wordIds.length);
+                        setCurrentTest(test); // 현재 시험 설정
+                        console.log('  - 시험 단어 ID 개수:', test.wordIds.length);
                         console.log('  - 현재 사용자의 전체 단어 수:', words.length);
 
                         // 현재 로그인한 학생의 단어에서 시험 단어만 필터링
                         const testWords = words.filter(word =>
-                          currentTest.wordIds.includes(word.id)
+                          test.wordIds.includes(word.id)
                         );
 
                         console.log('  - 필터링된 시험 단어 수:', testWords.length);
@@ -4346,7 +4348,7 @@ if (currentView === 'quizModeSelect') {
           </div>
         </div>
         );
-      })()}
+      })}
 
       {/* 📊 내 시험 결과 섹션 */}
       {myTestResults && myTestResults.length > 0 && (
