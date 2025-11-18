@@ -205,6 +205,7 @@ const cancelEdit = () => {
   const [quizDirection, setQuizDirection] = useState('en-ko');
   const [multipleChoices, setMultipleChoices] = useState([]);
   const [spellingInput, setSpellingInput] = useState([]);
+  const [selectedLetters, setSelectedLetters] = useState([]); // 철자 퀴즈에서 선택한 글자들
   const [quizWords, setQuizWords] = useState([]); // 섞인 퀴즈용 단어 배열
   const [quizResults, setQuizResults] = useState(null); // 퀴즈 결과 저장
 
@@ -2068,6 +2069,7 @@ const addWordFromClick = async (clickedWord) => {
     setQuizAnswer('');
     setQuizResult(null);
     setScore({ correct: 0, total: 0 });
+    setSelectedLetters([]);
 
     if (mode === 'multiple') {
       setMultipleChoices(generateMultipleChoices(shuffledWords[0], shuffledWords));
@@ -2116,7 +2118,7 @@ const addWordFromClick = async (clickedWord) => {
       const correctAnswer = quizDirection === 'en-ko' ? currentWord.korean : currentWord.english;
       isCorrect = quizAnswer === correctAnswer;
     } else if (quizMode === 'spelling') {
-      isCorrect = spellingInput.join('') === currentWord.english;
+      isCorrect = selectedLetters.join('') === currentWord.english;
     }
 
     setQuizResult(isCorrect);
@@ -2137,6 +2139,7 @@ const addWordFromClick = async (clickedWord) => {
       setCurrentCardIndex(currentCardIndex + 1);
       setQuizAnswer('');
       setQuizResult(null);
+      setSelectedLetters([]);
 
       if (quizMode === 'multiple') {
         setMultipleChoices(generateMultipleChoices(quizWords[currentCardIndex + 1], quizWords));
@@ -9216,10 +9219,11 @@ if (currentView === 'quiz') {
           {/* 철자 맞추기 */}
           {quizMode === 'spelling' && (
             <div>
-              <div style={{ 
-                display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: '8px', 
+              {/* 선택된 글자 표시 영역 */}
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
                 marginBottom: '20px',
                 minHeight: '60px',
                 padding: '14px',
@@ -9227,25 +9231,80 @@ if (currentView === 'quiz') {
                 borderRadius: '10px',
                 border: '2px solid #a78bfa'
               }}>
-                {spellingInput.map((letter, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      padding: '10px 14px',
-                      background: 'white',
-                      borderRadius: '8px',
-                      fontSize: '1.1rem',
-                      fontWeight: '700',
-                      color: '#6d28d9',
-                      border: '2px solid #a78bfa'
-                    }}
-                  >
-                    {letter}
+                {selectedLetters.length > 0 ? (
+                  selectedLetters.map((letterIndex, position) => (
+                    <div
+                      key={position}
+                      onClick={() => {
+                        if (quizResult === null) {
+                          setSelectedLetters(selectedLetters.filter((_, i) => i !== position));
+                        }
+                      }}
+                      style={{
+                        padding: '10px 14px',
+                        background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
+                        borderRadius: '8px',
+                        fontSize: '1.1rem',
+                        fontWeight: '700',
+                        color: 'white',
+                        border: '2px solid #7c3aed',
+                        cursor: quizResult === null ? 'pointer' : 'default',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {spellingInput[letterIndex]}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#8b5cf6',
+                    fontSize: '0.95rem',
+                    fontWeight: '500'
+                  }}>
+                    아래에서 글자를 클릭하세요
                   </div>
-                ))}
+                )}
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#64748b', textAlign: 'center' }}>
-                글자를 순서대로 배열하세요 (준비중)
+
+              {/* 선택 가능한 글자들 */}
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
+                marginBottom: '20px'
+              }}>
+                {spellingInput.map((letter, index) => {
+                  const isSelected = selectedLetters.includes(index);
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        if (quizResult === null && !isSelected) {
+                          setSelectedLetters([...selectedLetters, index]);
+                        }
+                      }}
+                      disabled={isSelected || quizResult !== null}
+                      style={{
+                        padding: '12px 16px',
+                        background: isSelected ? '#e5e7eb' : 'white',
+                        borderRadius: '8px',
+                        fontSize: '1.1rem',
+                        fontWeight: '700',
+                        color: isSelected ? '#9ca3af' : '#6d28d9',
+                        border: `2px solid ${isSelected ? '#d1d5db' : '#a78bfa'}`,
+                        cursor: isSelected || quizResult !== null ? 'default' : 'pointer',
+                        transition: 'all 0.2s',
+                        opacity: isSelected ? 0.5 : 1
+                      }}
+                    >
+                      {letter}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
