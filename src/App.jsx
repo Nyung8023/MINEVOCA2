@@ -149,16 +149,24 @@ const startEditing = (book) => {
 
  // 단어장 수정
   const updateBook = async () => {
+  // 기본 단어장(id 1)은 수정 불가
+  if (editingBook && editingBook.id === 1) {
+    alert('기본 단어장은 수정할 수 없습니다.');
+    setEditingBook(null);
+    setShowEditModal(false);
+    return;
+  }
+
   if (editingBook && editingBook.name.trim()) {
-    const updatedBooks = books.map(b => 
-      b.id === editingBook.id 
+    const updatedBooks = books.map(b =>
+      b.id === editingBook.id
         ? { ...b, name: editingBook.name, icon: editingBook.icon || '📒' }
         : b
     );
     setBooks(updatedBooks);
     setEditingBook(null);
     setShowEditModal(false);
-    
+
     try {
       await window.storage.set('books', JSON.stringify(updatedBooks));
     } catch (error) {
@@ -991,15 +999,16 @@ if (userDataDoc.exists()) {
       books: migratedBooks
     });
   } else {
-    // 기존 사용자: 불필요한 기본 단어장(id 2, 3, 4, 5) 제거
+    // 기존 사용자: 불필요한 기본 단어장(id 3, 4, 5)만 제거
     console.log('🔍 현재 단어장 목록:', migratedBooks.map(b => ({ id: b.id, name: b.name, category: b.category })));
 
     const cleanedBooks = migratedBooks.filter(book => {
       // 교재단어장은 모두 유지
       if (book.category === '교재단어장') return true;
 
-      // 나의학습단어장 중에서 bookId 2 (일단 OK)만 제거
-      return book.id !== 2;
+      // 나의학습단어장 중에서 id가 3, 4, 5인 구버전 기본 단어장만 제거
+      // id가 1이거나 그 외의 숫자(사용자가 추가한 것)는 모두 유지
+      return book.id !== 3 && book.id !== 4 && book.id !== 5;
     });
 
     console.log('🔍 필터링 후 단어장:', cleanedBooks.map(b => ({ id: b.id, name: b.name, category: b.category })));
@@ -1780,16 +1789,27 @@ if (userDataDoc.exists()) {
       const newBook = {
         id: Date.now(),
         name: newBookName,
-        wordCount: 0
+        wordCount: 0,
+        category: '교재단어장',  // 교재단어장으로 자동 분류
+        icon: '📖',
+        isExamRange: false,
+        createdAt: new Date().toISOString()
       };
       setBooks([...books, newBook]);
       setNewBookName('');
       setShowBookInput(false);
+      console.log('✅ 새 교재단어장 추가:', newBook.name);
     }
   };
 
   // 단어장 삭제
   const deleteBook = (bookId) => {
+    // 기본 단어장(id 1)은 삭제 불가
+    if (bookId === 1) {
+      alert('기본 단어장은 삭제할 수 없습니다.');
+      return;
+    }
+
     if (window.confirm('이 단어장을 삭제하시겠습니까?')) {
       setBooks(books.filter(b => b.id !== bookId));
       setWords(words.filter(w => w.bookId !== bookId));
