@@ -1615,10 +1615,25 @@ if (userDataDoc.exists()) {
     return () => unsubscribe();
   }, []);
   
+  // books state 변경 추적
+  useEffect(() => {
+    console.log('📚 books state 변경됨:', books);
+    console.log('  - 단어장 개수:', books.length);
+    console.log('  - 단어장 목록:', books.map(b => ({ id: b.id, name: b.name })));
+  }, [books]);
+
   // 데이터 자동 저장
   useEffect(() => {
+    console.log('💾 자동 저장 useEffect 트리거');
+    console.log('  - isLoggedIn:', isLoggedIn);
+    console.log('  - currentUser:', currentUser?.email);
+    console.log('  - loading:', loading);
+
     if (isLoggedIn && currentUser && !loading) {
+      console.log('  - 조건 충족! saveUserData 호출');
       saveUserData();
+    } else {
+      console.log('  - 조건 불충족, saveUserData 호출 안 함');
     }
   }, [books, words, learningStats, examName, examDate, classId, className, userName, isLoggedIn, currentUser, loading, saveUserData]);
 
@@ -1719,15 +1734,25 @@ if (userDataDoc.exists()) {
 
   // 단어장 추가
   const addBook = () => {
+    console.log('🔍 addBook 함수 호출됨');
+    console.log('  - newBookName:', newBookName);
+    console.log('  - newBookName.trim():', newBookName.trim());
+    console.log('  - 현재 books:', books);
+
     if (newBookName.trim()) {
       const newBook = {
         id: Date.now(),
         name: newBookName,
         wordCount: 0
       };
+      console.log('  - 새 단어장 생성:', newBook);
+      console.log('  - 업데이트할 books 배열:', [...books, newBook]);
       setBooks([...books, newBook]);
       setNewBookName('');
       setShowBookInput(false);
+      console.log('✅ 단어장 추가 완료');
+    } else {
+      console.log('❌ 단어장 이름이 비어있음');
     }
   };
 
