@@ -945,10 +945,7 @@ if (userDataDoc.exists()) {
   if (needsMigration) {
     migratedBooks = [
       { id: 1, name: '이번 시험범위', wordCount: (migratedBooks[0]?.wordCount || 0), isExamRange: true, icon: '🎯' },
-      { id: 2, name: '일단 OK', wordCount: 0, isExamRange: false, icon: '👍' },
-      { id: 3, name: '교과서 ()과', wordCount: 0, isExamRange: false, icon: '📖' },
-      { id: 4, name: '교과서 ()과', wordCount: 0, isExamRange: false, icon: '📖' },
-      { id: 5, name: '모의고사', wordCount: 0, isExamRange: false, icon: '📝' }
+      { id: 2, name: '일단 OK', wordCount: 0, isExamRange: false, icon: '👍' }
     ];
 
     // 마이그레이션한 경우 즉시 Firestore에 저장
