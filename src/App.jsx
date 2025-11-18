@@ -985,6 +985,8 @@ if (userDataDoc.exists()) {
     });
   } else {
     // 기존 사용자: 불필요한 기본 단어장(id 2, 3, 4, 5) 제거
+    console.log('🔍 현재 단어장 목록:', migratedBooks.map(b => ({ id: b.id, name: b.name, category: b.category })));
+
     const cleanedBooks = migratedBooks.filter(book => {
       // 교재단어장은 모두 유지
       if (book.category === '교재단어장') return true;
@@ -992,6 +994,8 @@ if (userDataDoc.exists()) {
       // 나의학습단어장 중에서 bookId 2 (일단 OK)만 제거
       return book.id !== 2;
     });
+
+    console.log('🔍 필터링 후 단어장:', cleanedBooks.map(b => ({ id: b.id, name: b.name, category: b.category })));
 
     // 변경이 있었으면 저장
     if (cleanedBooks.length !== migratedBooks.length) {
@@ -1001,6 +1005,8 @@ if (userDataDoc.exists()) {
         ...data,
         books: migratedBooks
       });
+    } else {
+      console.log('⚠️ 제거할 단어장이 없음 (길이 동일:', migratedBooks.length, ')');
     }
   }
 
