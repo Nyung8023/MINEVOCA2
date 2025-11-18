@@ -4171,53 +4171,52 @@ if (currentView === 'quizModeSelect') {
       {/* 📚 단어장 섹션 - 탭 레이아웃 */}
       <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
         {/* 탭 헤더 */}
-        <div style={{ marginBottom: '16px' }}>
-          <div style={{
-            display: 'flex',
-            gap: '8px',
-            borderBottom: '2px solid #e2e8f0',
-            marginBottom: '16px'
-          }}>
-            <button
-              onClick={() => setActiveTab('personal')}
-              style={{
-                flex: 1,
-                padding: '12px 16px',
-                background: 'transparent',
-                border: 'none',
-                borderBottom: activeTab === 'personal' ? '3px solid #3b82f6' : '3px solid transparent',
-                fontSize: '0.95rem',
-                fontWeight: activeTab === 'personal' ? 700 : 600,
-                color: activeTab === 'personal' ? '#3b82f6' : '#64748b',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                marginBottom: '-2px'
-              }}
-            >
-              📚 나의 단어장
-            </button>
-            <button
-              onClick={() => setActiveTab('textbook')}
-              style={{
-                flex: 1,
-                padding: '12px 16px',
-                background: 'transparent',
-                border: 'none',
-                borderBottom: activeTab === 'textbook' ? '3px solid #3b82f6' : '3px solid transparent',
-                fontSize: '0.95rem',
-                fontWeight: activeTab === 'textbook' ? 700 : 600,
-                color: activeTab === 'textbook' ? '#3b82f6' : '#64748b',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                marginBottom: '-2px'
-              }}
-            >
-              📖 교재 단어장
-            </button>
-          </div>
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          borderBottom: '2px solid #e2e8f0',
+          marginBottom: '16px'
+        }}>
+          <button
+            onClick={() => setActiveTab('personal')}
+            style={{
+              flex: 1,
+              padding: '12px 16px',
+              background: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'personal' ? '3px solid #3b82f6' : '3px solid transparent',
+              fontSize: '0.95rem',
+              fontWeight: activeTab === 'personal' ? 700 : 600,
+              color: activeTab === 'personal' ? '#3b82f6' : '#64748b',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              marginBottom: '-2px'
+            }}
+          >
+            📚 나의 단어장
+          </button>
+          <button
+            onClick={() => setActiveTab('textbook')}
+            style={{
+              flex: 1,
+              padding: '12px 16px',
+              background: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'textbook' ? '3px solid #3b82f6' : '3px solid transparent',
+              fontSize: '0.95rem',
+              fontWeight: activeTab === 'textbook' ? 700 : 600,
+              color: activeTab === 'textbook' ? '#3b82f6' : '#64748b',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              marginBottom: '-2px'
+            }}
+          >
+            📖 교재 단어장
+          </button>
+        </div>
 
-          {/* 나의 단어장 탭 내용 */}
-          {activeTab === 'personal' && (
+        {/* 나의 단어장 탭 내용 */}
+        {activeTab === 'personal' && (
             <div style={{
               display: 'flex',
               flexDirection: 'column',
@@ -4533,7 +4532,6 @@ if (currentView === 'quizModeSelect') {
               )}
             </div>
           )}
-        </div>
       </div>
 
       {/* 단어 시험 관리 버튼 (관리자 전용) */}
