@@ -954,6 +954,25 @@ if (userDataDoc.exists()) {
       ...data,
       books: migratedBooks
     });
+  } else {
+    // 기존 사용자: 불필요한 기본 단어장(id 3, 4, 5) 제거
+    const cleanedBooks = migratedBooks.filter(book => {
+      // 교재단어장은 모두 유지
+      if (book.category === '교재단어장') return true;
+
+      // 나의학습단어장 중에서 id가 1, 2인 것만 유지
+      return book.id === 1 || book.id === 2;
+    });
+
+    // 변경이 있었으면 저장
+    if (cleanedBooks.length !== migratedBooks.length) {
+      console.log('🧹 불필요한 단어장 제거:', migratedBooks.length, '→', cleanedBooks.length);
+      migratedBooks = cleanedBooks;
+      await setDoc(doc(db, 'userData', userId), {
+        ...data,
+        books: migratedBooks
+      });
+    }
   }
 
   // words 설정 (모든 경우에 적용)
