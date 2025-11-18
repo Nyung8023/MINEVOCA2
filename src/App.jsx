@@ -4057,15 +4057,28 @@ if (currentView === 'quizModeSelect') {
       )}
 
       {/* 📝 오늘의 단어 시험 - 크고 눈에 띄게 */}
-      {currentTest && new Date(currentTest.deadline) > new Date() && (
+      {currentTest && new Date(currentTest.deadline) > new Date() && (() => {
+        // 이 시험에 대한 최신 결과 찾기
+        const testResults = myTestResults.filter(r => r.testId === currentTest.id);
+        const latestResult = testResults.length > 0
+          ? testResults.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0]
+          : null;
+        const hasPassed = latestResult && latestResult.passed;
+        const needsRetest = latestResult && !latestResult.passed;
+
+        return (
         <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
           <div
             style={{
-              background: 'linear-gradient(135deg, #fef3c7, #fde68a, #fed7aa)',
-              border: '3px solid #f59e0b',
+              background: hasPassed
+                ? 'linear-gradient(135deg, #d1fae5, #a7f3d0, #6ee7b7)'
+                : 'linear-gradient(135deg, #fef3c7, #fde68a, #fed7aa)',
+              border: hasPassed ? '3px solid #10b981' : '3px solid #f59e0b',
               borderRadius: '20px',
               padding: '32px',
-              boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)',
+              boxShadow: hasPassed
+                ? '0 8px 24px rgba(16, 185, 129, 0.3)'
+                : '0 8px 24px rgba(245, 158, 11, 0.3)',
               position: 'relative',
               overflow: 'hidden'
             }}
@@ -4165,71 +4178,151 @@ if (currentView === 'quizModeSelect') {
                   </div>
                 </div>
 
-                {/* 시험 시작 버튼 */}
-                <button
-                  onClick={async () => {
-                    // 시험용 단어들을 현재 학생의 userData에서 로드
-                    try {
-                      console.log('🎯 시험 시작 - 단어 로드 중...');
-                      console.log('  - 시험 단어 ID 개수:', currentTest.wordIds.length);
-                      console.log('  - 현재 사용자의 전체 단어 수:', words.length);
-
-                      // 현재 로그인한 학생의 단어에서 시험 단어만 필터링
-                      const testWords = words.filter(word =>
-                        currentTest.wordIds.includes(word.id)
-                      );
-
-                      console.log('  - 필터링된 시험 단어 수:', testWords.length);
-
-                      if (testWords.length === 0) {
-                        alert('시험 단어를 불러올 수 없습니다.');
-                        return;
-                      }
-
-                      const shuffledWords = [...testWords].sort(() => Math.random() - 0.5);
-                      setQuizWords(shuffledWords);
-                      setQuizMode('typing');
-                      setQuizDirection('en-ko');
-                      setCurrentCardIndex(0);
-                      setQuizAnswer('');
-                      setQuizResult(null);
-                      setScore({ correct: 0, total: 0 });
-                      setCurrentView('quiz');
-                      console.log('✅ 시험 시작 완료!');
-                    } catch (error) {
-                      console.error('❌ 시험 단어 로드 오류:', error);
-                      alert('시험을 시작할 수 없습니다.');
-                    }
-                  }}
-                  style={{
+                {/* 시험 상태별 버튼/메시지 */}
+                {hasPassed ? (
+                  // 통과한 경우: 축하 메시지 표시 (버튼 없음)
+                  <div style={{
                     width: '100%',
-                    padding: '20px',
-                    background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-                    border: 'none',
+                    padding: '24px',
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
                     borderRadius: '12px',
-                    fontSize: '1.2rem',
-                    fontWeight: 900,
-                    color: 'white',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(217, 119, 6, 0.4)',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(217, 119, 6, 0.5)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(217, 119, 6, 0.4)';
-                  }}
-                >
-                  <span style={{ fontSize: '1.5rem' }}>✏️</span>
-                  지금 시험 보기
-                </button>
+                    textAlign: 'center',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)'
+                  }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '12px' }}>✅</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 900, color: 'white', marginBottom: '8px' }}>
+                      시험 통과!
+                    </div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'rgba(255, 255, 255, 0.95)' }}>
+                      {latestResult.score}%로 합격하셨습니다! 🎉
+                    </div>
+                  </div>
+                ) : needsRetest ? (
+                  // 재시험 필요한 경우: 재시험 버튼
+                  <button
+                    onClick={async () => {
+                      try {
+                        console.log('🔄 재시험 시작 - 단어 로드 중...');
+                        const testWords = words.filter(word =>
+                          currentTest.wordIds.includes(word.id)
+                        );
+
+                        if (testWords.length === 0) {
+                          alert('시험 단어를 불러올 수 없습니다.');
+                          return;
+                        }
+
+                        const shuffledWords = [...testWords].sort(() => Math.random() - 0.5);
+                        setQuizWords(shuffledWords);
+                        setQuizMode('typing');
+                        setQuizDirection('en-ko');
+                        setCurrentCardIndex(0);
+                        setQuizAnswer('');
+                        setQuizResult(null);
+                        setScore({ correct: 0, total: 0 });
+                        setCurrentView('quiz');
+                        console.log('✅ 재시험 시작 완료!');
+                      } catch (error) {
+                        console.error('❌ 재시험 단어 로드 오류:', error);
+                        alert('재시험을 시작할 수 없습니다.');
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '20px',
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '1.2rem',
+                      fontWeight: 900,
+                      color: 'white',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)';
+                    }}
+                  >
+                    <span style={{ fontSize: '1.5rem' }}>🔄</span>
+                    재시험 보기 (이전 점수: {latestResult.score}%)
+                  </button>
+                ) : (
+                  // 아직 시험 보지 않은 경우: 일반 시험 버튼
+                  <button
+                    onClick={async () => {
+                      // 시험용 단어들을 현재 학생의 userData에서 로드
+                      try {
+                        console.log('🎯 시험 시작 - 단어 로드 중...');
+                        console.log('  - 시험 단어 ID 개수:', currentTest.wordIds.length);
+                        console.log('  - 현재 사용자의 전체 단어 수:', words.length);
+
+                        // 현재 로그인한 학생의 단어에서 시험 단어만 필터링
+                        const testWords = words.filter(word =>
+                          currentTest.wordIds.includes(word.id)
+                        );
+
+                        console.log('  - 필터링된 시험 단어 수:', testWords.length);
+
+                        if (testWords.length === 0) {
+                          alert('시험 단어를 불러올 수 없습니다.');
+                          return;
+                        }
+
+                        const shuffledWords = [...testWords].sort(() => Math.random() - 0.5);
+                        setQuizWords(shuffledWords);
+                        setQuizMode('typing');
+                        setQuizDirection('en-ko');
+                        setCurrentCardIndex(0);
+                        setQuizAnswer('');
+                        setQuizResult(null);
+                        setScore({ correct: 0, total: 0 });
+                        setCurrentView('quiz');
+                        console.log('✅ 시험 시작 완료!');
+                      } catch (error) {
+                        console.error('❌ 시험 단어 로드 오류:', error);
+                        alert('시험을 시작할 수 없습니다.');
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '20px',
+                      background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '1.2rem',
+                      fontWeight: 900,
+                      color: 'white',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(217, 119, 6, 0.4)',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 6px 16px rgba(217, 119, 6, 0.5)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(217, 119, 6, 0.4)';
+                    }}
+                  >
+                    <span style={{ fontSize: '1.5rem' }}>✏️</span>
+                    지금 시험 보기
+                  </button>
+                )}
               </div>
             </div>
           </div>
