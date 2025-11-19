@@ -207,6 +207,7 @@ const cancelEdit = () => {
   const [spellingInput, setSpellingInput] = useState([]);
   const [quizWords, setQuizWords] = useState([]); // 섞인 퀴즈용 단어 배열
   const [quizResults, setQuizResults] = useState(null); // 퀴즈 결과 저장
+  const [wrongAnswers, setWrongAnswers] = useState([]); // 틀린 단어 ID 추적
 
   // 🆕 관리자용 학생 목록 상태
   const [students, setStudents] = useState([]);
@@ -222,6 +223,7 @@ const cancelEdit = () => {
   const [testDeadline, setTestDeadline] = useState('');
   const [selectedTestWordIds, setSelectedTestWordIds] = useState([]);
   const [selectedTestClassId, setSelectedTestClassId] = useState(''); // 시험 대상 반
+  const [testType, setTestType] = useState('regular'); // 시험 유형: 'regular' 또는 'retry'
 
   // 교재단어장 엑셀 업로드 상태
   const [excelUploadStatus, setExcelUploadStatus] = useState('');
@@ -2068,6 +2070,7 @@ const addWordFromClick = async (clickedWord) => {
     setQuizAnswer('');
     setQuizResult(null);
     setScore({ correct: 0, total: 0 });
+    setWrongAnswers([]); // 오답 초기화
 
     if (mode === 'multiple') {
       setMultipleChoices(generateMultipleChoices(shuffledWords[0], shuffledWords));
@@ -2125,6 +2128,11 @@ const addWordFromClick = async (clickedWord) => {
       total: score.total + 1
     });
 
+    // 오답인 경우 wrongAnswers에 추가
+    if (!isCorrect) {
+      setWrongAnswers(prev => [...prev, currentWord.id]);
+    }
+
     const updatedWord = calculateNextReview(currentWord, isCorrect);
     setWords(words.map(w => w.id === currentWord.id ? updatedWord : w));
 
@@ -2148,6 +2156,13 @@ const addWordFromClick = async (clickedWord) => {
       const finalTotal = score.total + 1;
       const percentage = Math.round((finalCorrect / finalTotal) * 100);
 
+      // 마지막 문제도 오답 체크
+      const finalWrongAnswers = [...wrongAnswers];
+      if (!quizResult) {
+        const currentWord = quizWords[currentCardIndex];
+        finalWrongAnswers.push(currentWord.id);
+      }
+
       // 결과를 저장하고 결과 화면으로 전환
       const results = {
         correct: finalCorrect,
@@ -2167,6 +2182,7 @@ const addWordFromClick = async (clickedWord) => {
             correct: finalCorrect,
             total: finalTotal,
             passed: percentage >= 90,
+            wrongAnswerIds: finalWrongAnswers, // 오답 단어 ID 배열 추가
             completedAt: new Date().toISOString()
           };
 
@@ -3998,14 +4014,28 @@ if (currentView === 'quizModeSelect') {
                   }}>
                     오늘의 단어 시험
                   </h2>
-                  <p style={{
-                    fontSize: '0.95rem',
-                    color: '#92400e',
-                    margin: '4px 0 0 0',
-                    fontWeight: 600
-                  }}>
-                    {currentTest.title}
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                    <p style={{
+                      fontSize: '0.95rem',
+                      color: '#92400e',
+                      margin: 0,
+                      fontWeight: 600
+                    }}>
+                      {currentTest.title}
+                    </p>
+                    {currentTest.testType === 'retry' && (
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        padding: '3px 8px',
+                        background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                        color: 'white',
+                        borderRadius: '6px'
+                      }}>
+                        🔄 재시험
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -4080,6 +4110,7 @@ if (currentView === 'quizModeSelect') {
                       setQuizAnswer('');
                       setQuizResult(null);
                       setScore({ correct: 0, total: 0 });
+                      setWrongAnswers([]); // 오답 초기화
                       setCurrentView('quiz');
                     } catch (error) {
                       console.error('시험 단어 로드 오류:', error);
@@ -6415,6 +6446,80 @@ if (currentView === 'testManagement' && isAdmin) {
 
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
+              시험 유형
+            </label>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="testType"
+                  value="regular"
+                  checked={testType === 'regular'}
+                  onChange={(e) => {
+                    setTestType(e.target.value);
+                    setSelectedTestWordIds([]); // 시험 유형 변경 시 선택된 단어 초기화
+                  }}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.95rem', color: '#374151' }}>정규 시험</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="testType"
+                  value="retry"
+                  checked={testType === 'retry'}
+                  onChange={async (e) => {
+                    setTestType(e.target.value);
+                    // 재시험 선택 시 오답노트 단어 자동 로드
+                    if (selectedTestClassId) {
+                      try {
+                        // 선택된 반의 학생들 가져오기
+                        const usersSnapshot = await getDocs(collection(db, 'userData'));
+                        const classStudents = usersSnapshot.docs
+                          .map(doc => ({ id: doc.id, ...doc.data() }))
+                          .filter(userData => userData.classId === selectedTestClassId);
+
+                        // 모든 학생들의 오답 단어 ID 수집
+                        const wrongWordIds = new Set();
+                        const resultsSnapshot = await getDocs(collection(db, 'testResults'));
+                        resultsSnapshot.docs.forEach(doc => {
+                          const result = doc.data();
+                          if (classStudents.some(student => student.id === result.userId) && result.wrongAnswerIds) {
+                            result.wrongAnswerIds.forEach(wordId => wrongWordIds.add(wordId));
+                          }
+                        });
+
+                        setSelectedTestWordIds(Array.from(wrongWordIds));
+
+                        if (wrongWordIds.size === 0) {
+                          alert('선택한 반의 오답 단어가 없습니다.');
+                        } else {
+                          alert(`${wrongWordIds.size}개의 오답 단어를 자동으로 선택했습니다.`);
+                        }
+                      } catch (error) {
+                        console.error('오답 단어 로드 오류:', error);
+                        alert('오답 단어를 불러오는데 실패했습니다.');
+                      }
+                    } else {
+                      alert('먼저 대상 반을 선택해주세요.');
+                      setTestType('regular');
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.95rem', color: '#374151' }}>재시험 (오답노트 기반)</span>
+              </label>
+            </div>
+            {testType === 'retry' && (
+              <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '8px', marginBottom: 0 }}>
+                💡 선택한 반 학생들의 오답 단어가 자동으로 선택됩니다.
+              </p>
+            )}
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
               단어 선택 (체크박스로 선택)
             </label>
             <div style={{
@@ -6498,6 +6603,7 @@ if (currentView === 'testManagement' && isAdmin) {
                 wordIds: selectedTestWordIds,
                 classId: selectedTestClassId,
                 className: selectedClass?.className || '',
+                testType: testType, // 시험 유형 추가 (regular 또는 retry)
                 createdBy: currentUser.uid,
                 createdAt: new Date().toISOString()
               };
@@ -6511,6 +6617,7 @@ if (currentView === 'testManagement' && isAdmin) {
                 setTestDeadline('');
                 setSelectedTestWordIds([]);
                 setSelectedTestClassId('');
+                setTestType('regular'); // 시험 유형 초기화
 
                 alert(`시험이 생성되었습니다! (${selectedClass?.className})`);
                 await loadAllTests(); // 목록 새로고침
@@ -6555,9 +6662,23 @@ if (currentView === 'testManagement' && isAdmin) {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
                     <div>
-                      <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: '0 0 4px 0' }}>
-                        {test.title}
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                          {test.title}
+                        </p>
+                        {test.testType === 'retry' && (
+                          <span style={{
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            padding: '4px 8px',
+                            background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                            color: 'white',
+                            borderRadius: '6px'
+                          }}>
+                            🔄 재시험
+                          </span>
+                        )}
+                      </div>
                       <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0 }}>
                         대상 반: {test.className}
                       </p>
@@ -9474,6 +9595,7 @@ if (currentView === 'quizResults' && quizResults) {
                   setQuizAnswer('');
                   setQuizResult(null);
                   setScore({ correct: 0, total: 0 });
+                  setWrongAnswers([]); // 오답 초기화
                   setQuizResults(null);
                   setCurrentView('quiz');
                 } catch (error) {
