@@ -232,6 +232,7 @@ const cancelEdit = () => {
   const [multipleChoices, setMultipleChoices] = useState([]);
   const [spellingInput, setSpellingInput] = useState([]); // 선택 가능한 철자들 (섞인 상태)
   const [selectedLetters, setSelectedLetters] = useState([]); // 사용자가 선택한 철자 순서
+  const [usedLetterIndices, setUsedLetterIndices] = useState([]); // 사용된 철자의 인덱스
   const [quizWords, setQuizWords] = useState([]); // 섞인 퀴즈용 단어 배열
   const [quizResults, setQuizResults] = useState(null); // 퀴즈 결과 저장
 
@@ -2183,6 +2184,7 @@ const addWordFromClick = async (clickedWord) => {
     } else if (mode === 'spelling') {
       setSpellingInput(generateSpellingPuzzle(shuffledWords[0]));
       setSelectedLetters([]); // 선택된 철자 초기화
+      setUsedLetterIndices([]); // 사용된 인덱스 초기화
     }
 
     setCurrentView('quiz');
@@ -2265,6 +2267,7 @@ const addWordFromClick = async (clickedWord) => {
       } else if (quizMode === 'spelling') {
         setSpellingInput(generateSpellingPuzzle(quizWords[currentCardIndex + 1]));
         setSelectedLetters([]); // 선택된 철자 초기화
+        setUsedLetterIndices([]); // 사용된 인덱스 초기화
       }
     } else {
       console.log('🎉 퀴즈 완료! 결과 계산 중...');
@@ -10064,9 +10067,8 @@ if (currentView === 'quiz') {
                 justifyContent: 'center'
               }}>
                 {spellingInput.map((letter, index) => {
-                  // 이미 선택된 철자인지 확인 (첫 번째로 나타나는 것만)
-                  const selectedIndex = selectedLetters.indexOf(letter);
-                  const isUsed = selectedIndex !== -1 && selectedLetters.slice(0, selectedIndex + 1).filter(l => l === letter).length > spellingInput.slice(0, index + 1).filter(l => l === letter).length;
+                  // 이 인덱스가 이미 사용되었는지 확인
+                  const isUsed = usedLetterIndices.includes(index);
 
                   // 사용된 철자는 아예 렌더링하지 않음
                   if (isUsed) return null;
@@ -10076,8 +10078,9 @@ if (currentView === 'quiz') {
                       key={`available-${index}`}
                       onClick={() => {
                         if (quizResult === null) {
-                          // 철자를 선택 영역에 추가
+                          // 철자를 선택 영역에 추가하고 인덱스 기록
                           setSelectedLetters([...selectedLetters, letter]);
+                          setUsedLetterIndices([...usedLetterIndices, index]);
                         }
                       }}
                       disabled={quizResult !== null}
