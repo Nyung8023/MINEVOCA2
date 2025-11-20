@@ -2218,10 +2218,21 @@ const addWordFromClick = async (clickedWord) => {
     if (quizMode === 'typing' || quizMode === 'listening') {
       const correctAnswer = quizDirection === 'en-ko' ? currentWord.korean : currentWord.english;
 
-      // 쉼표로 구분된 여러 뜻 중 하나만 맞춰도 정답 처리
-      const correctAnswers = correctAnswer.split(',').map(ans => ans.trim().toLowerCase());
-      const userAnswer = quizAnswer.trim().toLowerCase();
-      isCorrect = correctAnswers.some(ans => ans === userAnswer);
+      // 한글 답변일 경우 띄어쓰기와 특수기호를 무시하고 순수 한글만 비교
+      if (quizDirection === 'en-ko') {
+        // 한글만 추출하는 함수
+        const extractKorean = (str) => str.replace(/[^가-힣]/g, '');
+
+        // 쉼표로 구분된 여러 뜻 중 하나만 맞춰도 정답 처리
+        const correctAnswers = correctAnswer.split(',').map(ans => extractKorean(ans.trim()));
+        const userAnswer = extractKorean(quizAnswer.trim());
+        isCorrect = correctAnswers.some(ans => ans === userAnswer);
+      } else {
+        // 영어 답변일 경우 기존대로 처리
+        const correctAnswers = correctAnswer.split(',').map(ans => ans.trim().toLowerCase());
+        const userAnswer = quizAnswer.trim().toLowerCase();
+        isCorrect = correctAnswers.some(ans => ans === userAnswer);
+      }
     } else if (quizMode === 'multiple') {
       const correctAnswer = quizDirection === 'en-ko' ? currentWord.korean : currentWord.english;
       isCorrect = quizAnswer === correctAnswer;
