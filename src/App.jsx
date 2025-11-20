@@ -10068,6 +10068,9 @@ if (currentView === 'quiz') {
                   const selectedIndex = selectedLetters.indexOf(letter);
                   const isUsed = selectedIndex !== -1 && selectedLetters.slice(0, selectedIndex + 1).filter(l => l === letter).length > spellingInput.slice(0, index + 1).filter(l => l === letter).length;
 
+                  // 사용된 철자는 아예 렌더링하지 않음
+                  if (isUsed) return null;
+
                   return (
                     <button
                       key={`available-${index}`}
@@ -10077,18 +10080,17 @@ if (currentView === 'quiz') {
                           setSelectedLetters([...selectedLetters, letter]);
                         }
                       }}
-                      disabled={quizResult !== null || isUsed}
+                      disabled={quizResult !== null}
                       style={{
                         padding: '10px 14px',
-                        background: isUsed ? '#f3f4f6' : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                        background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
                         borderRadius: '8px',
                         fontSize: '1.1rem',
                         fontWeight: '700',
-                        color: isUsed ? '#9ca3af' : '#92400e',
-                        border: `2px solid ${isUsed ? '#e5e7eb' : '#f59e0b'}`,
-                        cursor: (quizResult === null && !isUsed) ? 'pointer' : 'not-allowed',
-                        transition: 'all 0.2s',
-                        opacity: isUsed ? 0.4 : 1
+                        color: '#92400e',
+                        border: '2px solid #f59e0b',
+                        cursor: quizResult === null ? 'pointer' : 'not-allowed',
+                        transition: 'all 0.2s'
                       }}
                     >
                       {letter}
