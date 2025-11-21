@@ -9717,7 +9717,15 @@ if (currentView === 'flashcard') {
           marginBottom: '20px'
         }}>
           <button
-            onClick={() => setCurrentView('list')}
+            onClick={() => {
+              if (selectedBook?.id === 'memorized') {
+                setCurrentView('memorized');
+              } else if (selectedBook?.id === 'wrongNote') {
+                setCurrentView('wrongNote');
+              } else {
+                setCurrentView('list');
+              }
+            }}
             style={{
               background: 'white',
               border: '2px solid #e2e8f0',
@@ -9987,7 +9995,15 @@ if (currentView === 'quiz') {
           marginBottom: '20px'
         }}>
           <button
-            onClick={() => setCurrentView('home')}
+            onClick={() => {
+              if (selectedBook?.id === 'memorized') {
+                setCurrentView('memorized');
+              } else if (selectedBook?.id === 'wrongNote') {
+                setCurrentView('wrongNote');
+              } else {
+                setCurrentView('home');
+              }
+            }}
             style={{
               background: 'white',
               border: '2px solid #e2e8f0',
