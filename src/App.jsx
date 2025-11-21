@@ -9120,6 +9120,8 @@ if (currentView === 'memorized') {
             <button
               onClick={() => {
                 setCurrentBookWords(memorizedWords);
+                setCurrentCardIndex(0);
+                setShowAnswer(false);
                 setCurrentView('flashcard');
               }}
               style={{
@@ -9465,6 +9467,8 @@ if (currentView === 'wrongNote') {
             <button
               onClick={() => {
                 setCurrentBookWords(wrongNoteWords);
+                setCurrentCardIndex(0);
+                setShowAnswer(false);
                 setCurrentView('flashcard');
               }}
               style={{
