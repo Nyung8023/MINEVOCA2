@@ -9113,9 +9113,9 @@ if (currentView === 'memorized') {
         {memorizedWords.length > 0 && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '10px',
-            marginBottom: '14px'
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '12px',
+            marginBottom: '24px'
           }}>
             <button
               onClick={() => {
@@ -9123,22 +9123,22 @@ if (currentView === 'memorized') {
                 setCurrentView('flashcard');
               }}
               style={{
-                padding: '14px',
-                background: 'linear-gradient(135deg, #a78bfa, #8b5cf6)',
+                padding: '16px',
+                background: '#bbf7d0',
+                color: '#166534',
                 border: 'none',
-                borderRadius: '12px',
-                color: 'white',
-                fontSize: '0.95rem',
+                borderRadius: '16px',
+                fontSize: '1rem',
                 fontWeight: '700',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
-                boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)'
+                gap: '8px'
               }}
             >
-              📇 플래시카드
+              <BookOpen size={20} />
+              플래시카드
             </button>
             <button
               onClick={() => {
@@ -9146,22 +9146,22 @@ if (currentView === 'memorized') {
                 setCurrentView('quizModeSelect');
               }}
               style={{
-                padding: '14px',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
+                padding: '16px',
+                background: 'linear-gradient(135deg, #bbf7d0, #86efac)',
+                color: '#166534',
                 border: 'none',
-                borderRadius: '12px',
-                color: 'white',
-                fontSize: '0.95rem',
+                borderRadius: '16px',
+                fontSize: '1rem',
                 fontWeight: '700',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
-                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                gap: '8px'
               }}
             >
-              ✏️ 퀴즈
+              <Brain size={20} />
+              퀴즈
             </button>
           </div>
         )}
@@ -9458,9 +9458,9 @@ if (currentView === 'wrongNote') {
         {wrongNoteWords.length > 0 && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '10px',
-            marginBottom: '14px'
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '12px',
+            marginBottom: '24px'
           }}>
             <button
               onClick={() => {
@@ -9468,22 +9468,22 @@ if (currentView === 'wrongNote') {
                 setCurrentView('flashcard');
               }}
               style={{
-                padding: '14px',
-                background: 'linear-gradient(135deg, #a78bfa, #8b5cf6)',
+                padding: '16px',
+                background: '#bbf7d0',
+                color: '#166534',
                 border: 'none',
-                borderRadius: '12px',
-                color: 'white',
-                fontSize: '0.95rem',
+                borderRadius: '16px',
+                fontSize: '1rem',
                 fontWeight: '700',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
-                boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)'
+                gap: '8px'
               }}
             >
-              📇 플래시카드
+              <BookOpen size={20} />
+              플래시카드
             </button>
             <button
               onClick={() => {
@@ -9491,22 +9491,22 @@ if (currentView === 'wrongNote') {
                 setCurrentView('quizModeSelect');
               }}
               style={{
-                padding: '14px',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
+                padding: '16px',
+                background: 'linear-gradient(135deg, #bbf7d0, #86efac)',
+                color: '#166534',
                 border: 'none',
-                borderRadius: '12px',
-                color: 'white',
-                fontSize: '0.95rem',
+                borderRadius: '16px',
+                fontSize: '1rem',
                 fontWeight: '700',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '6px',
-                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                gap: '8px'
               }}
             >
-              ✏️ 퀴즈
+              <Brain size={20} />
+              퀴즈
             </button>
           </div>
         )}
