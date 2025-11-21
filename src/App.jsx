@@ -4672,7 +4672,7 @@ if (currentView === 'quizModeSelect') {
                       flexShrink: 0,
                       fontSize: '1.3rem'
                     }}>
-                      📚
+                      {book.icon || '📚'}
                     </div>
 
                     {/* 중간: 이름과 개수 */}
