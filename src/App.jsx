@@ -10035,8 +10035,11 @@ if (currentView === 'quiz') {
                       key={`selected-${index}`}
                       onClick={() => {
                         if (quizResult === null) {
-                          // 선택된 철자를 다시 제거
-                          setSelectedLetters(selectedLetters.filter((_, i) => i !== index));
+                          // 선택된 철자를 다시 제거하고, 해당 인덱스도 usedLetterIndices에서 제거
+                          const newSelectedLetters = selectedLetters.filter((_, i) => i !== index);
+                          const newUsedIndices = usedLetterIndices.filter((_, i) => i !== index);
+                          setSelectedLetters(newSelectedLetters);
+                          setUsedLetterIndices(newUsedIndices);
                         }
                       }}
                       disabled={quizResult !== null}
