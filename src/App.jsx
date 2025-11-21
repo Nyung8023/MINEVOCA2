@@ -9109,6 +9109,63 @@ if (currentView === 'memorized') {
           </div>
         </div>
 
+        {/* 학습 버튼 */}
+        {memorizedWords.length > 0 && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '10px',
+            marginBottom: '14px'
+          }}>
+            <button
+              onClick={() => {
+                setCurrentBookWords(memorizedWords);
+                setCurrentView('flashcard');
+              }}
+              style={{
+                padding: '14px',
+                background: 'linear-gradient(135deg, #a78bfa, #8b5cf6)',
+                border: 'none',
+                borderRadius: '12px',
+                color: 'white',
+                fontSize: '0.95rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)'
+              }}
+            >
+              📇 플래시카드
+            </button>
+            <button
+              onClick={() => {
+                setCurrentBookWords(memorizedWords);
+                setCurrentView('quizModeSelect');
+              }}
+              style={{
+                padding: '14px',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                border: 'none',
+                borderRadius: '12px',
+                color: 'white',
+                fontSize: '0.95rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              ✏️ 퀴즈
+            </button>
+          </div>
+        )}
+
         {/* 암기 완료 단어 목록 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {memorizedWords.length === 0 ? (
@@ -9396,6 +9453,63 @@ if (currentView === 'wrongNote') {
             틀린 단어를 복습하고 완벽하게 마스터하자!
           </div>
         </div>
+
+        {/* 학습 버튼 */}
+        {wrongNoteWords.length > 0 && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '10px',
+            marginBottom: '14px'
+          }}>
+            <button
+              onClick={() => {
+                setCurrentBookWords(wrongNoteWords);
+                setCurrentView('flashcard');
+              }}
+              style={{
+                padding: '14px',
+                background: 'linear-gradient(135deg, #a78bfa, #8b5cf6)',
+                border: 'none',
+                borderRadius: '12px',
+                color: 'white',
+                fontSize: '0.95rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)'
+              }}
+            >
+              📇 플래시카드
+            </button>
+            <button
+              onClick={() => {
+                setCurrentBookWords(wrongNoteWords);
+                setCurrentView('quizModeSelect');
+              }}
+              style={{
+                padding: '14px',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                border: 'none',
+                borderRadius: '12px',
+                color: 'white',
+                fontSize: '0.95rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+              }}
+            >
+              ✏️ 퀴즈
+            </button>
+          </div>
+        )}
 
         {/* 오답노트 단어 목록 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
