@@ -2318,7 +2318,11 @@ const addWordFromClick = async (clickedWord) => {
   };
 
   // 현재 단어장의 단어들만 필터링 (암기완료된 단어 제외)
-  const currentBookWords = words.filter(w => w.bookId === selectedBook?.id && !w.mastered);
+  const currentBookWords = selectedBook?.id === 'memorized'
+    ? words.filter(w => w.mastered === true)
+    : selectedBook?.id === 'wrongNote'
+    ? words.filter(w => w.wrongNote === true)
+    : words.filter(w => w.bookId === selectedBook?.id && !w.mastered);
 
   if (loading) {
     return (
@@ -9119,7 +9123,7 @@ if (currentView === 'memorized') {
           }}>
             <button
               onClick={() => {
-                setCurrentBookWords(memorizedWords);
+                setSelectedBook({ id: 'memorized', name: '암기완료' });
                 setCurrentCardIndex(0);
                 setShowAnswer(false);
                 setCurrentView('flashcard');
@@ -9144,7 +9148,7 @@ if (currentView === 'memorized') {
             </button>
             <button
               onClick={() => {
-                setCurrentBookWords(memorizedWords);
+                setSelectedBook({ id: 'memorized', name: '암기완료' });
                 setCurrentView('quizModeSelect');
               }}
               style={{
@@ -9466,7 +9470,7 @@ if (currentView === 'wrongNote') {
           }}>
             <button
               onClick={() => {
-                setCurrentBookWords(wrongNoteWords);
+                setSelectedBook({ id: 'wrongNote', name: '오답노트' });
                 setCurrentCardIndex(0);
                 setShowAnswer(false);
                 setCurrentView('flashcard');
@@ -9491,7 +9495,7 @@ if (currentView === 'wrongNote') {
             </button>
             <button
               onClick={() => {
-                setCurrentBookWords(wrongNoteWords);
+                setSelectedBook({ id: 'wrongNote', name: '오답노트' });
                 setCurrentView('quizModeSelect');
               }}
               style={{
