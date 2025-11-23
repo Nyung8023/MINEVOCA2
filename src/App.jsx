@@ -2242,8 +2242,27 @@ const addWordFromClick = async (clickedWord) => {
 
   // 퀴즈 시작
   const startQuiz = (mode = 'typing', direction = 'en-ko') => {
+    // 모드에 따라 단어 필터링
+    let filteredWords = [...currentBookWords];
+
+    // 동의어 모드: 동의어가 있는 단어만 포함
+    if (mode === 'synonym') {
+      filteredWords = filteredWords.filter(word => word.synonyms && word.synonyms.length > 0);
+    }
+
+    // 반의어 모드: 반의어가 있는 단어만 포함
+    if (mode === 'antonym') {
+      filteredWords = filteredWords.filter(word => word.antonyms && word.antonyms.length > 0);
+    }
+
+    // 필터링 후 단어가 없으면 알림
+    if (filteredWords.length === 0) {
+      alert(mode === 'synonym' ? '동의어가 있는 단어가 없습니다.' : mode === 'antonym' ? '반의어가 있는 단어가 없습니다.' : '단어가 없습니다.');
+      return;
+    }
+
     // 단어 순서를 랜덤으로 섞기
-    const shuffledWords = [...currentBookWords].sort(() => Math.random() - 0.5);
+    const shuffledWords = filteredWords.sort(() => Math.random() - 0.5);
     setQuizWords(shuffledWords);
 
     setQuizMode(mode);
