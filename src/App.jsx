@@ -8980,9 +8980,10 @@ if (currentView === 'list' && selectedBook) {
           <Plus size={20} />
           새 단어 추가
         </button>
+        )}
 
         {/* 단어 추가 폼 */}
-        {showAddForm && (
+        {(availableDays.length === 0 || selectedDay !== null) && showAddForm && (
           <div style={{
             background: 'white',
             borderRadius: '16px',
