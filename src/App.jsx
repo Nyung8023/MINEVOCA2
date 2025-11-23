@@ -4103,7 +4103,7 @@ if (currentView === 'quizModeSelect') {
         // 이 시험에 대한 최신 결과 찾기
         const testResults = myTestResults.filter(r => r.testId === test.id);
         const latestResult = testResults.length > 0
-          ? testResults.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0]
+          ? [...testResults].sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0]
           : null;
         const hasPassed = latestResult && latestResult.passed;
         const needsRetest = latestResult && !latestResult.passed;
@@ -4112,11 +4112,11 @@ if (currentView === 'quizModeSelect') {
 
         // 통과한 시험은 표시하지 않음
         if (hasPassed) {
-          console.log('✅ 시험 통과로 카드 숨김:', test.title);
+          console.log('✅ 시험 통과로 카드 숨김:', test.title, '- 점수:', latestResult?.score);
           return null;
         }
 
-        console.log('🔍 시험 카드 표시:', test.title, '- needsRetest:', needsRetest, '- isMissed:', isMissed);
+        console.log('🔍 시험 카드 표시:', test.title, '- needsRetest:', needsRetest, '- isMissed:', isMissed, '- 최신결과:', latestResult);
 
         return (
         <div key={test.id} style={{ width: '100%', padding: '0 24px', marginBottom: '20px' }}>
