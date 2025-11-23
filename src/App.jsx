@@ -5157,7 +5157,52 @@ if (currentView === 'quizModeSelect') {
                       >
                         {book.isExamRange ? '⭐' : '☆'}
                       </button>
-                      {/* 교재단어장은 수정·삭제 불가 (선생님이 배포한 것) */}
+
+                      {/* 수정 버튼 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEditing(book);
+                        }}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          background: '#f1f5f9',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="이름 수정"
+                      >
+                        ✏️
+                      </button>
+
+                      {/* 삭제 버튼 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteBook(book.id);
+                        }}
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          background: '#f1f5f9',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="삭제"
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </div>
                 ))
