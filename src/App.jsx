@@ -2276,9 +2276,18 @@ const addWordFromClick = async (clickedWord) => {
       filteredWords = filteredWords.filter(word => word.antonyms && word.antonyms.length > 0);
     }
 
+    // 영영풀이 모드: 영영풀이가 있는 단어만 포함
+    if (mode === 'definition') {
+      filteredWords = filteredWords.filter(word => word.definition && word.definition.trim() !== '');
+    }
+
     // 필터링 후 단어가 없으면 알림
     if (filteredWords.length === 0) {
-      alert(mode === 'synonym' ? '동의어가 있는 단어가 없습니다.' : mode === 'antonym' ? '반의어가 있는 단어가 없습니다.' : '단어가 없습니다.');
+      const alertMessage = mode === 'synonym' ? '동의어가 있는 단어가 없습니다.'
+        : mode === 'antonym' ? '반의어가 있는 단어가 없습니다.'
+        : mode === 'definition' ? '영영풀이가 있는 단어가 없습니다.'
+        : '단어가 없습니다.';
+      alert(alertMessage);
       return;
     }
 
