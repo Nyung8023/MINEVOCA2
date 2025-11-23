@@ -4699,7 +4699,7 @@ if (currentView === 'quizModeSelect') {
                       flexShrink: 0,
                       fontSize: '1.3rem'
                     }}>
-                      📚
+                      {book.icon || '📚'}
                     </div>
 
                     {/* 중간: 이름과 개수 */}
@@ -10014,7 +10014,7 @@ if (currentView === 'quiz') {
           marginBottom: '20px'
         }}>
           <button
-            onClick={() => setCurrentView('home')}
+            onClick={() => setCurrentView('quizModeSelect')}
             style={{
               background: 'white',
               border: '2px solid #e2e8f0',
