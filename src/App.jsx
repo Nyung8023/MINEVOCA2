@@ -1234,12 +1234,17 @@ if (userDataDoc.exists()) {
       setAllTests(testsList);
       console.log('✅ 모든 시험 로드:', testsList.length);
 
+      // 현재 존재하는 시험 ID 목록
+      const existingTestIds = new Set(testsList.map(test => test.id));
+
       // 모든 시험 결과도 로드
       const resultsSnapshot = await getDocs(collection(db, 'testResults'));
-      const allResults = resultsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const allResults = resultsSnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter(result => existingTestIds.has(result.testId)); // 삭제된 시험의 결과는 제외
 
       // 각 결과에 학생 이름 추가
       const resultsWithNames = await Promise.all(
@@ -1264,10 +1269,16 @@ if (userDataDoc.exists()) {
   // 내 시험 결과 로드
   const loadMyTestResults = async (userId) => {
     try {
+      // 현재 존재하는 시험 ID 목록 가져오기
+      const testsSnapshot = await getDocs(collection(db, 'tests'));
+      const existingTestIds = new Set(testsSnapshot.docs.map(doc => doc.id));
+
+      // 시험 결과 로드
       const resultsSnapshot = await getDocs(collection(db, 'testResults'));
       const myResults = resultsSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(result => result.userId === userId);
+        .filter(result => result.userId === userId)
+        .filter(result => existingTestIds.has(result.testId)); // 삭제된 시험의 결과는 제외
 
       setMyTestResults(myResults);
       console.log('✅ 내 시험 결과 로드:', myResults.length);
