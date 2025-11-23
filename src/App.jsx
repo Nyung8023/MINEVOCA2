@@ -4349,19 +4349,19 @@ if (currentView === 'quizModeSelect') {
 
       {/* 📊 내 시험 결과 섹션 */}
       {myTestResults && myTestResults.length > 0 && (
-        <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
+        <div style={{ width: '100%', padding: '0 24px', marginBottom: '16px' }}>
           <h3 style={{
-            fontSize: '1rem',
+            fontSize: '0.8rem',
             fontWeight: 700,
             color: '#1e293b',
-            marginBottom: '12px',
+            marginBottom: '8px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '6px'
           }}>
             📊 내 시험 결과
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {(showAllTestResults ? myTestResults.slice().reverse() : myTestResults.slice().reverse().slice(0, 3)).map(result => (
               <div
                 key={result.id}
@@ -4370,23 +4370,23 @@ if (currentView === 'quizModeSelect') {
                     ? 'linear-gradient(135deg, #d1fae5, #a7f3d0)'
                     : 'linear-gradient(135deg, #fee2e2, #fecaca)',
                   border: result.passed ? '2px solid #10b981' : '2px solid #ef4444',
-                  borderRadius: '12px',
-                  padding: '12px',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
+                  borderRadius: '8px',
+                  padding: '8px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e293b', marginBottom: '2px' }}>
                       {result.testTitle}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.65rem', color: '#64748b' }}>
                       {new Date(result.completedAt).toLocaleDateString('ko-KR')} {new Date(result.completedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{
-                      fontSize: '1.5rem',
+                      fontSize: '1rem',
                       fontWeight: 900,
                       color: result.passed ? '#059669' : '#dc2626',
                       marginBottom: '2px'
@@ -4394,13 +4394,13 @@ if (currentView === 'quizModeSelect') {
                       {result.score}%
                     </div>
                     <div style={{
-                      fontSize: '0.75rem',
+                      fontSize: '0.6rem',
                       fontWeight: 600,
                       color: result.passed ? '#059669' : '#dc2626'
                     }}>
                       {result.passed ? '✅ 통과' : '❌ 재시험 필요'}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.6rem', color: '#64748b', marginTop: '2px' }}>
                       {result.correct} / {result.total} 정답
                     </div>
                   </div>
@@ -4413,12 +4413,12 @@ if (currentView === 'quizModeSelect') {
               onClick={() => setShowAllTestResults(!showAllTestResults)}
               style={{
                 width: '100%',
-                marginTop: '12px',
-                padding: '10px',
+                marginTop: '8px',
+                padding: '6px',
                 background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
                 border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                fontSize: '0.85rem',
+                borderRadius: '6px',
+                fontSize: '0.7rem',
                 fontWeight: 600,
                 color: '#475569',
                 cursor: 'pointer',
