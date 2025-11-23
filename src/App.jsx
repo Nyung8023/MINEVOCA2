@@ -10038,7 +10038,7 @@ if (currentView === 'flashcard') {
               cursor: 'pointer'
             }}
           >
-            ← 이전퀴
+            ← 이전퀴즈
           </button>
           <button
             onClick={nextCard}
