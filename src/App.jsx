@@ -115,6 +115,7 @@ export default function MineVocaApp() {
   // 앱 상태
   const [currentView, setCurrentView] = useState('home');
   const [selectedBook, setSelectedBook] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null); // null이면 전체 보기
  const [books, setBooks] = useState([]);
   const [showBookInput, setShowBookInput] = useState(false);
   const [newBookName, setNewBookName] = useState('');
@@ -413,7 +414,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
       const dataRows = jsonData.slice(1).filter(row => row.length >= 2 && row[0] && row[1]);
 
       if (dataRows.length === 0) {
-        setExcelUploadStatus('❌ 엑셀 파일에 단어가 없습니다.\n\n📋 열 순서:\n1열: 영어\n2열: 한글 뜻\n3열: 동의어 (선택, 쉼표로 구분)\n4열: 반의어 (선택, 쉼표로 구분)\n5열: 영영풀이 (선택)');
+        setExcelUploadStatus('❌ 엑셀 파일에 단어가 없습니다.\n\n📋 열 순서:\n1열: Day (숫자, 선택)\n2열: 영어\n3열: 한글 뜻\n4열: 동의어 (선택, 쉼표로 구분)\n5열: 반의어 (선택, 쉼표로 구분)\n6열: 영영풀이 (선택)');
         setIsExcelUploading(false);
         return;
       }
@@ -503,13 +504,17 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
           // 단어 추가 (중복 체크)
           const newWords = [];
           for (const row of dataRows) {
-            const english = String(row[0] || '').trim();
-            const korean = String(row[1] || '').trim();
-            const synonymsRaw = String(row[2] || '').trim();
-            const antonymsRaw = String(row[3] || '').trim();
-            const definitionRaw = String(row[4] || '').trim();
+            const dayRaw = String(row[0] || '').trim();
+            const english = String(row[1] || '').trim();
+            const korean = String(row[2] || '').trim();
+            const synonymsRaw = String(row[3] || '').trim();
+            const antonymsRaw = String(row[4] || '').trim();
+            const definitionRaw = String(row[5] || '').trim();
 
             if (!english || !korean) continue;
+
+            // Day 숫자 파싱 (없으면 null)
+            const day = dayRaw && !isNaN(parseInt(dayRaw)) ? parseInt(dayRaw) : null;
 
             // 동의어/반의어 배열로 변환 (쉼표로 구분, 빈 문자열 제거, 품사 표시 제거)
             const synonyms = synonymsRaw
@@ -538,6 +543,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
                 synonyms: synonyms,
                 antonyms: antonyms,
                 definition: definition,
+                day: day,
                 mastered: false,
                 nextReviewDate: new Date().toISOString(),
                 lastReviewDate: null,
@@ -2467,6 +2473,18 @@ const addWordFromClick = async (clickedWord) => {
     : selectedBook?.id === 'wrongNote'
     ? words.filter(w => w.wrongNote === true)
     : words.filter(w => w.bookId === selectedBook?.id && !w.mastered);
+
+  // 현재 단어장에서 사용 가능한 모든 Day 목록 (오름차순 정렬)
+  const availableDays = selectedBook
+    ? [...new Set(currentBookWords.filter(w => w.day !== null && w.day !== undefined).map(w => w.day))].sort((a, b) => a - b)
+    : [];
+
+  // Day 필터링된 단어들 (selectedDay가 null이면 Day 그리드 표시, 'all'이면 전체, 숫자면 해당 Day만)
+  const displayWords = selectedDay === null
+    ? currentBookWords  // Day 그리드 화면에서는 사용 안함
+    : selectedDay === 'all'
+    ? currentBookWords  // 전체 보기
+    : currentBookWords.filter(w => w.day === selectedDay);  // 특정 Day만
 
   if (loading) {
     return (
@@ -8746,8 +8764,14 @@ if (currentView === 'list' && selectedBook) {
         }}>
           <button
             onClick={() => {
-              setCurrentView('home');
-              setSelectedBook(null);
+              if (selectedDay !== null) {
+                // Day가 선택된 상태면 Day 그리드로 돌아가기
+                setSelectedDay(null);
+              } else {
+                // Day 그리드 화면이면 홈으로 돌아가기
+                setCurrentView('home');
+                setSelectedBook(null);
+              }
             }}
             style={{
               background: 'white',
@@ -8773,7 +8797,114 @@ if (currentView === 'list' && selectedBook) {
           <div style={{ width: '80px' }}></div>
         </div>
 
+        {/* Day 그리드 선택 화면 */}
+        {availableDays.length > 0 && selectedDay === null ? (
+          <div>
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '20px',
+              marginBottom: '20px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+            }}>
+              <h2 style={{
+                fontSize: '1.2rem',
+                fontWeight: '700',
+                color: '#172f0b',
+                marginBottom: '16px',
+                textAlign: 'center'
+              }}>
+                📚 Day 선택
+              </h2>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, 1fr)',
+                gap: '10px'
+              }}>
+                {availableDays.map(day => {
+                  const dayWords = currentBookWords.filter(w => w.day === day);
+                  const totalCount = dayWords.length;
+                  const masteredCount = dayWords.filter(w => w.mastered).length;
+                  const progress = totalCount > 0 ? Math.round((masteredCount / totalCount) * 100) : 0;
+
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => setSelectedDay(day)}
+                      style={{
+                        padding: '16px 8px',
+                        background: progress === 100
+                          ? 'linear-gradient(135deg, #bbf7d0, #86efac)'
+                          : progress > 0
+                          ? 'linear-gradient(135deg, #fef3c7, #fde68a)'
+                          : 'white',
+                        border: `2px solid ${progress === 100 ? '#22c55e' : progress > 0 ? '#f59e0b' : '#e8f3e5'}`,
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      <div style={{
+                        fontSize: '0.95rem',
+                        fontWeight: '700',
+                        color: '#172f0b'
+                      }}>
+                        Day {day}
+                      </div>
+                      <div style={{
+                        fontSize: '0.75rem',
+                        color: '#6b7280'
+                      }}>
+                        {totalCount}개
+                      </div>
+                      {progress > 0 && (
+                        <div style={{
+                          fontSize: '0.7rem',
+                          fontWeight: '600',
+                          color: progress === 100 ? '#166534' : '#d97706'
+                        }}>
+                          {progress}%
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 전체 보기 버튼 */}
+            <button
+              onClick={() => setSelectedDay('all')}
+              style={{
+                width: '100%',
+                padding: '16px',
+                background: 'linear-gradient(135deg, #ddd6fe, #c4b5fd)',
+                border: '2px solid #8b5cf6',
+                borderRadius: '16px',
+                color: '#5b21b6',
+                fontSize: '1rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                marginBottom: '20px'
+              }}
+            >
+              📖 전체 단어 보기
+            </button>
+          </div>
+        ) : null}
+
        {/* 학습 버튼들 */}
+        {(availableDays.length === 0 || selectedDay !== null) && (
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(2, 1fr)', 
@@ -8782,16 +8913,16 @@ if (currentView === 'list' && selectedBook) {
         }}>
           <button
             onClick={startFlashcard}
-            disabled={currentBookWords.length === 0}
+            disabled={displayWords.length === 0}
             style={{
               padding: '16px',
-              background: currentBookWords.length === 0 ? '#e5e7eb' : '#bbf7d0',
-              color: currentBookWords.length === 0 ? '#9ca3af' : '#166534',
+              background: displayWords.length === 0 ? '#e5e7eb' : '#bbf7d0',
+              color: displayWords.length === 0 ? '#9ca3af' : '#166534',
               border: 'none',
               borderRadius: '16px',
               fontSize: '1rem',
               fontWeight: '700',
-              cursor: currentBookWords.length === 0 ? 'not-allowed' : 'pointer',
+              cursor: displayWords.length === 0 ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -8803,16 +8934,16 @@ if (currentView === 'list' && selectedBook) {
           </button>
           <button
             onClick={() => setCurrentView('quizModeSelect')}
-            disabled={currentBookWords.length === 0}
+            disabled={displayWords.length === 0}
             style={{
               padding: '16px',
-              background: currentBookWords.length === 0 ? '#e5e7eb' : 'linear-gradient(135deg, #bbf7d0, #86efac)',
-              color: currentBookWords.length === 0 ? '#9ca3af' : '#166534',
+              background: displayWords.length === 0 ? '#e5e7eb' : 'linear-gradient(135deg, #bbf7d0, #86efac)',
+              color: displayWords.length === 0 ? '#9ca3af' : '#166534',
               border: 'none',
               borderRadius: '16px',
               fontSize: '1rem',
               fontWeight: '700',
-              cursor: currentBookWords.length === 0 ? 'not-allowed' : 'pointer',
+              cursor: displayWords.length === 0 ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -8823,8 +8954,10 @@ if (currentView === 'list' && selectedBook) {
             퀴즈
           </button>
         </div>
+        )}
 
         {/* 단어 추가 버튼 */}
+        {(availableDays.length === 0 || selectedDay !== null) && (
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           style={{
@@ -8933,7 +9066,7 @@ if (currentView === 'list' && selectedBook) {
 
        {/* 단어 목록 - 파스텔톤 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {currentBookWords.length === 0 ? (
+          {displayWords.length === 0 ? (
             <div style={{
               background: 'rgba(255, 255, 255, 0.9)',
               backdropFilter: 'blur(10px)',
@@ -8948,7 +9081,7 @@ if (currentView === 'list' && selectedBook) {
               <div style={{ fontSize: '0.85rem' }}>위의 버튼을 눌러 단어를 추가해보세요!</div>
             </div>
           ) : (
-            currentBookWords.map((word, index) => (
+            displayWords.map((word, index) => (
               <div
                 key={word.id}
                 style={{
@@ -9437,6 +9570,7 @@ if (currentView === 'list' && selectedBook) {
             ))
           )}
         </div>
+        )}
       </div>
     </div>
   );
