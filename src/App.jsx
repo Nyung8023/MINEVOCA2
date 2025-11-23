@@ -854,6 +854,27 @@ const searchMultipleWordsInDB = async (input) => {
     return choices.sort(() => Math.random() - 0.5);
   };
 
+  // 영영풀이 객관식 보기 생성
+  const generateDefinitionChoices = (correctWord, allWords) => {
+    // 정답 영어 단어
+    const correctAnswer = correctWord.english;
+    const choices = [correctAnswer];
+
+    // 다른 단어들 중에서 3개 선택
+    const otherWords = allWords.filter(word => word.id !== correctWord.id).map(word => word.english);
+
+    // 중복 제거 및 정답과 다른 것만 필터링
+    const uniqueOtherWords = [...new Set(otherWords)].filter(word => word !== correctAnswer);
+
+    while (choices.length < 4 && uniqueOtherWords.length > 0) {
+      const randomIndex = Math.floor(Math.random() * uniqueOtherWords.length);
+      choices.push(uniqueOtherWords[randomIndex]);
+      uniqueOtherWords.splice(randomIndex, 1);
+    }
+
+    return choices.sort(() => Math.random() - 0.5);
+  };
+
   // 출석 체크 함수
   const checkAttendance = async (userId, userName, userClassId, userClassName = '') => {
     try {
@@ -2282,6 +2303,8 @@ const addWordFromClick = async (clickedWord) => {
       setMultipleChoices(generateSynonymChoices(shuffledWords[0], shuffledWords));
     } else if (mode === 'antonym') {
       setMultipleChoices(generateAntonymChoices(shuffledWords[0], shuffledWords));
+    } else if (mode === 'definition') {
+      setMultipleChoices(generateDefinitionChoices(shuffledWords[0], shuffledWords));
     }
 
     setCurrentView('quiz');
@@ -2333,10 +2356,8 @@ const addWordFromClick = async (clickedWord) => {
         isCorrect = correctAnswers.some(ans => ans === userAnswer);
       }
     } else if (quizMode === 'definition') {
-      // 영영풀이: 영어 단어를 맞춰야 함
-      const correctAnswer = currentWord.english.toLowerCase();
-      const userAnswer = quizAnswer.trim().toLowerCase();
-      isCorrect = userAnswer === correctAnswer;
+      // 영영풀이: 사용자가 선택한 답이 정답 영어 단어인지 확인
+      isCorrect = quizAnswer === currentWord.english;
     } else if (quizMode === 'multiple') {
       const correctAnswer = quizDirection === 'en-ko' ? currentWord.korean : currentWord.english;
       isCorrect = quizAnswer === correctAnswer;
@@ -2380,6 +2401,8 @@ const addWordFromClick = async (clickedWord) => {
         setMultipleChoices(generateSynonymChoices(quizWords[currentCardIndex + 1], quizWords));
       } else if (quizMode === 'antonym') {
         setMultipleChoices(generateAntonymChoices(quizWords[currentCardIndex + 1], quizWords));
+      } else if (quizMode === 'definition') {
+        setMultipleChoices(generateDefinitionChoices(quizWords[currentCardIndex + 1], quizWords));
       }
     } else {
       console.log('🎉 퀴즈 완료! 결과 계산 중...');
@@ -10570,14 +10593,52 @@ if (currentView === 'quiz') {
             </div>
           )}
 
-          {/* 주관식 / 듣고 쓰기 / 영영풀이 */}
-          {(quizMode === 'typing' || quizMode === 'listening' || quizMode === 'definition') && (
+          {/* 영영풀이 객관식 */}
+          {quizMode === 'definition' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {multipleChoices.map((choice, index) => {
+                const isSelected = quizAnswer === choice;
+                const isCorrect = choice === currentWord.english;
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (quizResult === null) {
+                        setQuizAnswer(choice);
+                      }
+                    }}
+                    disabled={quizResult !== null}
+                    style={{
+                      padding: '14px',
+                      background: quizResult !== null
+                        ? (isCorrect ? 'linear-gradient(135deg, #ddd6fe, #c4b5fd)' : isSelected ? 'linear-gradient(135deg, #fce7f3, #fbcfe8)' : 'white')
+                        : (isSelected ? 'linear-gradient(135deg, #c4b5fd, #a78bfa)' : 'white'),
+                      border: `2px solid ${quizResult !== null ? (isCorrect ? '#a78bfa' : isSelected ? '#f9a8d4' : '#e2e8f0') : (isSelected ? '#8b5cf6' : '#e2e8f0')}`,
+                      borderRadius: '10px',
+                      fontSize: '0.95rem',
+                      fontWeight: '600',
+                      color: quizResult !== null ? (isCorrect ? '#6d28d9' : isSelected ? '#be123c' : '#475569') : (isSelected ? '#5b21b6' : '#475569'),
+                      cursor: quizResult !== null ? 'default' : 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {choice}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 주관식 / 듣고 쓰기 */}
+          {(quizMode === 'typing' || quizMode === 'listening') && (
             <input
               type="text"
               value={quizAnswer}
               onChange={(e) => setQuizAnswer(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && quizResult === null && checkAnswer()}
-              placeholder={quizMode === 'definition' ? '영어 단어를 입력하세요' : '답을 입력하세요'}
+              placeholder="답을 입력하세요"
               disabled={quizResult !== null}
               style={{
                 width: '100%',
