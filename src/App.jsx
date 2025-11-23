@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import React, { useState, useEffect, useCallback } from 'react';
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore';
-import { Volume2, Check, X, Plus, Trash2, Edit2, BookOpen, Album, Brain, GraduationCap, Star, Eye, Settings, Gift, Target, TrendingUp, Award, Calendar, BarChart3, Shuffle, Headphones, Pencil, Lightbulb, ClipboardList, CheckCircle, Book } from 'lucide-react';
+import { Volume2, Check, X, Plus, Trash2, Edit2, BookOpen, Album, Brain, GraduationCap, Star, Eye, Settings, Gift, Target, TrendingUp, Award, Calendar, BarChart3, Shuffle, Headphones, Pencil, Lightbulb, ClipboardList, CheckCircle, Book, Link, ArrowLeftRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 
@@ -792,6 +792,66 @@ const searchMultipleWordsInDB = async (input) => {
   const generateSpellingPuzzle = (word) => {
     const letters = word.english.split('');
     return letters.sort(() => Math.random() - 0.5);
+  };
+
+  // 동의어 객관식 보기 생성
+  const generateSynonymChoices = (correctWord, allWords) => {
+    // 정답 단어의 동의어들 중에서 랜덤으로 하나 선택
+    if (!correctWord.synonyms || correctWord.synonyms.length === 0) {
+      return []; // 동의어가 없으면 빈 배열 반환
+    }
+
+    const correctSynonym = correctWord.synonyms[Math.floor(Math.random() * correctWord.synonyms.length)];
+    const choices = [correctSynonym];
+
+    // 다른 단어들의 동의어 중에서 3개 선택
+    const otherSynonyms = [];
+    for (const word of allWords) {
+      if (word.id !== correctWord.id && word.synonyms && word.synonyms.length > 0) {
+        otherSynonyms.push(...word.synonyms);
+      }
+    }
+
+    // 중복 제거 및 정답과 다른 것만 필터링
+    const uniqueOtherSynonyms = [...new Set(otherSynonyms)].filter(syn => syn !== correctSynonym);
+
+    while (choices.length < 4 && uniqueOtherSynonyms.length > 0) {
+      const randomIndex = Math.floor(Math.random() * uniqueOtherSynonyms.length);
+      choices.push(uniqueOtherSynonyms[randomIndex]);
+      uniqueOtherSynonyms.splice(randomIndex, 1);
+    }
+
+    return choices.sort(() => Math.random() - 0.5);
+  };
+
+  // 반의어 객관식 보기 생성
+  const generateAntonymChoices = (correctWord, allWords) => {
+    // 정답 단어의 반의어들 중에서 랜덤으로 하나 선택
+    if (!correctWord.antonyms || correctWord.antonyms.length === 0) {
+      return []; // 반의어가 없으면 빈 배열 반환
+    }
+
+    const correctAntonym = correctWord.antonyms[Math.floor(Math.random() * correctWord.antonyms.length)];
+    const choices = [correctAntonym];
+
+    // 다른 단어들의 반의어 중에서 3개 선택
+    const otherAntonyms = [];
+    for (const word of allWords) {
+      if (word.id !== correctWord.id && word.antonyms && word.antonyms.length > 0) {
+        otherAntonyms.push(...word.antonyms);
+      }
+    }
+
+    // 중복 제거 및 정답과 다른 것만 필터링
+    const uniqueOtherAntonyms = [...new Set(otherAntonyms)].filter(ant => ant !== correctAntonym);
+
+    while (choices.length < 4 && uniqueOtherAntonyms.length > 0) {
+      const randomIndex = Math.floor(Math.random() * uniqueOtherAntonyms.length);
+      choices.push(uniqueOtherAntonyms[randomIndex]);
+      uniqueOtherAntonyms.splice(randomIndex, 1);
+    }
+
+    return choices.sort(() => Math.random() - 0.5);
   };
 
   // 출석 체크 함수
@@ -2199,6 +2259,10 @@ const addWordFromClick = async (clickedWord) => {
       setSpellingInput(generateSpellingPuzzle(shuffledWords[0]));
       setSelectedLetters([]); // 선택된 철자 초기화
       setUsedLetterIndices([]); // 사용된 인덱스 초기화
+    } else if (mode === 'synonym') {
+      setMultipleChoices(generateSynonymChoices(shuffledWords[0], shuffledWords));
+    } else if (mode === 'antonym') {
+      setMultipleChoices(generateAntonymChoices(shuffledWords[0], shuffledWords));
     }
 
     setCurrentView('quiz');
@@ -2249,9 +2313,20 @@ const addWordFromClick = async (clickedWord) => {
         const userAnswer = quizAnswer.trim().toLowerCase();
         isCorrect = correctAnswers.some(ans => ans === userAnswer);
       }
+    } else if (quizMode === 'definition') {
+      // 영영풀이: 영어 단어를 맞춰야 함
+      const correctAnswer = currentWord.english.toLowerCase();
+      const userAnswer = quizAnswer.trim().toLowerCase();
+      isCorrect = userAnswer === correctAnswer;
     } else if (quizMode === 'multiple') {
       const correctAnswer = quizDirection === 'en-ko' ? currentWord.korean : currentWord.english;
       isCorrect = quizAnswer === correctAnswer;
+    } else if (quizMode === 'synonym') {
+      // 동의어: 사용자가 선택한 답이 정답 단어의 동의어 중 하나인지 확인
+      isCorrect = currentWord.synonyms && currentWord.synonyms.includes(quizAnswer);
+    } else if (quizMode === 'antonym') {
+      // 반의어: 사용자가 선택한 답이 정답 단어의 반의어 중 하나인지 확인
+      isCorrect = currentWord.antonyms && currentWord.antonyms.includes(quizAnswer);
     } else if (quizMode === 'spelling') {
       // 선택된 철자로 만든 단어가 정답과 일치하는지 확인
       isCorrect = selectedLetters.join('') === currentWord.english;
@@ -2282,6 +2357,10 @@ const addWordFromClick = async (clickedWord) => {
         setSpellingInput(generateSpellingPuzzle(quizWords[currentCardIndex + 1]));
         setSelectedLetters([]); // 선택된 철자 초기화
         setUsedLetterIndices([]); // 사용된 인덱스 초기화
+      } else if (quizMode === 'synonym') {
+        setMultipleChoices(generateSynonymChoices(quizWords[currentCardIndex + 1], quizWords));
+      } else if (quizMode === 'antonym') {
+        setMultipleChoices(generateAntonymChoices(quizWords[currentCardIndex + 1], quizWords));
       }
     } else {
       console.log('🎉 퀴즈 완료! 결과 계산 중...');
@@ -3366,6 +3445,141 @@ if (currentView === 'quizModeSelect') {
                 </h3>
                 <p style={{ fontSize: '0.75rem', color: '#475569', margin: 0 }}>
                   섞인 글자를 순서대로 배열하세요
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 영영풀이 - 로즈 */}
+          <div
+            onClick={() => startQuiz('definition', quizDirection)}
+            style={{
+              background: 'linear-gradient(135deg, #ffe4e6, #fecdd3)',
+              borderRadius: '14px',
+              padding: '16px',
+              boxShadow: '0 2px 8px rgba(244, 63, 94, 0.1)',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              border: '2px solid #fda4af'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(244, 63, 94, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(244, 63, 94, 0.1)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #f43f5e, #e11d48)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(244, 63, 94, 0.3)'
+              }}>
+                <BookOpen size={22} strokeWidth={2.5} color="white" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#be123c', marginBottom: '2px' }}>
+                  영영풀이
+                </h3>
+                <p style={{ fontSize: '0.75rem', color: '#475569', margin: 0 }}>
+                  영어 뜻을 보고 단어를 맞추세요
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 동의어 - 틸 */}
+          <div
+            onClick={() => startQuiz('synonym', quizDirection)}
+            style={{
+              background: 'linear-gradient(135deg, #ccfbf1, #99f6e4)',
+              borderRadius: '14px',
+              padding: '16px',
+              boxShadow: '0 2px 8px rgba(20, 184, 166, 0.1)',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              border: '2px solid #5eead4'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(20, 184, 166, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(20, 184, 166, 0.1)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #14b8a6, #0d9488)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(20, 184, 166, 0.3)'
+              }}>
+                <Link size={22} strokeWidth={2.5} color="white" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#0f766e', marginBottom: '2px' }}>
+                  동의어
+                </h3>
+                <p style={{ fontSize: '0.75rem', color: '#475569', margin: 0 }}>
+                  비슷한 뜻의 단어를 고르세요
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 반의어 - 오렌지 */}
+          <div
+            onClick={() => startQuiz('antonym', quizDirection)}
+            style={{
+              background: 'linear-gradient(135deg, #fed7aa, #fdba74)',
+              borderRadius: '14px',
+              padding: '16px',
+              boxShadow: '0 2px 8px rgba(249, 115, 22, 0.1)',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              border: '2px solid #fb923c'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(249, 115, 22, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(249, 115, 22, 0.1)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '10px',
+                background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
+              }}>
+                <ArrowLeftRight size={22} strokeWidth={2.5} color="white" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#c2410c', marginBottom: '2px' }}>
+                  반의어
+                </h3>
+                <p style={{ fontSize: '0.75rem', color: '#475569', margin: 0 }}>
+                  반대 뜻의 단어를 고르세요
                 </p>
               </div>
             </div>
@@ -10185,7 +10399,15 @@ if (currentView === 'quiz') {
           border: '2px solid rgba(226, 232, 240, 0.5)'
         }}>
           <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#172f0b', marginBottom: '20px', textAlign: 'center' }}>
-            {quizMode === 'spelling' ? currentWord.korean : (quizDirection === 'en-ko' ? currentWord.english : currentWord.korean)}
+            {quizMode === 'spelling'
+              ? currentWord.korean
+              : quizMode === 'definition'
+              ? (currentWord.definition || '영영풀이가 없습니다')
+              : quizMode === 'synonym'
+              ? `${currentWord.english}의 동의어는?`
+              : quizMode === 'antonym'
+              ? `${currentWord.english}의 반의어는?`
+              : (quizDirection === 'en-ko' ? currentWord.english : currentWord.korean)}
           </div>
 
           {quizMode === 'listening' && quizDirection === 'en-ko' && (
@@ -10221,7 +10443,7 @@ if (currentView === 'quiz') {
                 const isSelected = quizAnswer === answer;
                 const correctAnswer = quizDirection === 'en-ko' ? currentWord.korean : currentWord.english;
                 const isCorrect = answer === correctAnswer;
-                
+
                 return (
                   <button
                     key={index}
@@ -10233,7 +10455,7 @@ if (currentView === 'quiz') {
                     disabled={quizResult !== null}
                     style={{
                       padding: '14px',
-                      background: quizResult !== null 
+                      background: quizResult !== null
                         ? (isCorrect ? 'linear-gradient(135deg, #d1fae5, #a7f3d0)' : isSelected ? 'linear-gradient(135deg, #fce7f3, #fbcfe8)' : 'white')
                         : (isSelected ? 'linear-gradient(135deg, #99f6e4, #5eead4)' : 'white'),
                       border: `2px solid ${quizResult !== null ? (isCorrect ? '#6ee7b7' : isSelected ? '#f9a8d4' : '#e2e8f0') : (isSelected ? '#2dd4bf' : '#e2e8f0')}`,
@@ -10253,14 +10475,90 @@ if (currentView === 'quiz') {
             </div>
           )}
 
-          {/* 주관식 / 듣고 쓰기 */}
-          {(quizMode === 'typing' || quizMode === 'listening') && (
+          {/* 동의어 객관식 */}
+          {quizMode === 'synonym' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {multipleChoices.map((choice, index) => {
+                const isSelected = quizAnswer === choice;
+                const isCorrect = currentWord.synonyms && currentWord.synonyms.includes(choice);
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (quizResult === null) {
+                        setQuizAnswer(choice);
+                      }
+                    }}
+                    disabled={quizResult !== null}
+                    style={{
+                      padding: '14px',
+                      background: quizResult !== null
+                        ? (isCorrect ? 'linear-gradient(135deg, #ccfbf1, #99f6e4)' : isSelected ? 'linear-gradient(135deg, #fce7f3, #fbcfe8)' : 'white')
+                        : (isSelected ? 'linear-gradient(135deg, #99f6e4, #5eead4)' : 'white'),
+                      border: `2px solid ${quizResult !== null ? (isCorrect ? '#5eead4' : isSelected ? '#f9a8d4' : '#e2e8f0') : (isSelected ? '#2dd4bf' : '#e2e8f0')}`,
+                      borderRadius: '10px',
+                      fontSize: '0.95rem',
+                      fontWeight: '600',
+                      color: quizResult !== null ? (isCorrect ? '#0f766e' : isSelected ? '#be123c' : '#475569') : (isSelected ? '#0d9488' : '#475569'),
+                      cursor: quizResult !== null ? 'default' : 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {choice}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 반의어 객관식 */}
+          {quizMode === 'antonym' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {multipleChoices.map((choice, index) => {
+                const isSelected = quizAnswer === choice;
+                const isCorrect = currentWord.antonyms && currentWord.antonyms.includes(choice);
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (quizResult === null) {
+                        setQuizAnswer(choice);
+                      }
+                    }}
+                    disabled={quizResult !== null}
+                    style={{
+                      padding: '14px',
+                      background: quizResult !== null
+                        ? (isCorrect ? 'linear-gradient(135deg, #fed7aa, #fdba74)' : isSelected ? 'linear-gradient(135deg, #fce7f3, #fbcfe8)' : 'white')
+                        : (isSelected ? 'linear-gradient(135deg, #fdba74, #fb923c)' : 'white'),
+                      border: `2px solid ${quizResult !== null ? (isCorrect ? '#fb923c' : isSelected ? '#f9a8d4' : '#e2e8f0') : (isSelected ? '#f97316' : '#e2e8f0')}`,
+                      borderRadius: '10px',
+                      fontSize: '0.95rem',
+                      fontWeight: '600',
+                      color: quizResult !== null ? (isCorrect ? '#c2410c' : isSelected ? '#be123c' : '#475569') : (isSelected ? '#9a3412' : '#475569'),
+                      cursor: quizResult !== null ? 'default' : 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {choice}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 주관식 / 듣고 쓰기 / 영영풀이 */}
+          {(quizMode === 'typing' || quizMode === 'listening' || quizMode === 'definition') && (
             <input
               type="text"
               value={quizAnswer}
               onChange={(e) => setQuizAnswer(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && quizResult === null && checkAnswer()}
-              placeholder="답을 입력하세요"
+              placeholder={quizMode === 'definition' ? '영어 단어를 입력하세요' : '답을 입력하세요'}
               disabled={quizResult !== null}
               style={{
                 width: '100%',
@@ -10398,7 +10696,11 @@ if (currentView === 'quiz') {
               color: quizResult ? '#047857' : '#be123c',
               border: `2px solid ${quizResult ? '#6ee7b7' : '#f9a8d4'}`
             }}>
-              {quizResult ? '🎉 정답입니다!' : `❌ 틀렸어요. 정답은 "${quizDirection === 'en-ko' ? currentWord.korean : currentWord.english}" 입니다.`}
+              {quizResult ? '🎉 정답입니다!' :
+                quizMode === 'definition' ? `❌ 틀렸어요. 정답은 "${currentWord.english}" 입니다.` :
+                quizMode === 'synonym' ? `❌ 틀렸어요. 정답은 "${currentWord.synonyms ? currentWord.synonyms.join(', ') : ''}" 중 하나입니다.` :
+                quizMode === 'antonym' ? `❌ 틀렸어요. 정답은 "${currentWord.antonyms ? currentWord.antonyms.join(', ') : ''}" 중 하나입니다.` :
+                `❌ 틀렸어요. 정답은 "${quizDirection === 'en-ko' ? currentWord.korean : currentWord.english}" 입니다.`}
             </div>
           )}
         </div>
