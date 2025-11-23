@@ -246,6 +246,7 @@ const cancelEdit = () => {
   const [allTests, setAllTests] = useState([]); // 모든 시험 목록 (관리자용)
   const [myTestResults, setMyTestResults] = useState([]); // 내 시험 결과 목록
   const [allTestResults, setAllTestResults] = useState([]); // 모든 시험 결과 (관리자용)
+  const [showAllTestResults, setShowAllTestResults] = useState(false); // 모든 시험 결과 표시 여부
 
   // 시험 만들기 폼 상태
   const [testTitle, setTestTitle] = useState('');
@@ -4350,18 +4351,18 @@ if (currentView === 'quizModeSelect') {
       {myTestResults && myTestResults.length > 0 && (
         <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
           <h3 style={{
-            fontSize: '1.2rem',
+            fontSize: '1rem',
             fontWeight: 700,
             color: '#1e293b',
-            marginBottom: '16px',
+            marginBottom: '12px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px'
           }}>
             📊 내 시험 결과
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {myTestResults.slice().reverse().map(result => (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {(showAllTestResults ? myTestResults.slice().reverse() : myTestResults.slice().reverse().slice(0, 3)).map(result => (
               <div
                 key={result.id}
                 style={{
@@ -4369,37 +4370,37 @@ if (currentView === 'quizModeSelect') {
                     ? 'linear-gradient(135deg, #d1fae5, #a7f3d0)'
                     : 'linear-gradient(135deg, #fee2e2, #fecaca)',
                   border: result.passed ? '2px solid #10b981' : '2px solid #ef4444',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  borderRadius: '12px',
+                  padding: '12px',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', marginBottom: '4px' }}>
                       {result.testTitle}
                     </div>
-                    <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
                       {new Date(result.completedAt).toLocaleDateString('ko-KR')} {new Date(result.completedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{
-                      fontSize: '2rem',
+                      fontSize: '1.5rem',
                       fontWeight: 900,
                       color: result.passed ? '#059669' : '#dc2626',
-                      marginBottom: '4px'
+                      marginBottom: '2px'
                     }}>
                       {result.score}%
                     </div>
                     <div style={{
-                      fontSize: '0.85rem',
+                      fontSize: '0.75rem',
                       fontWeight: 600,
                       color: result.passed ? '#059669' : '#dc2626'
                     }}>
                       {result.passed ? '✅ 통과' : '❌ 재시험 필요'}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px' }}>
+                    <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
                       {result.correct} / {result.total} 정답
                     </div>
                   </div>
@@ -4407,6 +4408,32 @@ if (currentView === 'quizModeSelect') {
               </div>
             ))}
           </div>
+          {myTestResults.length > 3 && (
+            <button
+              onClick={() => setShowAllTestResults(!showAllTestResults)}
+              style={{
+                width: '100%',
+                marginTop: '12px',
+                padding: '10px',
+                background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: '#475569',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #e2e8f0, #cbd5e1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #f1f5f9, #e2e8f0)';
+              }}
+            >
+              {showAllTestResults ? '▲ 접기' : `▼ 더보기 (${myTestResults.length - 3}개 더)`}
+            </button>
+          )}
         </div>
       )}
 
