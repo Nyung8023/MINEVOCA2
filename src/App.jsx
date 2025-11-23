@@ -4349,89 +4349,161 @@ if (currentView === 'quizModeSelect') {
 
       {/* 📊 내 시험 결과 섹션 */}
       {myTestResults && myTestResults.length > 0 && (
-        <div style={{ width: '100%', padding: '0 24px', marginBottom: '24px' }}>
+        <div style={{ width: '100%', padding: '0 24px', marginBottom: '16px' }}>
           <h3 style={{
-            fontSize: '1rem',
+            fontSize: '0.85rem',
             fontWeight: 700,
             color: '#1e293b',
             marginBottom: '12px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '6px'
           }}>
-            📊 내 시험 결과
+            📝 내 시험 결과
           </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {(showAllTestResults ? myTestResults.slice().reverse() : myTestResults.slice().reverse().slice(0, 3)).map(result => (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+            gap: '10px'
+          }}>
+            {(showAllTestResults ? myTestResults.slice().reverse() : myTestResults.slice().reverse().slice(0, 6)).map(result => (
               <div
                 key={result.id}
                 style={{
                   background: result.passed
-                    ? 'linear-gradient(135deg, #d1fae5, #a7f3d0)'
-                    : 'linear-gradient(135deg, #fee2e2, #fecaca)',
-                  border: result.passed ? '2px solid #10b981' : '2px solid #ef4444',
-                  borderRadius: '12px',
-                  padding: '12px',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.1)'
+                    ? 'linear-gradient(135deg, #fef3c7, #fde68a)'
+                    : 'linear-gradient(135deg, #fecdd3, #fda4af)',
+                  borderRadius: '16px',
+                  padding: '14px 12px',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.06)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  cursor: 'default',
+                  position: 'relative',
+                  border: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.06)';
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', marginBottom: '4px' }}>
-                      {result.testTitle}
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                      {new Date(result.completedAt).toLocaleDateString('ko-KR')} {new Date(result.completedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
+                {/* 점수 배지 */}
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  background: result.passed
+                    ? 'linear-gradient(135deg, #10b981, #059669)'
+                    : 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
+                  position: 'relative'
+                }}>
+                  <div style={{
+                    fontSize: '1.3rem',
+                    fontWeight: 900,
+                    color: 'white',
+                    lineHeight: 1
+                  }}>
+                    {result.score}
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{
-                      fontSize: '1.5rem',
-                      fontWeight: 900,
-                      color: result.passed ? '#059669' : '#dc2626',
-                      marginBottom: '2px'
-                    }}>
-                      {result.score}%
-                    </div>
-                    <div style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      color: result.passed ? '#059669' : '#dc2626'
-                    }}>
-                      {result.passed ? '✅ 통과' : '❌ 재시험 필요'}
-                    </div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
-                      {result.correct} / {result.total} 정답
-                    </div>
+                  <div style={{
+                    fontSize: '0.55rem',
+                    fontWeight: 700,
+                    color: 'rgba(255,255,255,0.9)',
+                    marginTop: '2px'
+                  }}>
+                    점
                   </div>
+                </div>
+
+                {/* 제목 */}
+                <div style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: '#1e293b',
+                  textAlign: 'center',
+                  lineHeight: 1.3,
+                  wordBreak: 'keep-all',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  minHeight: '32px'
+                }}>
+                  {result.testTitle}
+                </div>
+
+                {/* 정답 개수 */}
+                <div style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  color: '#64748b',
+                  background: 'rgba(255,255,255,0.7)',
+                  padding: '4px 10px',
+                  borderRadius: '12px'
+                }}>
+                  {result.correct}/{result.total}
+                </div>
+
+                {/* 날짜 */}
+                <div style={{
+                  fontSize: '0.6rem',
+                  color: '#94a3b8',
+                  fontWeight: 500
+                }}>
+                  {new Date(result.completedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                </div>
+
+                {/* 상태 아이콘 */}
+                <div style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  fontSize: '1rem'
+                }}>
+                  {result.passed ? '✨' : '💪'}
                 </div>
               </div>
             ))}
           </div>
-          {myTestResults.length > 3 && (
+          {myTestResults.length > 6 && (
             <button
               onClick={() => setShowAllTestResults(!showAllTestResults)}
               style={{
                 width: '100%',
                 marginTop: '12px',
-                padding: '10px',
-                background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
-                border: '1px solid #cbd5e1',
-                borderRadius: '8px',
-                fontSize: '0.85rem',
-                fontWeight: 600,
-                color: '#475569',
+                padding: '8px',
+                background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+                border: '2px solid #e2e8f0',
+                borderRadius: '12px',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                color: '#64748b',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'linear-gradient(135deg, #e2e8f0, #cbd5e1)';
+                e.currentTarget.style.borderColor = '#cbd5e1';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(135deg, #f1f5f9, #e2e8f0)';
+                e.currentTarget.style.background = 'linear-gradient(135deg, #f8fafc, #f1f5f9)';
+                e.currentTarget.style.borderColor = '#e2e8f0';
               }}
             >
-              {showAllTestResults ? '▲ 접기' : `▼ 더보기 (${myTestResults.length - 3}개 더)`}
+              {showAllTestResults ? '▲ 접기' : `▼ 더보기 (${myTestResults.length - 6}개 더)`}
             </button>
           )}
         </div>
