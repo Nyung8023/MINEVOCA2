@@ -9987,7 +9987,7 @@ if (currentView === 'quiz') {
           marginBottom: '20px'
         }}>
           <button
-            onClick={() => setCurrentView('home')}
+            onClick={() => setCurrentView('quizModeSelect')}
             style={{
               background: 'white',
               border: '2px solid #e2e8f0',
