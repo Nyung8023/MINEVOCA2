@@ -1212,11 +1212,13 @@ if (userDataDoc.exists()) {
       const testsSnapshot = await getDocs(collection(db, 'tests'));
       const myTestsList = testsSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(test => test.classId === userClassId && new Date(test.deadline) > new Date());
+        .filter(test => test.classId === userClassId); // 마감 지난 시험도 포함
 
       setMyTests(myTestsList); // 모든 시험 저장
-      if (myTestsList.length > 0) {
-        setCurrentTest(myTestsList[0]); // 호환성 유지
+      // 마감 안 지난 시험이 있으면 첫 번째 것을 currentTest로 설정
+      const upcomingTests = myTestsList.filter(test => new Date(test.deadline) > new Date());
+      if (upcomingTests.length > 0) {
+        setCurrentTest(upcomingTests[0]); // 호환성 유지
       }
       console.log('✅ 내 반 시험 로드:', myTestsList.length);
     } catch (error) {
@@ -4097,7 +4099,7 @@ if (currentView === 'quizModeSelect') {
       )}
 
       {/* 📝 오늘의 단어 시험들 - 통과하지 않은 시험만 표시 */}
-      {myTests.filter(test => new Date(test.deadline) > new Date()).map((test) => {
+      {myTests.map((test) => {
         // 이 시험에 대한 최신 결과 찾기
         const testResults = myTestResults.filter(r => r.testId === test.id);
         const latestResult = testResults.length > 0
@@ -4105,6 +4107,8 @@ if (currentView === 'quizModeSelect') {
           : null;
         const hasPassed = latestResult && latestResult.passed;
         const needsRetest = latestResult && !latestResult.passed;
+        const isOverdue = new Date(test.deadline) < new Date(); // 마감 지났는지 확인
+        const isMissed = isOverdue && !latestResult; // 마감 지났고 아직 안 본 경우
 
         // 통과한 시험은 표시하지 않음
         if (hasPassed) {
@@ -4112,23 +4116,30 @@ if (currentView === 'quizModeSelect') {
           return null;
         }
 
-        console.log('🔍 시험 카드 표시:', test.title, '- needsRetest:', needsRetest);
+        console.log('🔍 시험 카드 표시:', test.title, '- needsRetest:', needsRetest, '- isMissed:', isMissed);
 
         return (
         <div key={test.id} style={{ width: '100%', padding: '0 24px', marginBottom: '20px' }}>
           <div
             style={{
-              background: needsRetest
+              background: isMissed
+                ? 'linear-gradient(135deg, #f1f5f9, #e2e8f0, #cbd5e1)'
+                : needsRetest
                 ? 'linear-gradient(135deg, #fff1f2, #ffe4e6, #fecdd3)'
                 : 'linear-gradient(135deg, #ede9fe, #ddd6fe, #c4b5fd)',
-              border: needsRetest ? '2px solid #fb7185' : '2px solid #a78bfa',
+              border: isMissed
+                ? '2px solid #64748b'
+                : needsRetest ? '2px solid #fb7185' : '2px solid #a78bfa',
               borderRadius: '16px',
               padding: '20px',
-              boxShadow: needsRetest
+              boxShadow: isMissed
+                ? '0 4px 12px rgba(100, 116, 139, 0.15)'
+                : needsRetest
                 ? '0 4px 12px rgba(251, 113, 133, 0.15)'
                 : '0 4px 12px rgba(167, 139, 250, 0.15)',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              opacity: isMissed ? 0.85 : 1
             }}
           >
 
@@ -4136,25 +4147,38 @@ if (currentView === 'quizModeSelect') {
               {/* 헤더 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                 <div style={{ fontSize: '1.8rem' }}>
-                  📝
+                  {isMissed ? '⏰' : '📝'}
                 </div>
                 <div style={{ flex: 1 }}>
                   <h3 style={{
                     fontSize: '1.1rem',
                     fontWeight: 700,
-                    color: needsRetest ? '#be123c' : '#5b21b6',
+                    color: isMissed ? '#475569' : needsRetest ? '#be123c' : '#5b21b6',
                     margin: 0
                   }}>
                     {test.title}
+                    {isMissed && (
+                      <span style={{
+                        marginLeft: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: '#dc2626',
+                        background: '#fee2e2',
+                        padding: '2px 8px',
+                        borderRadius: '6px'
+                      }}>
+                        미수행
+                      </span>
+                    )}
                   </h3>
                   <p style={{
                     fontSize: '0.8rem',
-                    color: needsRetest ? '#9f1239' : '#6d28d9',
+                    color: isMissed ? '#64748b' : needsRetest ? '#9f1239' : '#6d28d9',
                     margin: '2px 0 0 0',
                     fontWeight: 500,
                     opacity: 0.8
                   }}>
-                    단어 시험
+                    {isMissed ? '마감 지남 - 시험 미응시' : '단어 시험'}
                   </p>
                 </div>
               </div>
@@ -4172,7 +4196,7 @@ if (currentView === 'quizModeSelect') {
                     <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginBottom: '3px' }}>
                       단어 개수
                     </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: needsRetest ? '#be123c' : '#5b21b6' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: isMissed ? '#64748b' : needsRetest ? '#be123c' : '#5b21b6' }}>
                       {test.wordIds.length}개
                     </div>
                   </div>
@@ -4180,7 +4204,7 @@ if (currentView === 'quizModeSelect') {
                     <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginBottom: '3px' }}>
                       마감 시간
                     </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#dc2626' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: isMissed ? '#64748b' : '#dc2626' }}>
                       {new Date(test.deadline).toLocaleString('ko-KR', {
                         month: 'numeric',
                         day: 'numeric',
@@ -4191,21 +4215,39 @@ if (currentView === 'quizModeSelect') {
                   </div>
                   <div>
                     <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginBottom: '3px' }}>
-                      남은 시간
+                      {isMissed ? '지난 시간' : '남은 시간'}
                     </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#ea580c' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: isMissed ? '#64748b' : '#ea580c' }}>
                       {(() => {
-                        const diff = new Date(test.deadline) - new Date();
-                        const hours = Math.floor(diff / (1000 * 60 * 60));
-                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                        return `${hours}시간 ${minutes}분`;
+                        const diff = isMissed ? new Date() - new Date(test.deadline) : new Date(test.deadline) - new Date();
+                        const hours = Math.floor(Math.abs(diff) / (1000 * 60 * 60));
+                        const minutes = Math.floor((Math.abs(diff) % (1000 * 60 * 60)) / (1000 * 60));
+                        return isMissed ? `${hours}시간 ${minutes}분 전` : `${hours}시간 ${minutes}분`;
                       })()}
                     </div>
                   </div>
                 </div>
 
                 {/* 시험 상태별 버튼/메시지 */}
-                {hasPassed ? (
+                {isMissed ? (
+                  // 미수행: 마감 지났고 안 본 경우
+                  <div style={{
+                    width: '100%',
+                    padding: '16px',
+                    background: 'linear-gradient(135deg, #64748b, #475569)',
+                    borderRadius: '10px',
+                    textAlign: 'center',
+                    boxShadow: '0 2px 8px rgba(100, 116, 139, 0.3)'
+                  }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '6px' }}>⏰</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'white', marginBottom: '4px' }}>
+                      시험 기한 종료
+                    </div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'rgba(255, 255, 255, 0.95)' }}>
+                      시험을 응시하지 않았습니다
+                    </div>
+                  </div>
+                ) : hasPassed ? (
                   // 통과한 경우: 축하 메시지 표시 (버튼 없음)
                   <div style={{
                     width: '100%',
