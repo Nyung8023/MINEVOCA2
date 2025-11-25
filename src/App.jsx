@@ -297,7 +297,8 @@ const cancelEdit = () => {
 
               studentWords.forEach(word => {
                 if (selectedTestBookIds.includes(word.bookId) && word.day) {
-                  availableDays.add(word.day);
+                  // Day를 문자열로 변환하여 추가 (숫자로 저장된 경우 대응)
+                  availableDays.add(String(word.day));
                 }
               });
 
@@ -310,8 +311,9 @@ const cancelEdit = () => {
         }
 
         const sortedDays = Array.from(availableDays).sort((a, b) => {
-          const numA = parseInt(a.replace(/\D/g, '')) || 0;
-          const numB = parseInt(b.replace(/\D/g, '')) || 0;
+          // 문자열로 변환 후 숫자 추출 (숫자로 저장된 경우 대응)
+          const numA = parseInt(String(a).replace(/\D/g, '')) || 0;
+          const numB = parseInt(String(b).replace(/\D/g, '')) || 0;
           return numA - numB;
         });
 
