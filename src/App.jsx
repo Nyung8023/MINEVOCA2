@@ -7321,7 +7321,7 @@ if (currentView === 'testManagement' && isAdmin) {
                       // 선택된 단어장의 단어만 필터링 (Day 선택이 있으면 Day도 필터링)
                       const filteredWords = studentWords.filter(w => {
                         const isInSelectedBook = selectedTestBookIds.includes(w.bookId);
-                        const isInSelectedDay = selectedTestDays.length === 0 || selectedTestDays.includes(w.day);
+                        const isInSelectedDay = selectedTestDays.length === 0 || selectedTestDays.includes(String(w.day));
                         return isInSelectedBook && isInSelectedDay;
                       });
 
@@ -7371,7 +7371,7 @@ if (currentView === 'testManagement' && isAdmin) {
                       const isWrongWord = word.bookId === selectedBookId &&
                         word.correctStreak === 0 &&
                         word.reviewCount > 0;
-                      const isInSelectedDay = selectedTestDays.length === 0 || selectedTestDays.includes(word.day);
+                      const isInSelectedDay = selectedTestDays.length === 0 || selectedTestDays.includes(String(word.day));
                       return isWrongWord && isInSelectedDay;
                     });
                     wrongWords.forEach(word => {
