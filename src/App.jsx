@@ -289,16 +289,25 @@ const cancelEdit = () => {
 
         if (selectedClass?.students && selectedClass.students.length > 0) {
           // 반의 모든 학생의 단어에서 Day 추출
+          console.log('  - 학생 수:', selectedClass.students.length);
+
           for (const studentId of selectedClass.students) {
             const userDataDoc = await getDoc(doc(db, 'userData', studentId));
             if (userDataDoc.exists()) {
               const userData = userDataDoc.data();
               const studentWords = userData.words || [];
 
+              console.log(`  - 학생 ${studentId}의 단어 수:`, studentWords.length);
+
               studentWords.forEach(word => {
-                if (selectedTestBookIds.includes(word.bookId) && word.day) {
+                // 타입 변환: bookId를 숫자로 변환하여 비교
+                const wordBookId = typeof word.bookId === 'string' ? parseFloat(word.bookId) : word.bookId;
+                const isMatch = selectedTestBookIds.includes(wordBookId);
+
+                if (isMatch && word.day) {
                   // Day를 문자열로 변환하여 추가 (숫자로 저장된 경우 대응)
                   availableDays.add(String(word.day));
+                  console.log(`    ✓ Day 추가: ${word.day} (bookId: ${word.bookId})`);
                 }
               });
             }
