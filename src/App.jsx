@@ -288,7 +288,7 @@ const cancelEdit = () => {
         const selectedClass = classes.find(c => c.id === selectedTestClassId);
 
         if (selectedClass?.students && selectedClass.students.length > 0) {
-          // 반의 첫 번째 학생의 단어에서 Day 추출
+          // 반의 모든 학생의 단어에서 Day 추출
           for (const studentId of selectedClass.students) {
             const userDataDoc = await getDoc(doc(db, 'userData', studentId));
             if (userDataDoc.exists()) {
@@ -301,11 +301,6 @@ const cancelEdit = () => {
                   availableDays.add(String(word.day));
                 }
               });
-
-              // Day를 찾으면 더 이상 다른 학생은 확인하지 않음
-              if (availableDays.size > 0) {
-                break;
-              }
             }
           }
         }
