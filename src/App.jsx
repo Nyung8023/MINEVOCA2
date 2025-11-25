@@ -9572,7 +9572,6 @@ if (currentView === 'list' && selectedBook) {
             ))
           )}
         </div>
-        )}
       </div>
     </div>
   );
