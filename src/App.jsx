@@ -258,6 +258,7 @@ const cancelEdit = () => {
   const [selectedTestBookIds, setSelectedTestBookIds] = useState([]); // 선택된 단어장 IDs
   const [testWordCount, setTestWordCount] = useState(10); // 일반 시험 단어 개수
   const [selectedRetestStudentIds, setSelectedRetestStudentIds] = useState([]); // 재시험 학생 선택
+  const [selectedTestDays, setSelectedTestDays] = useState([]); // 선택된 Day들
 
   // 교재단어장 엑셀 업로드 상태
   const [excelUploadStatus, setExcelUploadStatus] = useState('');
@@ -4565,9 +4566,21 @@ if (currentView === 'quizModeSelect') {
                       try {
                         console.log('🔄 재시험 시작 - 단어 로드 중...');
                         setCurrentTest(test); // 현재 시험 설정
-                        const testWords = words.filter(word =>
-                          test.wordIds.includes(word.id)
-                        );
+
+                        let testWords = [];
+
+                        // 새로운 시험: words 배열이 있으면 그것을 사용
+                        if (test.words && test.words.length > 0) {
+                          console.log('  - 시험에 저장된 단어 사용 (새 방식)');
+                          testWords = test.words;
+                        }
+                        // 옛날 시험: wordIds만 있으면 학생 단어장에서 찾기 (호환성)
+                        else if (test.wordIds && test.wordIds.length > 0) {
+                          console.log('  - 학생 단어장에서 단어 찾기 (옛날 방식)');
+                          testWords = words.filter(word =>
+                            test.wordIds.includes(word.id)
+                          );
+                        }
 
                         if (testWords.length === 0) {
                           alert('시험 단어를 불러올 수 없습니다.');
@@ -4622,19 +4635,29 @@ if (currentView === 'quizModeSelect') {
                   // 아직 시험 보지 않은 경우: 일반 시험 버튼
                   <button
                     onClick={async () => {
-                      // 시험용 단어들을 현재 학생의 userData에서 로드
+                      // 시험용 단어들을 시험 데이터에서 로드
                       try {
                         console.log('🎯 시험 시작 - 단어 로드 중...');
                         setCurrentTest(test); // 현재 시험 설정
-                        console.log('  - 시험 단어 ID 개수:', test.wordIds.length);
-                        console.log('  - 현재 사용자의 전체 단어 수:', words.length);
 
-                        // 현재 로그인한 학생의 단어에서 시험 단어만 필터링
-                        const testWords = words.filter(word =>
-                          test.wordIds.includes(word.id)
-                        );
+                        let testWords = [];
 
-                        console.log('  - 필터링된 시험 단어 수:', testWords.length);
+                        // 새로운 시험: words 배열이 있으면 그것을 사용
+                        if (test.words && test.words.length > 0) {
+                          console.log('  - 시험에 저장된 단어 사용 (새 방식)');
+                          console.log('  - 시험 단어 개수:', test.words.length);
+                          testWords = test.words;
+                        }
+                        // 옛날 시험: wordIds만 있으면 학생 단어장에서 찾기 (호환성)
+                        else if (test.wordIds && test.wordIds.length > 0) {
+                          console.log('  - 학생 단어장에서 단어 찾기 (옛날 방식)');
+                          console.log('  - 시험 단어 ID 개수:', test.wordIds.length);
+                          console.log('  - 현재 사용자의 전체 단어 수:', words.length);
+                          testWords = words.filter(word =>
+                            test.wordIds.includes(word.id)
+                          );
+                          console.log('  - 필터링된 시험 단어 수:', testWords.length);
+                        }
 
                         if (testWords.length === 0) {
                           alert('시험 단어를 불러올 수 없습니다.');
@@ -6845,6 +6868,7 @@ if (currentView === 'testManagement' && isAdmin) {
                 setSelectedTestClassId(classId);
                 setSelectedTestBookIds([]); // 반 변경 시 단어장 선택 초기화
                 setSelectedRetestStudentIds([]); // 학생 선택 초기화
+                setSelectedTestDays([]); // Day 선택 초기화
                 if (classId) {
                   loadClassBooks(classId); // 해당 반의 단어장 로드
                 }
@@ -6997,6 +7021,90 @@ if (currentView === 'testManagement' && isAdmin) {
               </div>
             </div>
           )}
+
+          {/* Day 선택 (선택사항) */}
+          {selectedTestClassId && selectedTestBookIds.length > 0 && (() => {
+            // 선택된 단어장들에서 사용 가능한 Day 목록 추출
+            const selectedBooks = classBooks.filter(book => selectedTestBookIds.includes(book.id));
+            const availableDays = new Set();
+
+            // 각 단어장에 속한 Day들을 수집
+            const selectedClass = classes.find(c => c.id === selectedTestClassId);
+            if (selectedClass?.students) {
+              selectedClass.students.forEach(studentId => {
+                const student = students.find(s => s.uid === studentId);
+                if (student && student.words) {
+                  student.words.forEach(word => {
+                    if (selectedTestBookIds.includes(word.bookId) && word.day) {
+                      availableDays.add(word.day);
+                    }
+                  });
+                }
+              });
+            }
+
+            const sortedDays = Array.from(availableDays).sort((a, b) => {
+              const numA = parseInt(a.replace('Day', ''));
+              const numB = parseInt(b.replace('Day', ''));
+              return numA - numB;
+            });
+
+            return sortedDays.length > 0 ? (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
+                  Day 선택 (선택사항, 미선택 시 전체)
+                </label>
+                <div style={{
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  background: '#f9fafb',
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                  gap: '8px'
+                }}>
+                  {sortedDays.map(day => (
+                    <label
+                      key={day}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px',
+                        cursor: 'pointer',
+                        borderRadius: '6px',
+                        background: selectedTestDays.includes(day) ? '#dbeafe' : 'transparent',
+                        border: selectedTestDays.includes(day) ? '2px solid #3b82f6' : '2px solid transparent',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => !selectedTestDays.includes(day) && (e.currentTarget.style.background = '#f3f4f6')}
+                      onMouseLeave={(e) => !selectedTestDays.includes(day) && (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedTestDays.includes(day)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedTestDays([...selectedTestDays, day]);
+                          } else {
+                            setSelectedTestDays(selectedTestDays.filter(d => d !== day));
+                          }
+                        }}
+                      />
+                      <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{day}</span>
+                    </label>
+                  ))}
+                </div>
+                {selectedTestDays.length > 0 && (
+                  <p style={{ fontSize: '0.75rem', color: '#3b82f6', margin: '8px 0 0 0', fontWeight: 600 }}>
+                    선택된 Day: {selectedTestDays.join(', ')}
+                  </p>
+                )}
+              </div>
+            ) : null;
+          })()}
 
           {/* 일반 시험: 단어 개수 입력 */}
           {selectedTestClassId && testType === 'regular' && selectedTestBookIds.length > 0 && (
@@ -7158,11 +7266,13 @@ if (currentView === 'testManagement' && isAdmin) {
               const testId = 'test_' + Date.now();
               const selectedClass = classes.find(c => c.id === selectedTestClassId);
               let finalWordIds = [];
+              let finalWords = []; // 단어 전체 정보 저장
 
               if (testType === 'regular') {
                 // 일반 시험: 선택된 반 학생들의 단어장에서 랜덤으로 N개 추출
                 console.log('🔍 시험 출제 디버깅:');
                 console.log('  - 선택된 단어장 ID들:', selectedTestBookIds);
+                console.log('  - 선택된 Day들:', selectedTestDays);
                 console.log('  - 선택된 반 ID:', selectedTestClassId);
 
                 // 선택된 반의 모든 학생들에게서 단어 수집
@@ -7177,10 +7287,12 @@ if (currentView === 'testManagement' && isAdmin) {
                       const userData = userDataDoc.data();
                       const studentWords = userData.words || [];
 
-                      // 선택된 단어장의 단어만 필터링
-                      const filteredWords = studentWords.filter(w =>
-                        selectedTestBookIds.includes(w.bookId)
-                      );
+                      // 선택된 단어장의 단어만 필터링 (Day 선택이 있으면 Day도 필터링)
+                      const filteredWords = studentWords.filter(w => {
+                        const isInSelectedBook = selectedTestBookIds.includes(w.bookId);
+                        const isInSelectedDay = selectedTestDays.length === 0 || selectedTestDays.includes(w.day);
+                        return isInSelectedBook && isInSelectedDay;
+                      });
 
                       allClassWords.push(...filteredWords);
                     }
@@ -7205,29 +7317,50 @@ if (currentView === 'testManagement' && isAdmin) {
                 // 랜덤 섞기
                 const shuffled = [...uniqueWords].sort(() => Math.random() - 0.5);
                 // testWordCount개만 선택 (또는 전체 단어 수보다 적으면 전체)
-                finalWordIds = shuffled.slice(0, Math.min(testWordCount, shuffled.length)).map(w => w.id);
+                const selectedWords = shuffled.slice(0, Math.min(testWordCount, shuffled.length));
+                finalWordIds = selectedWords.map(w => w.id);
+                finalWords = selectedWords.map(w => ({
+                  id: w.id,
+                  english: w.english,
+                  korean: w.korean,
+                  bookId: w.bookId,
+                  day: w.day
+                }));
                 console.log('  - 최종 선택된 단어 수:', finalWordIds.length);
 
               } else {
                 // 재시험: 선택된 학생들의 틀린 단어만 모으기
                 const selectedBookId = selectedTestBookIds[0];
-                const wrongWordIds = new Set();
+                const wrongWordsMap = new Map();
 
                 for (const studentId of selectedRetestStudentIds) {
                   const student = students.find(s => s.uid === studentId);
                   if (student && student.words) {
-                    const wrongWords = student.words.filter(word =>
-                      word.bookId === selectedBookId &&
-                      word.correctStreak === 0 &&
-                      word.reviewCount > 0
-                    );
-                    wrongWords.forEach(word => wrongWordIds.add(word.id));
+                    const wrongWords = student.words.filter(word => {
+                      const isWrongWord = word.bookId === selectedBookId &&
+                        word.correctStreak === 0 &&
+                        word.reviewCount > 0;
+                      const isInSelectedDay = selectedTestDays.length === 0 || selectedTestDays.includes(word.day);
+                      return isWrongWord && isInSelectedDay;
+                    });
+                    wrongWords.forEach(word => {
+                      if (!wrongWordsMap.has(word.id)) {
+                        wrongWordsMap.set(word.id, word);
+                      }
+                    });
                   }
                 }
 
-                finalWordIds = Array.from(wrongWordIds);
+                finalWords = Array.from(wrongWordsMap.values()).map(w => ({
+                  id: w.id,
+                  english: w.english,
+                  korean: w.korean,
+                  bookId: w.bookId,
+                  day: w.day
+                }));
+                finalWordIds = finalWords.map(w => w.id);
 
-                if (finalWordIds.length === 0) {
+                if (finalWords.length === 0) {
                   alert('선택된 학생들이 틀린 단어가 없습니다!');
                   return;
                 }
@@ -7237,12 +7370,14 @@ if (currentView === 'testManagement' && isAdmin) {
                 id: testId,
                 title: testTitle,
                 deadline: new Date(testDeadline).toISOString(),
-                wordIds: finalWordIds,
+                wordIds: finalWordIds, // 호환성을 위해 유지
+                words: finalWords, // 단어 전체 정보 저장
                 classId: selectedTestClassId,
                 className: selectedClass?.className || '',
                 testType: testType,
                 bookIds: selectedTestBookIds,
-                wordCount: testType === 'regular' ? testWordCount : finalWordIds.length,
+                days: selectedTestDays.length > 0 ? selectedTestDays : null, // 선택된 Day 정보 저장
+                wordCount: testType === 'regular' ? testWordCount : finalWords.length,
                 studentIds: testType === 'retest' ? selectedRetestStudentIds : null,
                 createdBy: currentUser.uid,
                 createdAt: new Date().toISOString()
@@ -7260,6 +7395,7 @@ if (currentView === 'testManagement' && isAdmin) {
                 setSelectedTestClassId('');
                 setTestType('regular');
                 setTestWordCount(10);
+                setSelectedTestDays([]); // Day 선택 초기화
 
                 const testTypeLabel = testType === 'regular' ? '일반 시험' : '재시험';
                 alert(`${testTypeLabel}이 생성되었습니다!\n반: ${selectedClass?.className}\n단어 수: ${finalWordIds.length}개`);
@@ -11128,15 +11264,25 @@ if (currentView === 'quizResults' && quizResults) {
                 // 재시험 시작
                 try {
                   console.log('🔄 재시험 시작 - 단어 로드 중...');
-                  console.log('  - 시험 단어 ID 개수:', currentTest.wordIds.length);
-                  console.log('  - 현재 사용자의 전체 단어 수:', words.length);
 
-                  // 현재 로그인한 학생의 단어에서 시험 단어만 필터링
-                  const testWords = words.filter(word =>
-                    currentTest.wordIds.includes(word.id)
-                  );
+                  let testWords = [];
 
-                  console.log('  - 필터링된 시험 단어 수:', testWords.length);
+                  // 새로운 시험: words 배열이 있으면 그것을 사용
+                  if (currentTest.words && currentTest.words.length > 0) {
+                    console.log('  - 시험에 저장된 단어 사용 (새 방식)');
+                    console.log('  - 시험 단어 개수:', currentTest.words.length);
+                    testWords = currentTest.words;
+                  }
+                  // 옛날 시험: wordIds만 있으면 학생 단어장에서 찾기 (호환성)
+                  else if (currentTest.wordIds && currentTest.wordIds.length > 0) {
+                    console.log('  - 학생 단어장에서 단어 찾기 (옛날 방식)');
+                    console.log('  - 시험 단어 ID 개수:', currentTest.wordIds.length);
+                    console.log('  - 현재 사용자의 전체 단어 수:', words.length);
+                    testWords = words.filter(word =>
+                      currentTest.wordIds.includes(word.id)
+                    );
+                    console.log('  - 필터링된 시험 단어 수:', testWords.length);
+                  }
 
                   if (testWords.length === 0) {
                     alert('시험 단어를 불러올 수 없습니다.');
