@@ -7023,88 +7023,61 @@ if (currentView === 'testManagement' && isAdmin) {
           )}
 
           {/* Day 선택 (선택사항) */}
-          {selectedTestClassId && selectedTestBookIds.length > 0 && (() => {
-            // 선택된 단어장들에서 사용 가능한 Day 목록 추출
-            const selectedBooks = classBooks.filter(book => selectedTestBookIds.includes(book.id));
-            const availableDays = new Set();
-
-            // 각 단어장에 속한 Day들을 수집
-            const selectedClass = classes.find(c => c.id === selectedTestClassId);
-            if (selectedClass?.students) {
-              selectedClass.students.forEach(studentId => {
-                const student = students.find(s => s.uid === studentId);
-                if (student && student.words) {
-                  student.words.forEach(word => {
-                    if (selectedTestBookIds.includes(word.bookId) && word.day) {
-                      availableDays.add(word.day);
-                    }
-                  });
-                }
-              });
-            }
-
-            const sortedDays = Array.from(availableDays).sort((a, b) => {
-              const numA = parseInt(a.replace('Day', ''));
-              const numB = parseInt(b.replace('Day', ''));
-              return numA - numB;
-            });
-
-            return sortedDays.length > 0 ? (
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
-                  Day 선택 (선택사항, 미선택 시 전체)
-                </label>
-                <div style={{
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '16px',
-                  maxHeight: '200px',
-                  overflowY: 'auto',
-                  background: '#f9fafb',
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
-                  gap: '8px'
-                }}>
-                  {sortedDays.map(day => (
-                    <label
-                      key={day}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px',
-                        cursor: 'pointer',
-                        borderRadius: '6px',
-                        background: selectedTestDays.includes(day) ? '#dbeafe' : 'transparent',
-                        border: selectedTestDays.includes(day) ? '2px solid #3b82f6' : '2px solid transparent',
-                        transition: 'all 0.2s'
+          {selectedTestClassId && selectedTestBookIds.length > 0 && (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
+                Day 선택 (선택사항, 미선택 시 전체)
+              </label>
+              <div style={{
+                border: '2px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '16px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                background: '#f9fafb',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                gap: '8px'
+              }}>
+                {Array.from({ length: 30 }, (_, i) => `Day${i + 1}`).map(day => (
+                  <label
+                    key={day}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px',
+                      cursor: 'pointer',
+                      borderRadius: '6px',
+                      background: selectedTestDays.includes(day) ? '#dbeafe' : 'transparent',
+                      border: selectedTestDays.includes(day) ? '2px solid #3b82f6' : '2px solid transparent',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => !selectedTestDays.includes(day) && (e.currentTarget.style.background = '#f3f4f6')}
+                    onMouseLeave={(e) => !selectedTestDays.includes(day) && (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedTestDays.includes(day)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedTestDays([...selectedTestDays, day]);
+                        } else {
+                          setSelectedTestDays(selectedTestDays.filter(d => d !== day));
+                        }
                       }}
-                      onMouseEnter={(e) => !selectedTestDays.includes(day) && (e.currentTarget.style.background = '#f3f4f6')}
-                      onMouseLeave={(e) => !selectedTestDays.includes(day) && (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedTestDays.includes(day)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedTestDays([...selectedTestDays, day]);
-                          } else {
-                            setSelectedTestDays(selectedTestDays.filter(d => d !== day));
-                          }
-                        }}
-                      />
-                      <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{day}</span>
-                    </label>
-                  ))}
-                </div>
-                {selectedTestDays.length > 0 && (
-                  <p style={{ fontSize: '0.75rem', color: '#3b82f6', margin: '8px 0 0 0', fontWeight: 600 }}>
-                    선택된 Day: {selectedTestDays.join(', ')}
-                  </p>
-                )}
+                    />
+                    <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.85rem' }}>{day}</span>
+                  </label>
+                ))}
               </div>
-            ) : null;
-          })()}
+              {selectedTestDays.length > 0 && (
+                <p style={{ fontSize: '0.75rem', color: '#3b82f6', margin: '8px 0 0 0', fontWeight: 600 }}>
+                  선택된 Day: {selectedTestDays.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* 일반 시험: 단어 개수 입력 */}
           {selectedTestClassId && testType === 'regular' && selectedTestBookIds.length > 0 && (
