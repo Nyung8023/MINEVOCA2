@@ -2348,6 +2348,17 @@ const addWordFromClick = async (clickedWord) => {
     }
   };
 
+  // 답안 정규화 함수 - 띄어쓰기와 특수기호 제거
+  const normalizeAnswer = (str, isKorean = false) => {
+    if (isKorean) {
+      // 한글: 순수 한글만 추출
+      return str.replace(/[^가-힣]/g, '');
+    } else {
+      // 영어: 띄어쓰기와 특수기호 제거 후 소문자로 변환
+      return str.replace(/[\s\W_]/g, '').toLowerCase();
+    }
+  };
+
   // 퀴즈 정답 확인
   const checkAnswer = () => {
     const currentWord = quizWords[currentCardIndex];
@@ -2358,34 +2369,32 @@ const addWordFromClick = async (clickedWord) => {
 
       // 한글 답변일 경우 띄어쓰기와 특수기호를 무시하고 순수 한글만 비교
       if (quizDirection === 'en-ko') {
-        // 한글만 추출하는 함수
-        const extractKorean = (str) => str.replace(/[^가-힣]/g, '');
-
         // 쉼표로 구분된 여러 뜻 중 하나만 맞춰도 정답 처리
-        const correctAnswers = correctAnswer.split(',').map(ans => extractKorean(ans.trim()));
-        const userAnswer = extractKorean(quizAnswer.trim());
+        const correctAnswers = correctAnswer.split(',').map(ans => normalizeAnswer(ans.trim(), true));
+        const userAnswer = normalizeAnswer(quizAnswer.trim(), true);
         isCorrect = correctAnswers.some(ans => ans === userAnswer);
       } else {
-        // 영어 답변일 경우 기존대로 처리
-        const correctAnswers = correctAnswer.split(',').map(ans => ans.trim().toLowerCase());
-        const userAnswer = quizAnswer.trim().toLowerCase();
+        // 영어 답변일 경우 띄어쓰기와 특수기호를 무시하고 비교
+        const correctAnswers = correctAnswer.split(',').map(ans => normalizeAnswer(ans.trim(), false));
+        const userAnswer = normalizeAnswer(quizAnswer.trim(), false);
         isCorrect = correctAnswers.some(ans => ans === userAnswer);
       }
     } else if (quizMode === 'definition') {
-      // 영영풀이: 사용자가 선택한 답이 정답 영어 단어인지 확인
-      isCorrect = quizAnswer === currentWord.english;
+      // 영영풀이: 사용자가 선택한 답이 정답 영어 단어인지 확인 (띄어쓰기와 특수기호 무시)
+      isCorrect = normalizeAnswer(quizAnswer, false) === normalizeAnswer(currentWord.english, false);
     } else if (quizMode === 'multiple') {
       const correctAnswer = quizDirection === 'en-ko' ? currentWord.korean : currentWord.english;
-      isCorrect = quizAnswer === correctAnswer;
+      const isKorean = quizDirection === 'en-ko';
+      isCorrect = normalizeAnswer(quizAnswer, isKorean) === normalizeAnswer(correctAnswer, isKorean);
     } else if (quizMode === 'synonym') {
-      // 동의어: 사용자가 선택한 답이 정답 단어의 동의어 중 하나인지 확인
-      isCorrect = currentWord.synonyms && currentWord.synonyms.includes(quizAnswer);
+      // 동의어: 사용자가 선택한 답이 정답 단어의 동의어 중 하나인지 확인 (띄어쓰기와 특수기호 무시)
+      isCorrect = currentWord.synonyms && currentWord.synonyms.some(syn => normalizeAnswer(syn, false) === normalizeAnswer(quizAnswer, false));
     } else if (quizMode === 'antonym') {
-      // 반의어: 사용자가 선택한 답이 정답 단어의 반의어 중 하나인지 확인
-      isCorrect = currentWord.antonyms && currentWord.antonyms.includes(quizAnswer);
+      // 반의어: 사용자가 선택한 답이 정답 단어의 반의어 중 하나인지 확인 (띄어쓰기와 특수기호 무시)
+      isCorrect = currentWord.antonyms && currentWord.antonyms.some(ant => normalizeAnswer(ant, false) === normalizeAnswer(quizAnswer, false));
     } else if (quizMode === 'spelling') {
-      // 선택된 철자로 만든 단어가 정답과 일치하는지 확인
-      isCorrect = selectedLetters.join('') === currentWord.english;
+      // 선택된 철자로 만든 단어가 정답과 일치하는지 확인 (띄어쓰기와 특수기호 무시)
+      isCorrect = normalizeAnswer(selectedLetters.join(''), false) === normalizeAnswer(currentWord.english, false);
     }
 
     setQuizResult(isCorrect);
