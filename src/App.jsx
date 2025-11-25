@@ -7542,7 +7542,7 @@ if (currentView === 'classWordManagement' && isAdmin) {
               엑셀 파일명 = 단어장 이름 (예: 3과.xlsx)
             </p>
             <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '4px 0 0 0', lineHeight: '1.4' }}>
-              📋 열 순서: 1열-영어 | 2열-한글뜻 | 3열-동의어(선택) | 4열-반의어(선택) | 5열-영영풀이(선택)
+              📋 열 순서: 1열-Day(선택) | 2열-영어 | 3열-한글뜻 | 4열-동의어(선택) | 5열-반의어(선택) | 6열-영영풀이(선택)
             </p>
           </div>
 
@@ -7590,7 +7590,7 @@ if (currentView === 'classWordManagement' && isAdmin) {
               }}
             />
             <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '6px 0 0 0' }}>
-              첫 번째 행: 헤더 (영어, 한글) | 두 번째 행부터: 단어 데이터
+              첫 번째 행: 헤더 (Day, 영어, 한글, 동의어, 반의어, 영영풀이) | 두 번째 행부터: 단어 데이터
             </p>
           </div>
 
