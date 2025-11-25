@@ -7043,13 +7043,19 @@ if (currentView === 'testManagement' && isAdmin) {
             }
 
             // Day 정렬
-            const sortedDays = Array.from(availableDays).sort((a, b) => {
+            let sortedDays = Array.from(availableDays).sort((a, b) => {
               const numA = parseInt(a.replace(/\D/g, '')) || 0;
               const numB = parseInt(b.replace(/\D/g, '')) || 0;
               return numA - numB;
             });
 
-            return sortedDays.length > 0 ? (
+            // Day를 찾지 못하면 기본 Day1-Day30 표시
+            if (sortedDays.length === 0) {
+              console.log('⚠️ Day를 찾지 못해서 기본 Day1-Day30 표시');
+              sortedDays = Array.from({ length: 30 }, (_, i) => `Day${i + 1}`);
+            }
+
+            return (
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
                   Day 선택 (선택사항, 미선택 시 전체)
@@ -7103,7 +7109,7 @@ if (currentView === 'testManagement' && isAdmin) {
                   </p>
                 )}
               </div>
-            ) : null;
+            );
           })()}
 
           {/* 일반 시험: 단어 개수 입력 */}
