@@ -7023,15 +7023,21 @@ if (currentView === 'testManagement' && isAdmin) {
           )}
 
           {/* Day 선택 (선택사항) */}
-          {selectedTestClassId && selectedTestBookIds.length > 0 && (() => {
+          {selectedTestClassId && testType === 'regular' && selectedTestBookIds.length > 0 && (() => {
             // 선택된 단어장에 있는 Day 목록 추출
             const availableDays = new Set();
 
-            // 현재 사용자(선생님)의 단어에서 선택된 단어장의 Day 수집
-            if (words && words.length > 0) {
-              words.forEach(word => {
-                if (selectedTestBookIds.includes(word.bookId) && word.day) {
-                  availableDays.add(word.day);
+            // 선택된 반의 학생들에게서 Day 수집
+            const selectedClass = classes.find(c => c.id === selectedTestClassId);
+            if (selectedClass?.students) {
+              selectedClass.students.forEach(studentId => {
+                const student = students.find(s => s.uid === studentId);
+                if (student && student.words) {
+                  student.words.forEach(word => {
+                    if (selectedTestBookIds.includes(word.bookId) && word.day) {
+                      availableDays.add(word.day);
+                    }
+                  });
                 }
               });
             }
