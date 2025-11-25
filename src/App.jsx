@@ -7024,28 +7024,22 @@ if (currentView === 'testManagement' && isAdmin) {
 
           {/* Day 선택 (선택사항) */}
           {selectedTestClassId && selectedTestBookIds.length > 0 && (() => {
-            // 선택된 단어장들에서 사용 가능한 Day 목록 추출
-            const selectedBooks = classBooks.filter(book => selectedTestBookIds.includes(book.id));
+            // 선택된 단어장에 있는 Day 목록 추출
             const availableDays = new Set();
 
-            // 각 단어장에 속한 Day들을 수집
-            const selectedClass = classes.find(c => c.id === selectedTestClassId);
-            if (selectedClass?.students) {
-              selectedClass.students.forEach(studentId => {
-                const student = students.find(s => s.uid === studentId);
-                if (student && student.words) {
-                  student.words.forEach(word => {
-                    if (selectedTestBookIds.includes(word.bookId) && word.day) {
-                      availableDays.add(word.day);
-                    }
-                  });
+            // 현재 사용자(선생님)의 단어에서 선택된 단어장의 Day 수집
+            if (words && words.length > 0) {
+              words.forEach(word => {
+                if (selectedTestBookIds.includes(word.bookId) && word.day) {
+                  availableDays.add(word.day);
                 }
               });
             }
 
+            // Day 정렬
             const sortedDays = Array.from(availableDays).sort((a, b) => {
-              const numA = parseInt(a.replace('Day', ''));
-              const numB = parseInt(b.replace('Day', ''));
+              const numA = parseInt(a.replace(/\D/g, '')) || 0;
+              const numB = parseInt(b.replace(/\D/g, '')) || 0;
               return numA - numB;
             });
 
