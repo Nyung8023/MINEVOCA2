@@ -2040,6 +2040,7 @@ if (userDataDoc.exists()) {
   // 단어장 선택
   const selectBook = (book) => {
     setSelectedBook(book);
+    setSelectedDay(null); // Day 선택 초기화
     setCurrentView('list');
   };
 
@@ -9676,6 +9677,7 @@ if (currentView === 'memorized') {
             <button
               onClick={() => {
                 setSelectedBook({ id: 'memorized', name: '암기완료' });
+                setSelectedDay(null);
                 setCurrentCardIndex(0);
                 setShowAnswer(false);
                 setCurrentView('flashcard');
@@ -9701,6 +9703,7 @@ if (currentView === 'memorized') {
             <button
               onClick={() => {
                 setSelectedBook({ id: 'memorized', name: '암기완료' });
+                setSelectedDay(null);
                 setCurrentView('quizModeSelect');
               }}
               style={{
@@ -10023,6 +10026,7 @@ if (currentView === 'wrongNote') {
             <button
               onClick={() => {
                 setSelectedBook({ id: 'wrongNote', name: '오답노트' });
+                setSelectedDay(null);
                 setCurrentCardIndex(0);
                 setShowAnswer(false);
                 setCurrentView('flashcard');
@@ -10048,6 +10052,7 @@ if (currentView === 'wrongNote') {
             <button
               onClick={() => {
                 setSelectedBook({ id: 'wrongNote', name: '오답노트' });
+                setSelectedDay(null);
                 setCurrentView('quizModeSelect');
               }}
               style={{
