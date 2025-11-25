@@ -259,6 +259,7 @@ const cancelEdit = () => {
   const [testWordCount, setTestWordCount] = useState(10); // 일반 시험 단어 개수
   const [selectedRetestStudentIds, setSelectedRetestStudentIds] = useState([]); // 재시험 학생 선택
   const [selectedTestDays, setSelectedTestDays] = useState([]); // 선택된 Day들
+  const [availableTestDays, setAvailableTestDays] = useState([]); // 사용 가능한 Day 목록
 
   // 교재단어장 엑셀 업로드 상태
   const [excelUploadStatus, setExcelUploadStatus] = useState('');
@@ -269,6 +270,61 @@ const cancelEdit = () => {
   const [selectedClassForBooks, setSelectedClassForBooks] = useState('');
   const [classBooks, setClassBooks] = useState([]);
   const [isLoadingClassBooks, setIsLoadingClassBooks] = useState(false);
+
+  // 단어장 선택 시 Day 목록 로드
+  useEffect(() => {
+    const loadAvailableDays = async () => {
+      if (!selectedTestClassId || selectedTestBookIds.length === 0) {
+        setAvailableTestDays([]);
+        return;
+      }
+
+      try {
+        console.log('📅 Day 목록 로드 중...');
+        console.log('  - 선택된 반:', selectedTestClassId);
+        console.log('  - 선택된 단어장:', selectedTestBookIds);
+
+        const availableDays = new Set();
+        const selectedClass = classes.find(c => c.id === selectedTestClassId);
+
+        if (selectedClass?.students && selectedClass.students.length > 0) {
+          // 반의 첫 번째 학생의 단어에서 Day 추출
+          for (const studentId of selectedClass.students) {
+            const userDataDoc = await getDoc(doc(db, 'userData', studentId));
+            if (userDataDoc.exists()) {
+              const userData = userDataDoc.data();
+              const studentWords = userData.words || [];
+
+              studentWords.forEach(word => {
+                if (selectedTestBookIds.includes(word.bookId) && word.day) {
+                  availableDays.add(word.day);
+                }
+              });
+
+              // Day를 찾으면 더 이상 다른 학생은 확인하지 않음
+              if (availableDays.size > 0) {
+                break;
+              }
+            }
+          }
+        }
+
+        const sortedDays = Array.from(availableDays).sort((a, b) => {
+          const numA = parseInt(a.replace(/\D/g, '')) || 0;
+          const numB = parseInt(b.replace(/\D/g, '')) || 0;
+          return numA - numB;
+        });
+
+        console.log('✅ Day 목록 로드 완료:', sortedDays);
+        setAvailableTestDays(sortedDays);
+      } catch (error) {
+        console.error('❌ Day 목록 로드 오류:', error);
+        setAvailableTestDays([]);
+      }
+    };
+
+    loadAvailableDays();
+  }, [selectedTestClassId, selectedTestBookIds, classes, db]);
 
   // 관리자 로그인
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD; 
@@ -7023,39 +7079,7 @@ if (currentView === 'testManagement' && isAdmin) {
           )}
 
           {/* Day 선택 (선택사항) */}
-          {selectedTestClassId && testType === 'regular' && selectedTestBookIds.length > 0 && (() => {
-            // 선택된 단어장에 있는 Day 목록 추출
-            const availableDays = new Set();
-
-            // 선택된 반의 학생들에게서 Day 수집
-            const selectedClass = classes.find(c => c.id === selectedTestClassId);
-            if (selectedClass?.students) {
-              selectedClass.students.forEach(studentId => {
-                const student = students.find(s => s.uid === studentId);
-                if (student && student.words) {
-                  student.words.forEach(word => {
-                    if (selectedTestBookIds.includes(word.bookId) && word.day) {
-                      availableDays.add(word.day);
-                    }
-                  });
-                }
-              });
-            }
-
-            // Day 정렬
-            let sortedDays = Array.from(availableDays).sort((a, b) => {
-              const numA = parseInt(a.replace(/\D/g, '')) || 0;
-              const numB = parseInt(b.replace(/\D/g, '')) || 0;
-              return numA - numB;
-            });
-
-            // Day를 찾지 못하면 기본 Day1-Day30 표시
-            if (sortedDays.length === 0) {
-              console.log('⚠️ Day를 찾지 못해서 기본 Day1-Day30 표시');
-              sortedDays = Array.from({ length: 30 }, (_, i) => `Day${i + 1}`);
-            }
-
-            return (
+          {selectedTestClassId && testType === 'regular' && selectedTestBookIds.length > 0 && availableTestDays.length > 0 && (
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
                   Day 선택 (선택사항, 미선택 시 전체)
@@ -7071,7 +7095,7 @@ if (currentView === 'testManagement' && isAdmin) {
                   gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
                   gap: '8px'
                 }}>
-                  {sortedDays.map(day => (
+                  {availableTestDays.map(day => (
                     <label
                       key={day}
                       style={{
@@ -7109,8 +7133,7 @@ if (currentView === 'testManagement' && isAdmin) {
                   </p>
                 )}
               </div>
-            );
-          })()}
+          )}
 
           {/* 일반 시험: 단어 개수 입력 */}
           {selectedTestClassId && testType === 'regular' && selectedTestBookIds.length > 0 && (
