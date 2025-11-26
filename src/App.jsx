@@ -464,11 +464,54 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
         return;
       }
 
+      // Day 컬럼 유무 자동 감지
+      const headerRow = jsonData[0];
+      let hasDayColumn = false;
+
+      // 헤더 행이 있고 첫 번째 컬럼에 "Day"가 포함되어 있는지 확인
+      if (headerRow && headerRow[0]) {
+        const firstHeader = String(headerRow[0]).toLowerCase().trim();
+        hasDayColumn = firstHeader.includes('day');
+      }
+
+      // 헤더로 판단이 안 되면 첫 데이터 행 패턴으로 판단
+      if (!hasDayColumn && jsonData.length > 1) {
+        const firstDataRow = jsonData[1];
+        const firstCol = String(firstDataRow[0] || '').trim();
+        const secondCol = String(firstDataRow[1] || '').trim();
+
+        // 첫 번째 컬럼이 숫자이고 두 번째 컬럼이 영문자로 시작하면 Day 컬럼 있음
+        // 첫 번째 컬럼이 영문자로 시작하면 Day 컬럼 없음
+        if (firstCol && secondCol) {
+          const firstIsNumber = !isNaN(parseInt(firstCol));
+          const firstIsEnglish = /^[a-zA-Z]/.test(firstCol);
+
+          if (firstIsEnglish && /^[a-zA-Z]/.test(secondCol) === false) {
+            // 첫 컬럼이 영문, 두 번째가 비영문(한글 등) → Day 없음
+            hasDayColumn = false;
+          } else if (firstIsNumber && /^[a-zA-Z]/.test(secondCol)) {
+            // 첫 컬럼이 숫자, 두 번째가 영문 → Day 있음
+            hasDayColumn = true;
+          }
+        }
+      }
+
       // 헤더 제외하고 데이터만 추출
-      const dataRows = jsonData.slice(1).filter(row => row.length >= 2 && row[0] && row[1]);
+      const dataRows = jsonData.slice(1).filter(row => {
+        if (hasDayColumn) {
+          // Day 있음: English(row[1])와 Korean(row[2]) 필수
+          return row.length >= 3 && row[1] && row[2];
+        } else {
+          // Day 없음: English(row[0])와 Korean(row[1]) 필수
+          return row.length >= 2 && row[0] && row[1];
+        }
+      });
 
       if (dataRows.length === 0) {
-        setExcelUploadStatus('❌ 엑셀 파일에 단어가 없습니다.\n\n📋 열 순서:\n1열: Day (숫자, 선택)\n2열: 영어\n3열: 한글 뜻\n4열: 동의어 (선택, 쉼표로 구분)\n5열: 반의어 (선택, 쉼표로 구분)\n6열: 영영풀이 (선택)');
+        const formatGuide = hasDayColumn
+          ? '📋 열 순서 (Day 포함):\n1열: Day (숫자, 선택)\n2열: 영어\n3열: 한글 뜻\n4열: 동의어 (선택, 쉼표로 구분)\n5열: 반의어 (선택, 쉼표로 구분)\n6열: 영영풀이 (선택)'
+          : '📋 열 순서 (Day 없음):\n1열: 영어\n2열: 한글 뜻\n3열: 동의어 (선택, 쉼표로 구분)\n4열: 반의어 (선택, 쉼표로 구분)\n5열: 영영풀이 (선택)';
+        setExcelUploadStatus('❌ 엑셀 파일에 단어가 없습니다.\n\n' + formatGuide);
         setIsExcelUploading(false);
         return;
       }
@@ -558,12 +601,24 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
           // 단어 추가 (중복 체크)
           const newWords = [];
           for (const row of dataRows) {
-            const dayRaw = String(row[0] || '').trim();
-            const english = String(row[1] || '').trim();
-            const korean = String(row[2] || '').trim();
-            const synonymsRaw = String(row[3] || '').trim();
-            const antonymsRaw = String(row[4] || '').trim();
-            const definitionRaw = String(row[5] || '').trim();
+            // Day 컬럼 유무에 따라 인덱스 조정
+            let dayRaw, english, korean, synonymsRaw, antonymsRaw, definitionRaw;
+
+            if (hasDayColumn) {
+              dayRaw = String(row[0] || '').trim();
+              english = String(row[1] || '').trim();
+              korean = String(row[2] || '').trim();
+              synonymsRaw = String(row[3] || '').trim();
+              antonymsRaw = String(row[4] || '').trim();
+              definitionRaw = String(row[5] || '').trim();
+            } else {
+              dayRaw = '';
+              english = String(row[0] || '').trim();
+              korean = String(row[1] || '').trim();
+              synonymsRaw = String(row[2] || '').trim();
+              antonymsRaw = String(row[3] || '').trim();
+              definitionRaw = String(row[4] || '').trim();
+            }
 
             if (!english || !korean) continue;
 
