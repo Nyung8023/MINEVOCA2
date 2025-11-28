@@ -534,17 +534,27 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
         noDayPatternCount,
         finalDecision: hasDayColumn
       });
+      console.log('📋 원본 데이터 샘플 (처음 3행):', jsonData.slice(0, 3));
 
       // 헤더 제외하고 데이터만 추출
       const dataRows = jsonData.slice(1).filter(row => {
         if (hasDayColumn) {
           // Day 있음: English(row[1])와 Korean(row[2]) 필수
-          return row.length >= 3 && row[1] && row[2];
+          const english = String(row[1] || '').trim();
+          const korean = String(row[2] || '').trim();
+          return row.length >= 3 && english && korean;
         } else {
           // Day 없음: English(row[0])와 Korean(row[1]) 필수
-          return row.length >= 2 && row[0] && row[1];
+          const english = String(row[0] || '').trim();
+          const korean = String(row[1] || '').trim();
+          return row.length >= 2 && english && korean;
         }
       });
+
+      console.log(`📊 필터링 결과: 전체 ${jsonData.length - 1}개 행 중 ${dataRows.length}개 유효`);
+      if (dataRows.length > 0) {
+        console.log('📋 유효한 데이터 샘플 (처음 3개):', dataRows.slice(0, 3));
+      }
 
       if (dataRows.length === 0) {
         const formatGuide = hasDayColumn
