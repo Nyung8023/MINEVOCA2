@@ -464,34 +464,58 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
         return;
       }
 
-      // Day 컬럼 유무 자동 감지
-      const headerRow = jsonData[0];
+      // Day 컬럼 유무 자동 감지 (데이터 패턴 기반)
       let hasDayColumn = false;
 
-      // 헤더 행이 있고 첫 번째 컬럼에 "Day"가 포함되어 있는지 확인
-      if (headerRow && headerRow[0]) {
-        const firstHeader = String(headerRow[0]).toLowerCase().trim();
-        hasDayColumn = firstHeader.includes('day');
-      }
+      // 한글 감지 함수
+      const isKorean = (text) => {
+        if (!text) return false;
+        return /[\u3131-\u314e\u314f-\u3163\uac00-\ud7a3]/.test(text);
+      };
 
-      // 헤더로 판단이 안 되면 첫 데이터 행 패턴으로 판단
-      if (!hasDayColumn && jsonData.length > 1) {
-        const firstDataRow = jsonData[1];
-        const firstCol = String(firstDataRow[0] || '').trim();
-        const secondCol = String(firstDataRow[1] || '').trim();
+      // 여러 데이터 행을 샘플링하여 패턴 분석 (헤더 제외)
+      const sampleSize = Math.min(5, jsonData.length - 1);
+      const sampleRows = jsonData.slice(1, 1 + sampleSize).filter(row => row && row.length >= 2);
 
-        // 첫 번째 컬럼이 숫자이고 두 번째 컬럼이 영문자로 시작하면 Day 컬럼 있음
-        // 첫 번째 컬럼이 영문자로 시작하면 Day 컬럼 없음
-        if (firstCol && secondCol) {
-          const firstIsNumber = !isNaN(parseInt(firstCol));
-          const firstIsEnglish = /^[a-zA-Z]/.test(firstCol);
+      if (sampleRows.length > 0) {
+        let dayPatternCount = 0;
+        let noDayPatternCount = 0;
 
-          if (firstIsEnglish && /^[a-zA-Z]/.test(secondCol) === false) {
-            // 첫 컬럼이 영문, 두 번째가 비영문(한글 등) → Day 없음
-            hasDayColumn = false;
-          } else if (firstIsNumber && /^[a-zA-Z]/.test(secondCol)) {
-            // 첫 컬럼이 숫자, 두 번째가 영문 → Day 있음
-            hasDayColumn = true;
+        for (const row of sampleRows) {
+          const col0 = String(row[0] || '').trim();
+          const col1 = String(row[1] || '').trim();
+          const col2 = String(row[2] || '').trim();
+
+          if (!col0 || !col1) continue;
+
+          const col0IsNumber = !isNaN(parseInt(col0)) && /^\d+$/.test(col0);
+          const col0IsEnglish = /^[a-zA-Z]/.test(col0);
+          const col1IsEnglish = /^[a-zA-Z]/.test(col1);
+          const col1IsKorean = isKorean(col1);
+          const col2IsKorean = isKorean(col2);
+
+          // DAY 있는 패턴: [숫자, 영어, 한글, ...]
+          if (col0IsNumber && col1IsEnglish && col2IsKorean) {
+            dayPatternCount++;
+          }
+          // DAY 없는 패턴: [영어, 한글, ...]
+          else if (col0IsEnglish && col1IsKorean) {
+            noDayPatternCount++;
+          }
+        }
+
+        // 패턴 빈도로 판단
+        if (dayPatternCount > noDayPatternCount) {
+          hasDayColumn = true;
+        } else if (noDayPatternCount > dayPatternCount) {
+          hasDayColumn = false;
+        } else {
+          // 동점이거나 판단 불가시 헤더 확인
+          const headerRow = jsonData[0];
+          if (headerRow && headerRow[0]) {
+            const firstHeader = String(headerRow[0]).toLowerCase().trim();
+            // "day"로 정확히 시작하는지 확인
+            hasDayColumn = firstHeader === 'day' || firstHeader.startsWith('day ');
           }
         }
       }
