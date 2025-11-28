@@ -464,6 +464,32 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
         return;
       }
 
+      // 헤더 유무 자동 감지
+      let hasHeader = false;
+      let dataStartIndex = 0;
+
+      if (jsonData.length > 0 && jsonData[0]) {
+        const firstRow = jsonData[0];
+        const headerKeywords = ['day', 'english', 'korean', '영어', '한글', '뜻', 'synonym', 'antonym', 'definition', '동의어', '반의어', '영영풀이'];
+
+        // 첫 번째 행의 셀들을 검사
+        const hasHeaderKeyword = firstRow.some(cell => {
+          if (!cell) return false;
+          const cellStr = String(cell).toLowerCase().trim();
+          return headerKeywords.some(keyword => cellStr.includes(keyword));
+        });
+
+        if (hasHeaderKeyword) {
+          hasHeader = true;
+          dataStartIndex = 1; // 헤더 있으면 두 번째 행부터 데이터
+        } else {
+          hasHeader = false;
+          dataStartIndex = 0; // 헤더 없으면 첫 번째 행부터 데이터
+        }
+      }
+
+      console.log(`📋 헤더 감지: ${hasHeader ? '헤더 있음 (1행 제외)' : '헤더 없음 (1행부터 데이터)'}`);
+
       // Day 컬럼 유무 자동 감지 (헤더 우선, 데이터 패턴 보조)
       let hasDayColumn = false;
 
@@ -473,18 +499,17 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
         return /[\u3131-\u314e\u314f-\u3163\uac00-\ud7a3]/.test(text);
       };
 
-      // 1단계: 헤더 먼저 확인
-      const headerRow = jsonData[0];
+      // 1단계: 헤더가 있다면 헤더로 Day 컬럼 확인
       let headerIndicatesDay = false;
-      if (headerRow && headerRow[0]) {
-        const firstHeader = String(headerRow[0]).toLowerCase().trim();
+      if (hasHeader && jsonData[0] && jsonData[0][0]) {
+        const firstHeader = String(jsonData[0][0]).toLowerCase().trim();
         // "day"로 정확히 시작하는지 확인
         headerIndicatesDay = firstHeader === 'day' || firstHeader.startsWith('day ');
       }
 
       // 2단계: 데이터 패턴 분석 (더 많은 샘플 사용)
-      const sampleSize = Math.min(10, jsonData.length - 1);
-      const sampleRows = jsonData.slice(1, 1 + sampleSize).filter(row => row && row.length >= 2);
+      const sampleSize = Math.min(10, jsonData.length - dataStartIndex);
+      const sampleRows = jsonData.slice(dataStartIndex, dataStartIndex + sampleSize).filter(row => row && row.length >= 2);
 
       let dayPatternCount = 0;
       let noDayPatternCount = 0;
@@ -536,8 +561,8 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
       });
       console.log('📋 원본 데이터 샘플 (처음 3행):', jsonData.slice(0, 3));
 
-      // 헤더 제외하고 데이터만 추출
-      const dataRows = jsonData.slice(1).filter(row => {
+      // 헤더 제외하고 데이터만 추출 (dataStartIndex 사용)
+      const dataRows = jsonData.slice(dataStartIndex).filter(row => {
         if (hasDayColumn) {
           // Day 있음: English(row[1])와 Korean(row[2]) 필수
           const english = String(row[1] || '').trim();
@@ -551,7 +576,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
         }
       });
 
-      console.log(`📊 필터링 결과: 전체 ${jsonData.length - 1}개 행 중 ${dataRows.length}개 유효`);
+      console.log(`📊 필터링 결과: 전체 ${jsonData.length - dataStartIndex}개 행 중 ${dataRows.length}개 유효`);
       if (dataRows.length > 0) {
         console.log('📋 유효한 데이터 샘플 (처음 3개):', dataRows.slice(0, 3));
       }
