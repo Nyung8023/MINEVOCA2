@@ -464,7 +464,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
         return;
       }
 
-      // Day 컬럼 유무 자동 감지 (데이터 패턴 기반)
+      // Day 컬럼 유무 자동 감지 (헤더 우선, 데이터 패턴 보조)
       let hasDayColumn = false;
 
       // 한글 감지 함수
@@ -473,14 +473,23 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
         return /[\u3131-\u314e\u314f-\u3163\uac00-\ud7a3]/.test(text);
       };
 
-      // 여러 데이터 행을 샘플링하여 패턴 분석 (헤더 제외)
-      const sampleSize = Math.min(5, jsonData.length - 1);
+      // 1단계: 헤더 먼저 확인
+      const headerRow = jsonData[0];
+      let headerIndicatesDay = false;
+      if (headerRow && headerRow[0]) {
+        const firstHeader = String(headerRow[0]).toLowerCase().trim();
+        // "day"로 정확히 시작하는지 확인
+        headerIndicatesDay = firstHeader === 'day' || firstHeader.startsWith('day ');
+      }
+
+      // 2단계: 데이터 패턴 분석 (더 많은 샘플 사용)
+      const sampleSize = Math.min(10, jsonData.length - 1);
       const sampleRows = jsonData.slice(1, 1 + sampleSize).filter(row => row && row.length >= 2);
 
-      if (sampleRows.length > 0) {
-        let dayPatternCount = 0;
-        let noDayPatternCount = 0;
+      let dayPatternCount = 0;
+      let noDayPatternCount = 0;
 
+      if (sampleRows.length > 0) {
         for (const row of sampleRows) {
           const col0 = String(row[0] || '').trim();
           const col1 = String(row[1] || '').trim();
@@ -503,22 +512,28 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             noDayPatternCount++;
           }
         }
+      }
 
-        // 패턴 빈도로 판단
+      // 3단계: 헤더와 데이터 패턴을 종합하여 최종 판단
+      if (headerIndicatesDay) {
+        // 헤더가 "day"면 Day 컬럼 있음으로 간주 (데이터 패턴이 명확히 반대하지 않는 한)
+        hasDayColumn = noDayPatternCount === 0 || dayPatternCount > 0;
+      } else {
+        // 헤더가 "day"가 아니면 데이터 패턴으로 판단
         if (dayPatternCount > noDayPatternCount) {
           hasDayColumn = true;
-        } else if (noDayPatternCount > dayPatternCount) {
-          hasDayColumn = false;
         } else {
-          // 동점이거나 판단 불가시 헤더 확인
-          const headerRow = jsonData[0];
-          if (headerRow && headerRow[0]) {
-            const firstHeader = String(headerRow[0]).toLowerCase().trim();
-            // "day"로 정확히 시작하는지 확인
-            hasDayColumn = firstHeader === 'day' || firstHeader.startsWith('day ');
-          }
+          hasDayColumn = false;
         }
       }
+
+      // 디버깅 정보 콘솔 출력
+      console.log('📊 Day 컬럼 감지 결과:', {
+        headerIndicatesDay,
+        dayPatternCount,
+        noDayPatternCount,
+        finalDecision: hasDayColumn
+      });
 
       // 헤더 제외하고 데이터만 추출
       const dataRows = jsonData.slice(1).filter(row => {
@@ -535,12 +550,14 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
         const formatGuide = hasDayColumn
           ? '📋 열 순서 (Day 포함):\n1열: Day (숫자, 선택)\n2열: 영어\n3열: 한글 뜻\n4열: 동의어 (선택, 쉼표로 구분)\n5열: 반의어 (선택, 쉼표로 구분)\n6열: 영영풀이 (선택)'
           : '📋 열 순서 (Day 없음):\n1열: 영어\n2열: 한글 뜻\n3열: 동의어 (선택, 쉼표로 구분)\n4열: 반의어 (선택, 쉼표로 구분)\n5열: 영영풀이 (선택)';
-        setExcelUploadStatus('❌ 엑셀 파일에 단어가 없습니다.\n\n' + formatGuide);
+        const detectionInfo = `\n\n🔍 Day 컬럼 감지: ${hasDayColumn ? 'Day 있음' : 'Day 없음'}`;
+        setExcelUploadStatus('❌ 엑셀 파일에 단어가 없습니다.\n\n' + formatGuide + detectionInfo);
         setIsExcelUploading(false);
         return;
       }
 
-      setExcelUploadStatus(`📚 "${bookName}" 단어장 생성 중...\n총 ${dataRows.length}개 단어`);
+      const detectionMessage = hasDayColumn ? '📅 Day 컬럼 있음' : '📝 Day 컬럼 없음';
+      setExcelUploadStatus(`📚 "${bookName}" 단어장 생성 중...\n${detectionMessage}\n총 ${dataRows.length}개 단어`);
 
       // 선택된 반의 학생 목록 가져오기
       const selectedClass = classes.find(c => c.id === selectedUploadClassId);
@@ -710,8 +727,9 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
         }
       }
 
+      const finalDetectionMessage = hasDayColumn ? '📅 Day 컬럼 있음' : '📝 Day 컬럼 없음';
       setExcelUploadStatus(
-        `✅ 완료!\n\n📚 단어장: "${bookName}"\n📝 단어 수: ${dataRows.length}개\n\n✅ 성공: ${successCount}명\n❌ 실패: ${failCount}명`
+        `✅ 완료!\n\n📚 단어장: "${bookName}"\n${finalDetectionMessage}\n📝 단어 수: ${dataRows.length}개\n\n✅ 성공: ${successCount}명\n❌ 실패: ${failCount}명`
       );
       setIsExcelUploading(false);
       event.target.value = ''; // 파일 입력 초기화
