@@ -2516,7 +2516,7 @@ const addWordFromClick = async (clickedWord) => {
   // 퀴즈 시작
   const startQuiz = (mode = 'typing', direction = 'en-ko') => {
     // 모드에 따라 단어 필터링
-    let filteredWords = [...currentBookWords];
+    let filteredWords = [...displayWords];
 
     // 동의어 모드: 동의어가 있는 단어만 포함
     if (mode === 'synonym') {
@@ -2573,7 +2573,7 @@ const addWordFromClick = async (clickedWord) => {
 
   // 다음 카드
   const nextCard = () => {
-    if (currentCardIndex < currentBookWords.length - 1) {
+    if (currentCardIndex < displayWords.length - 1) {
       setCurrentCardIndex(currentCardIndex + 1);
       setShowAnswer(false);
     } else {
@@ -2588,7 +2588,7 @@ const addWordFromClick = async (clickedWord) => {
       setCurrentCardIndex(currentCardIndex - 1);
       setShowAnswer(false);
     } else {
-      setCurrentCardIndex(currentBookWords.length - 1);
+      setCurrentCardIndex(displayWords.length - 1);
       setShowAnswer(false);
     }
   };
@@ -10559,7 +10559,7 @@ if (currentView === 'wrongNote') {
 
 // 플래시카드 화면 - 겨울 파스텔 테마
 if (currentView === 'flashcard') {
-  const currentWord = currentBookWords[currentCardIndex];
+  const currentWord = displayWords[currentCardIndex];
   
   if (!currentWord) {
     return (
@@ -10654,7 +10654,7 @@ if (currentView === 'flashcard') {
               플래시카드
             </h1>
             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-              {currentCardIndex + 1} / {quizWords.length}
+              {currentCardIndex + 1} / {displayWords.length}
             </div>
           </div>
           <div style={{ width: '80px' }}></div>
