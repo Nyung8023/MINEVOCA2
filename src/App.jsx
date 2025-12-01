@@ -2625,10 +2625,10 @@ const addWordFromClick = async (clickedWord) => {
   const splitAnswerIntoWords = (answer, isKorean = false) => {
     const allWords = [];
 
-    // 1. 쉼표로 먼저 분리
-    const commaSplit = answer.split(',').map(s => s.trim()).filter(s => s);
+    // 1. 여러 구분자로 분리 (쉼표, 세미콜론, 슬래시, 전각 쉼표)
+    const separatorSplit = answer.split(/[,;\/，]/).map(s => s.trim()).filter(s => s);
 
-    commaSplit.forEach(part => {
+    separatorSplit.forEach(part => {
       // 2. 대괄호 [] 안의 내용 추출 및 분리
       const bracketMatches = part.match(/\[([^\]]+)\]/g);
       if (bracketMatches) {
@@ -2664,7 +2664,7 @@ const addWordFromClick = async (clickedWord) => {
       }
     });
 
-    // 7. 각 단어를 정규화하고 중복 제거
+    // 6. 각 단어를 정규화하고 중복 제거
     return [...new Set(allWords.map(word => normalizeAnswer(word, isKorean)))].filter(w => w);
   };
 
@@ -2682,14 +2682,16 @@ const addWordFromClick = async (clickedWord) => {
       const userAnswer = normalizeAnswer(quizAnswer.trim(), isKorean);
 
       // 디버깅 로그
-      console.log('🔍 퀴즈 정답 체크:');
+      console.log('🔍 퀴즈 정답 체크 (주관식):');
+      console.log('  퀴즈 방향:', quizDirection);
       console.log('  원본 정답:', correctAnswer);
-      console.log('  분리된 정답들:', correctWords);
+      console.log('  분리된 정답들 (' + correctWords.length + '개):', correctWords);
       console.log('  사용자 입력:', quizAnswer);
       console.log('  정규화된 입력:', userAnswer);
 
       // 사용자가 입력한 단어가 정답 단어들 중 하나와 일치하면 정답
       isCorrect = correctWords.some(word => word === userAnswer);
+      console.log('  일치 여부:', correctWords.map(word => `"${word}" === "${userAnswer}": ${word === userAnswer}`).join(', '));
       console.log('  결과:', isCorrect ? '✅ 정답' : '❌ 오답');
     } else if (quizMode === 'definition') {
       // 영영풀이: 사용자가 선택한 답이 정답 영어 단어인지 확인 (띄어쓰기와 특수기호 무시)
