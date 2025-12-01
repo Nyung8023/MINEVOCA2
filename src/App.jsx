@@ -2604,6 +2604,25 @@ const addWordFromClick = async (clickedWord) => {
     }
   };
 
+  // 정답 문자열을 개별 단어들로 분리하는 함수
+  const splitAnswerIntoWords = (answer, isKorean = false) => {
+    // 1. 쉼표로 먼저 분리
+    const commaSplit = answer.split(',').map(s => s.trim()).filter(s => s);
+
+    // 2. 각 부분을 띄어쓰기로도 분리
+    const allWords = [];
+    commaSplit.forEach(part => {
+      // 띄어쓰기로 분리
+      const spaceSplit = part.split(/\s+/).filter(s => s);
+      allWords.push(...spaceSplit);
+      // 전체 문구도 포함 (띄어쓰기 제거 전)
+      allWords.push(part);
+    });
+
+    // 3. 각 단어를 정규화
+    return [...new Set(allWords.map(word => normalizeAnswer(word, isKorean)))].filter(w => w);
+  };
+
   // 퀴즈 정답 확인
   const checkAnswer = () => {
     const currentWord = quizWords[currentCardIndex];
@@ -2611,19 +2630,14 @@ const addWordFromClick = async (clickedWord) => {
 
     if (quizMode === 'typing' || quizMode === 'listening') {
       const correctAnswer = quizDirection === 'en-ko' ? currentWord.korean : currentWord.english;
+      const isKorean = quizDirection === 'en-ko';
 
-      // 한글 답변일 경우 띄어쓰기와 특수기호를 무시하고 순수 한글만 비교
-      if (quizDirection === 'en-ko') {
-        // 쉼표로 구분된 여러 뜻 중 하나만 맞춰도 정답 처리
-        const correctAnswers = correctAnswer.split(',').map(ans => normalizeAnswer(ans.trim(), true));
-        const userAnswer = normalizeAnswer(quizAnswer.trim(), true);
-        isCorrect = correctAnswers.some(ans => ans === userAnswer);
-      } else {
-        // 영어 답변일 경우 띄어쓰기와 특수기호를 무시하고 비교
-        const correctAnswers = correctAnswer.split(',').map(ans => normalizeAnswer(ans.trim(), false));
-        const userAnswer = normalizeAnswer(quizAnswer.trim(), false);
-        isCorrect = correctAnswers.some(ans => ans === userAnswer);
-      }
+      // 정답을 개별 단어들로 분리
+      const correctWords = splitAnswerIntoWords(correctAnswer, isKorean);
+      const userAnswer = normalizeAnswer(quizAnswer.trim(), isKorean);
+
+      // 사용자가 입력한 단어가 정답 단어들 중 하나와 일치하면 정답
+      isCorrect = correctWords.some(word => word === userAnswer);
     } else if (quizMode === 'definition') {
       // 영영풀이: 사용자가 선택한 답이 정답 영어 단어인지 확인 (띄어쓰기와 특수기호 무시)
       isCorrect = normalizeAnswer(quizAnswer, false) === normalizeAnswer(currentWord.english, false);
