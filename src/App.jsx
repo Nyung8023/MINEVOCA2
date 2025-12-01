@@ -549,6 +549,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
       let dayPatternCount = 0;
       let noDayPatternCount = 0;
+      let dayPrefixPatternCount = 0; // "숫자 영어" 패턴 (예: "1 provide")
 
       if (sampleRows.length > 0) {
         for (const row of sampleRows) {
@@ -556,7 +557,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
           const col1 = String(row[1] || '').trim();
           const col2 = String(row[2] || '').trim();
 
-          if (!col0 || !col1) continue;
+          if (!col1) continue;
 
           const col0IsNumber = !isNaN(parseInt(col0)) && /^\d+$/.test(col0);
           const col0IsEnglish = /^[a-zA-Z]/.test(col0);
@@ -564,9 +565,16 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
           const col1IsKorean = isKorean(col1);
           const col2IsKorean = isKorean(col2);
 
-          // DAY 있는 패턴: [숫자, 영어, 한글, ...]
+          // Day가 영어 단어 앞에 붙은 패턴: ["", "1 provide", "제공하다"]
+          const col1HasDayPrefix = /^\d+\s+[a-zA-Z]/.test(col1);
+
+          // DAY 있는 패턴 1: [숫자, 영어, 한글, ...]
           if (col0IsNumber && col1IsEnglish && col2IsKorean) {
             dayPatternCount++;
+          }
+          // DAY 있는 패턴 2: ["", "숫자 영어", 한글, ...]
+          else if (!col0 && col1HasDayPrefix && col2IsKorean) {
+            dayPrefixPatternCount++;
           }
           // DAY 없는 패턴: [영어, 한글, ...]
           else if (col0IsEnglish && col1IsKorean) {
@@ -576,12 +584,14 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
       }
 
       // 3단계: 헤더와 데이터 패턴을 종합하여 최종 판단
+      const totalDayPatterns = dayPatternCount + dayPrefixPatternCount;
+
       if (headerIndicatesDay) {
         // 헤더가 "day"면 Day 컬럼 있음으로 간주 (데이터 패턴이 명확히 반대하지 않는 한)
-        hasDayColumn = noDayPatternCount === 0 || dayPatternCount > 0;
+        hasDayColumn = noDayPatternCount === 0 || totalDayPatterns > 0;
       } else {
         // 헤더가 "day"가 아니면 데이터 패턴으로 판단
-        if (dayPatternCount > noDayPatternCount) {
+        if (totalDayPatterns > noDayPatternCount) {
           hasDayColumn = true;
         } else {
           hasDayColumn = false;
@@ -592,7 +602,9 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
       console.log('📊 Day 컬럼 감지 결과:', {
         headerIndicatesDay,
         dayPatternCount,
+        dayPrefixPatternCount,
         noDayPatternCount,
+        totalDayPatterns,
         finalDecision: hasDayColumn
       });
       console.log('📋 원본 데이터 샘플 (처음 3행):', jsonData.slice(0, 3));
@@ -724,6 +736,16 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
               synonymsRaw = String(row[3] || '').trim();
               antonymsRaw = String(row[4] || '').trim();
               definitionRaw = String(row[5] || '').trim();
+
+              // 영어 단어 앞에 Day 숫자가 붙어있는 경우 (예: "1 provide")
+              const dayPrefixMatch = english.match(/^(\d+)\s+(.+)$/);
+              if (dayPrefixMatch) {
+                // Day 컬럼이 비어있고 영어에 숫자가 붙어있으면 분리
+                if (!dayRaw) {
+                  dayRaw = dayPrefixMatch[1];
+                  english = dayPrefixMatch[2];
+                }
+              }
             } else {
               dayRaw = '';
               english = String(row[0] || '').trim();
@@ -2494,7 +2516,7 @@ const addWordFromClick = async (clickedWord) => {
   // 퀴즈 시작
   const startQuiz = (mode = 'typing', direction = 'en-ko') => {
     // 모드에 따라 단어 필터링
-    let filteredWords = [...currentBookWords];
+    let filteredWords = [...displayWords];
 
     // 동의어 모드: 동의어가 있는 단어만 포함
     if (mode === 'synonym') {
@@ -2551,7 +2573,7 @@ const addWordFromClick = async (clickedWord) => {
 
   // 다음 카드
   const nextCard = () => {
-    if (currentCardIndex < currentBookWords.length - 1) {
+    if (currentCardIndex < displayWords.length - 1) {
       setCurrentCardIndex(currentCardIndex + 1);
       setShowAnswer(false);
     } else {
@@ -2566,7 +2588,7 @@ const addWordFromClick = async (clickedWord) => {
       setCurrentCardIndex(currentCardIndex - 1);
       setShowAnswer(false);
     } else {
-      setCurrentCardIndex(currentBookWords.length - 1);
+      setCurrentCardIndex(displayWords.length - 1);
       setShowAnswer(false);
     }
   };
@@ -10537,7 +10559,7 @@ if (currentView === 'wrongNote') {
 
 // 플래시카드 화면 - 겨울 파스텔 테마
 if (currentView === 'flashcard') {
-  const currentWord = currentBookWords[currentCardIndex];
+  const currentWord = displayWords[currentCardIndex];
   
   if (!currentWord) {
     return (
@@ -10632,7 +10654,7 @@ if (currentView === 'flashcard') {
               플래시카드
             </h1>
             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-              {currentCardIndex + 1} / {quizWords.length}
+              {currentCardIndex + 1} / {displayWords.length}
             </div>
           </div>
           <div style={{ width: '80px' }}></div>
