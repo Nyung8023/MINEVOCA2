@@ -10618,9 +10618,8 @@ if (currentView === 'wrongNote') {
                   </div>
                 </div>
 
-                {/* 암기완료 & 제거 버튼 */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                  {/* 암기완료 버튼 */}
+                {/* 암기완료 버튼 */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button
                     onClick={() => markAsMastered(word.id)}
                     style={{
@@ -10649,26 +10648,6 @@ if (currentView === 'wrongNote') {
                   >
                     <CheckCircle size={14} strokeWidth={2.5} />
                     암기완료
-                  </button>
-
-                  {/* 제거 버튼 */}
-                  <button
-                    onClick={() => toggleWrongNote(word.id)}
-                    style={{
-                      padding: '6px 12px',
-                      background: '#fef2f2',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#666',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    제거
                   </button>
                 </div>
               </div>
