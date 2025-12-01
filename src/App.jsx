@@ -2621,7 +2621,7 @@ const addWordFromClick = async (clickedWord) => {
     }
   };
 
-  // 정답 문자열을 개별 단어들로 분리하는 함수
+  // 정답 문자열을 개별 뜻들로 분리하는 함수
   const splitAnswerIntoWords = (answer, isKorean = false) => {
     const allWords = [];
 
@@ -2629,43 +2629,39 @@ const addWordFromClick = async (clickedWord) => {
     const separatorSplit = answer.split(/[,;\/，]/).map(s => s.trim()).filter(s => s);
 
     separatorSplit.forEach(part => {
-      // 2. 대괄호 [] 안의 내용 추출 및 분리
-      const bracketMatches = part.match(/\[([^\]]+)\]/g);
-      if (bracketMatches) {
-        bracketMatches.forEach(match => {
-          const innerText = match.replace(/[\[\]]/g, '');
-          allWords.push(innerText);
-          // 대괄호 안의 내용도 띄어쓰기로 분리
-          const innerSplit = innerText.split(/\s+/).filter(s => s);
-          allWords.push(...innerSplit);
-        });
-      }
+      // 원본 텍스트를 그대로 추가 (대괄호, 소괄호 포함)
+      allWords.push(part);
 
-      // 3. 소괄호 () 안의 내용 추출 및 분리
-      const parenMatches = part.match(/\(([^\)]+)\)/g);
-      if (parenMatches) {
-        parenMatches.forEach(match => {
-          const innerText = match.replace(/[\(\)]/g, '');
-          allWords.push(innerText);
-          // 소괄호 안의 내용도 띄어쓰기로 분리
-          const innerSplit = innerText.split(/\s+/).filter(s => s);
-          allWords.push(...innerSplit);
-        });
-      }
-
-      // 4. 대괄호와 소괄호를 제거한 원본 텍스트
-      const withoutBrackets = part.replace(/\[([^\]]+)\]/g, '').replace(/\(([^\)]+)\)/g, '').trim();
-      if (withoutBrackets) {
+      // 대괄호와 소괄호를 제거한 버전도 추가
+      const withoutBrackets = part.replace(/\[([^\]]+)\]/g, '$1').replace(/\(([^\)]+)\)/g, '$1').trim();
+      if (withoutBrackets && withoutBrackets !== part) {
         allWords.push(withoutBrackets);
+      }
 
-        // 5. 띄어쓰기로도 분리
-        const spaceSplit = withoutBrackets.split(/\s+/).filter(s => s);
-        allWords.push(...spaceSplit);
+      // 대괄호만 제거한 버전도 추가
+      const withoutSquareBrackets = part.replace(/\[([^\]]+)\]/g, '$1').trim();
+      if (withoutSquareBrackets && withoutSquareBrackets !== part && withoutSquareBrackets !== withoutBrackets) {
+        allWords.push(withoutSquareBrackets);
+      }
+
+      // 소괄호만 제거한 버전도 추가
+      const withoutParens = part.replace(/\(([^\)]+)\)/g, '$1').trim();
+      if (withoutParens && withoutParens !== part && withoutParens !== withoutBrackets) {
+        allWords.push(withoutParens);
       }
     });
 
-    // 6. 각 단어를 정규화하고 중복 제거
-    return [...new Set(allWords.map(word => normalizeAnswer(word, isKorean)))].filter(w => w);
+    // 2. 각 단어를 정규화하고 중복 제거
+    const normalized = [...new Set(allWords.map(word => normalizeAnswer(word, isKorean)))].filter(w => w);
+
+    console.log('  🔄 분리 과정:', {
+      원본: answer,
+      구분자로_분리: separatorSplit,
+      모든_변형: allWords,
+      정규화_후: normalized
+    });
+
+    return normalized;
   };
 
   // 퀴즈 정답 확인
