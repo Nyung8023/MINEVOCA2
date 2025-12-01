@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore';
 import { Volume2, Check, X, Plus, Trash2, Edit2, BookOpen, Album, Brain, GraduationCap, Star, Eye, Settings, Gift, Target, TrendingUp, Award, Calendar, BarChart3, Shuffle, Headphones, Pencil, Lightbulb, ClipboardList, CheckCircle, Book, Link, ArrowLeftRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -2065,11 +2065,28 @@ if (userDataDoc.exists()) {
     return () => unsubscribe();
   }, []);
   
-  // 데이터 자동 저장
+  // 데이터 자동 저장 (디바운스 적용 - 2초 후 저장)
+  const saveTimeoutRef = useRef(null);
   useEffect(() => {
-    if (isLoggedIn && currentUser && !loading) {
-      saveUserData();
+    // 이전 타이머 취소
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
+
+    // 새로운 타이머 설정 (2초 후 저장)
+    if (isLoggedIn && currentUser && !loading) {
+      saveTimeoutRef.current = setTimeout(() => {
+        console.log('⏰ 자동 저장 실행 (디바운스)');
+        saveUserData();
+      }, 2000); // 2초 대기
+    }
+
+    // 클린업: 컴포넌트 언마운트 시 타이머 제거
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [books, words, learningStats, examName, examDate, classId, className, userName, isLoggedIn, currentUser, loading, saveUserData]);
 
   // 페이지를 떠날 때 데이터 저장
