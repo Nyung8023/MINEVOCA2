@@ -10618,8 +10618,40 @@ if (currentView === 'wrongNote') {
                   </div>
                 </div>
 
-                {/* 제거 버튼 */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                {/* 암기완료 & 제거 버튼 */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  {/* 암기완료 버튼 */}
+                  <button
+                    onClick={() => markAsMastered(word.id)}
+                    style={{
+                      padding: '6px 12px',
+                      background: 'linear-gradient(135deg, #99f6e4, #5eead4)',
+                      border: '2px solid #2dd4bf',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '0.75rem',
+                      color: '#0d9488',
+                      fontWeight: '700',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 4px 8px rgba(45, 212, 191, 0.3)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                    title="암기완료로 이동"
+                  >
+                    <CheckCircle size={14} strokeWidth={2.5} />
+                    암기완료
+                  </button>
+
+                  {/* 제거 버튼 */}
                   <button
                     onClick={() => toggleWrongNote(word.id)}
                     style={{
