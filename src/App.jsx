@@ -9708,7 +9708,11 @@ if (currentView === 'list' && selectedBook) {
                           {word.synonyms.slice(0, 3).map((syn, idx) => (
                             <button
                               key={idx}
-                              onClick={() => addWordFromClick(syn)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                addWordFromClick(syn);
+                              }}
                               style={{
                                 fontSize: '0.65rem',
                                 background: 'linear-gradient(135deg, #d1fae5, #a7f3d0)',
@@ -9750,7 +9754,11 @@ if (currentView === 'list' && selectedBook) {
                           {word.antonyms.slice(0, 3).map((ant, idx) => (
                             <button
                               key={idx}
-                              onClick={() => addWordFromClick(ant)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                addWordFromClick(ant);
+                              }}
                               style={{
                                 fontSize: '0.65rem',
                                 background: 'linear-gradient(135deg, #fce7f3, #fbcfe8)',
@@ -9786,7 +9794,11 @@ if (currentView === 'list' && selectedBook) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   {/* 암기완료 버튼 */}
                   <button
-                    onClick={() => markAsMastered(word.id)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      markAsMastered(word.id);
+                    }}
                     style={{
                       padding: '6px 12px',
                       background: 'linear-gradient(135deg, #99f6e4, #5eead4)',
@@ -9819,7 +9831,9 @@ if (currentView === 'list' && selectedBook) {
                     {editingWordId === word.id ? (
                       <>
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             saveUserData();
                             setEditingWordId(null);
                           }}
@@ -9850,7 +9864,11 @@ if (currentView === 'list' && selectedBook) {
                           저장
                         </button>
                         <button
-                          onClick={() => setEditingWordId(null)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setEditingWordId(null);
+                          }}
                           style={{
                             padding: '8px 12px',
                             background: 'linear-gradient(135deg, #e2e8f0, #cbd5e1)',
@@ -9880,7 +9898,11 @@ if (currentView === 'list' && selectedBook) {
                       </>
                     ) : (
                       <button
-                        onClick={() => setEditingWordId(word.id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setEditingWordId(word.id);
+                        }}
                         style={{
                           padding: '8px 12px',
                           background: 'linear-gradient(135deg, #ddd6fe, #c4b5fd)',
@@ -9905,7 +9927,11 @@ if (currentView === 'list' && selectedBook) {
                       </button>
                     )}
                     <button
-                      onClick={() => deleteWord(word.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        deleteWord(word.id);
+                      }}
                       style={{
                         padding: '8px 12px',
                         background: 'linear-gradient(135deg, #fecdd3, #fda4af)',
