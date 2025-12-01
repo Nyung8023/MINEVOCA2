@@ -2606,20 +2606,45 @@ const addWordFromClick = async (clickedWord) => {
 
   // 정답 문자열을 개별 단어들로 분리하는 함수
   const splitAnswerIntoWords = (answer, isKorean = false) => {
+    const allWords = [];
+
     // 1. 쉼표로 먼저 분리
     const commaSplit = answer.split(',').map(s => s.trim()).filter(s => s);
 
-    // 2. 각 부분을 띄어쓰기로도 분리
-    const allWords = [];
     commaSplit.forEach(part => {
-      // 띄어쓰기로 분리
-      const spaceSplit = part.split(/\s+/).filter(s => s);
-      allWords.push(...spaceSplit);
-      // 전체 문구도 포함 (띄어쓰기 제거 전)
+      // 2. 대괄호 [] 안의 내용 추출 및 분리
+      const bracketMatches = part.match(/\[([^\]]+)\]/g);
+      if (bracketMatches) {
+        bracketMatches.forEach(match => {
+          const innerText = match.replace(/[\[\]]/g, '');
+          allWords.push(innerText);
+        });
+      }
+
+      // 3. 소괄호 () 안의 내용 추출 및 분리
+      const parenMatches = part.match(/\(([^\)]+)\)/g);
+      if (parenMatches) {
+        parenMatches.forEach(match => {
+          const innerText = match.replace(/[\(\)]/g, '');
+          allWords.push(innerText);
+        });
+      }
+
+      // 4. 대괄호와 소괄호를 제거한 원본 텍스트
+      const withoutBrackets = part.replace(/\[([^\]]+)\]/g, '').replace(/\(([^\)]+)\)/g, '').trim();
+      if (withoutBrackets) {
+        allWords.push(withoutBrackets);
+
+        // 5. 띄어쓰기로도 분리
+        const spaceSplit = withoutBrackets.split(/\s+/).filter(s => s);
+        allWords.push(...spaceSplit);
+      }
+
+      // 6. 전체 문구도 포함
       allWords.push(part);
     });
 
-    // 3. 각 단어를 정규화
+    // 7. 각 단어를 정규화하고 중복 제거
     return [...new Set(allWords.map(word => normalizeAnswer(word, isKorean)))].filter(w => w);
   };
 
