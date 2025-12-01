@@ -2618,6 +2618,9 @@ const addWordFromClick = async (clickedWord) => {
         bracketMatches.forEach(match => {
           const innerText = match.replace(/[\[\]]/g, '');
           allWords.push(innerText);
+          // 대괄호 안의 내용도 띄어쓰기로 분리
+          const innerSplit = innerText.split(/\s+/).filter(s => s);
+          allWords.push(...innerSplit);
         });
       }
 
@@ -2627,6 +2630,9 @@ const addWordFromClick = async (clickedWord) => {
         parenMatches.forEach(match => {
           const innerText = match.replace(/[\(\)]/g, '');
           allWords.push(innerText);
+          // 소괄호 안의 내용도 띄어쓰기로 분리
+          const innerSplit = innerText.split(/\s+/).filter(s => s);
+          allWords.push(...innerSplit);
         });
       }
 
@@ -2639,9 +2645,6 @@ const addWordFromClick = async (clickedWord) => {
         const spaceSplit = withoutBrackets.split(/\s+/).filter(s => s);
         allWords.push(...spaceSplit);
       }
-
-      // 6. 전체 문구도 포함
-      allWords.push(part);
     });
 
     // 7. 각 단어를 정규화하고 중복 제거
@@ -2661,8 +2664,16 @@ const addWordFromClick = async (clickedWord) => {
       const correctWords = splitAnswerIntoWords(correctAnswer, isKorean);
       const userAnswer = normalizeAnswer(quizAnswer.trim(), isKorean);
 
+      // 디버깅 로그
+      console.log('🔍 퀴즈 정답 체크:');
+      console.log('  원본 정답:', correctAnswer);
+      console.log('  분리된 정답들:', correctWords);
+      console.log('  사용자 입력:', quizAnswer);
+      console.log('  정규화된 입력:', userAnswer);
+
       // 사용자가 입력한 단어가 정답 단어들 중 하나와 일치하면 정답
       isCorrect = correctWords.some(word => word === userAnswer);
+      console.log('  결과:', isCorrect ? '✅ 정답' : '❌ 오답');
     } else if (quizMode === 'definition') {
       // 영영풀이: 사용자가 선택한 답이 정답 영어 단어인지 확인 (띄어쓰기와 특수기호 무시)
       isCorrect = normalizeAnswer(quizAnswer, false) === normalizeAnswer(currentWord.english, false);
