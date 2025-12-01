@@ -2618,6 +2618,9 @@ const addWordFromClick = async (clickedWord) => {
         bracketMatches.forEach(match => {
           const innerText = match.replace(/[\[\]]/g, '');
           allWords.push(innerText);
+          // 대괄호 안의 내용도 띄어쓰기로 분리
+          const innerSplit = innerText.split(/\s+/).filter(s => s);
+          allWords.push(...innerSplit);
         });
       }
 
@@ -2627,6 +2630,9 @@ const addWordFromClick = async (clickedWord) => {
         parenMatches.forEach(match => {
           const innerText = match.replace(/[\(\)]/g, '');
           allWords.push(innerText);
+          // 소괄호 안의 내용도 띄어쓰기로 분리
+          const innerSplit = innerText.split(/\s+/).filter(s => s);
+          allWords.push(...innerSplit);
         });
       }
 
@@ -2639,9 +2645,6 @@ const addWordFromClick = async (clickedWord) => {
         const spaceSplit = withoutBrackets.split(/\s+/).filter(s => s);
         allWords.push(...spaceSplit);
       }
-
-      // 6. 전체 문구도 포함
-      allWords.push(part);
     });
 
     // 7. 각 단어를 정규화하고 중복 제거
