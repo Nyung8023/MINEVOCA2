@@ -2808,7 +2808,21 @@ const addWordFromClick = async (clickedWord) => {
     ? currentBookWords  // Day 그리드 화면에서는 사용 안함
     : selectedDay === 'all'
     ? currentBookWords  // 전체 보기
-    : currentBookWords.filter(w => String(w.day) === String(selectedDay));  // 특정 Day만 (타입 안전 비교)
+    : currentBookWords.filter(w => {
+        const match = String(w.day) === String(selectedDay);
+        if (selectedDay === 20 && currentBookWords.indexOf(w) < 10) {
+          console.log('🔍 Day 필터링 디버그:', {
+            word: w.english,
+            wordDay: w.day,
+            wordDayType: typeof w.day,
+            selectedDay: selectedDay,
+            selectedDayType: typeof selectedDay,
+            stringComparison: `"${String(w.day)}" === "${String(selectedDay)}"`,
+            match: match
+          });
+        }
+        return match;
+      });  // 특정 Day만 (타입 안전 비교)
 
   if (loading) {
     return (
