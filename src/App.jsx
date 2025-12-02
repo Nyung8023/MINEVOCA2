@@ -2804,25 +2804,26 @@ const addWordFromClick = async (clickedWord) => {
     : [];
 
   // Day 필터링된 단어들 (selectedDay가 null이면 Day 그리드 표시, 'all'이면 전체, 숫자면 해당 Day만)
+  console.log('🔍 선택된 Day:', selectedDay, '타입:', typeof selectedDay);
+  console.log('🔍 전체 단어 수:', currentBookWords.length);
+
   const displayWords = selectedDay === null
     ? currentBookWords  // Day 그리드 화면에서는 사용 안함
     : selectedDay === 'all'
     ? currentBookWords  // 전체 보기
     : currentBookWords.filter(w => {
         const match = String(w.day) === String(selectedDay);
-        if (selectedDay === 20 && currentBookWords.indexOf(w) < 10) {
-          console.log('🔍 Day 필터링 디버그:', {
-            word: w.english,
-            wordDay: w.day,
-            wordDayType: typeof w.day,
-            selectedDay: selectedDay,
-            selectedDayType: typeof selectedDay,
-            stringComparison: `"${String(w.day)}" === "${String(selectedDay)}"`,
-            match: match
-          });
-        }
         return match;
       });  // 특정 Day만 (타입 안전 비교)
+
+  console.log('🔍 필터링된 단어 수:', displayWords.length);
+  if (displayWords.length > 0 && displayWords.length < 100) {
+    console.log('🔍 처음 5개 단어의 day 값:', displayWords.slice(0, 5).map(w => ({
+      english: w.english,
+      day: w.day,
+      dayType: typeof w.day
+    })));
+  }
 
   if (loading) {
     return (
