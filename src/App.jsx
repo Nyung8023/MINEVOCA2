@@ -2808,7 +2808,7 @@ const addWordFromClick = async (clickedWord) => {
     ? currentBookWords  // Day 그리드 화면에서는 사용 안함
     : selectedDay === 'all'
     ? currentBookWords  // 전체 보기
-    : currentBookWords.filter(w => w.day === selectedDay);  // 특정 Day만
+    : currentBookWords.filter(w => String(w.day) === String(selectedDay));  // 특정 Day만 (타입 안전 비교)
 
   if (loading) {
     return (
@@ -9254,7 +9254,7 @@ if (currentView === 'list' && selectedBook) {
                 gap: '10px'
               }}>
                 {availableDays.map(day => {
-                  const dayWords = currentBookWords.filter(w => w.day === day);
+                  const dayWords = currentBookWords.filter(w => String(w.day) === String(day));
                   const totalCount = dayWords.length;
                   const masteredCount = dayWords.filter(w => w.mastered).length;
                   const progress = totalCount > 0 ? Math.round((masteredCount / totalCount) * 100) : 0;
