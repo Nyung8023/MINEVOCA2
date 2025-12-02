@@ -9512,6 +9512,22 @@ if (currentView === 'list' && selectedBook) {
           </div>
         )}
 
+       {/* 디버그 정보 */}
+        {selectedDay !== null && selectedDay !== 'all' && (
+          <div style={{
+            background: '#fef3c7',
+            border: '2px solid #fbbf24',
+            borderRadius: '12px',
+            padding: '12px',
+            marginBottom: '12px',
+            fontSize: '0.9rem',
+            fontWeight: '600',
+            color: '#92400e'
+          }}>
+            🔍 디버그: Day {selectedDay} 선택 | 표시될 단어 수: {displayWords.length}개
+          </div>
+        )}
+
        {/* 단어 목록 - 파스텔톤 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {displayWords.length === 0 ? (
