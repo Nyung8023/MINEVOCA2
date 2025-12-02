@@ -9573,9 +9573,24 @@ if (currentView === 'list' && selectedBook) {
                     fontSize: '0.85rem',
                     fontWeight: '700',
                     color: '#0369a1',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    position: 'relative'
                   }}>
                     {index + 1}
+                    {/* Day 값 표시 - 디버그용 */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '-8px',
+                      right: '-8px',
+                      background: word.day === selectedDay ? '#10b981' : '#ef4444',
+                      color: 'white',
+                      fontSize: '0.6rem',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      fontWeight: '700'
+                    }}>
+                      D{word.day}
+                    </div>
                   </div>
 
                   {/* 단어 영역 */}
