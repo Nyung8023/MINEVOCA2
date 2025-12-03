@@ -4305,14 +4305,14 @@ if (currentView === 'quizModeSelect') {
   display: 'inline-flex',
   alignItems: 'center',
   gap: '6px',
-  padding: '5px 14px',
+  padding: '6px 16px',
   background: 'linear-gradient(135deg, #67e8f9, #22d3ee)',  // 👈 시아노(청록) 파스텔
   color: '#0e7490',  // 👈 텍스트 색상도 변경
   fontSize: '0.65rem',
   fontWeight: '700',
   borderRadius: '20px',
-  fontFamily: '"Consolas", Monaco, monospace',
-  letterSpacing: '1px',
+  fontFamily: '"Gamja Flower", cursive',
+  letterSpacing: '0.5px',
   boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)',  // 👈 그림자도 변경
   border: '2px solid #a5f3fc'  // 👈 테두리도 밝게
 }}>
@@ -4323,9 +4323,9 @@ if (currentView === 'quizModeSelect') {
     gap: '8px',
     padding: '0 8px'
   }}>
-    <span style={{ fontSize: '0.7rem', fontWeight: '800' }}>✨ v4.6</span>
-    <span style={{ fontSize: '0.65rem', fontWeight: '300', opacity: 0.6 }}>|</span>
-    <span style={{ fontSize: '0.6rem', fontWeight: '600' }}>BY 인영쌤 💚</span>
+    <span style={{ fontSize: '0.75rem', fontWeight: '700' }}>✨ v4.6</span>
+    <span style={{ fontSize: '0.7rem', fontWeight: '400', opacity: 0.6 }}>|</span>
+    <span style={{ fontSize: '0.7rem', fontWeight: '700' }}>BY 인영쌤 💚</span>
   </div>
 </div>
       </div>
