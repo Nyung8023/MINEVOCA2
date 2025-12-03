@@ -9497,8 +9497,8 @@ if (currentView === 'list' && selectedBook) {
           </div>
         )}
 
-       {/* 단어 목록 - 파스텔톤 (Day 선택 시에만 표시) */}
-        {selectedDay !== null && (
+       {/* 단어 목록 - 파스텔톤 (Day 선택 시 또는 Day가 없을 때 표시) */}
+        {(selectedDay !== null || availableDays.length === 0) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {displayWords.length === 0 ? (
             <div style={{
