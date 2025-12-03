@@ -2440,26 +2440,12 @@ const addWordFromClick = async (clickedWord) => {
     }
   };
 
-  // 암기 완료 토글 (다시 외우러 가기)
+  // 체크박스 토글 (단순 확인용, 단어는 사라지지 않음)
   const toggleMastered = (wordId) => {
-    const word = words.find(w => w.id === wordId);
-    if (!word) return;
-
-    // 원래 단어장으로 복원 (originalBookId가 없으면 bookId 사용)
-    const targetBookId = word.originalBookId || word.bookId;
-
-    // mastered를 false로 바꾸고 원래 단어장으로 이동
     setWords(words.map(w =>
       w.id === wordId
-        ? { ...w, mastered: false, bookId: targetBookId }
+        ? { ...w, mastered: !w.mastered }
         : w
-    ));
-
-    // 원래 단어장의 wordCount 증가
-    setBooks(books.map(b =>
-      b.id === targetBookId
-        ? { ...b, wordCount: b.wordCount + 1 }
-        : b
     ));
   };
 
@@ -2796,7 +2782,7 @@ const addWordFromClick = async (clickedWord) => {
     ? words.filter(w => w.mastered === true)
     : selectedBook?.id === 'wrongNote'
     ? words.filter(w => w.wrongNote === true)
-    : words.filter(w => w.bookId === selectedBook?.id && !w.mastered);
+    : words.filter(w => w.bookId === selectedBook?.id);
 
   // 현재 단어장에서 사용 가능한 모든 Day 목록 (오름차순 정렬)
   const availableDays = selectedBook
@@ -9582,17 +9568,15 @@ if (currentView === 'list' && selectedBook) {
                     </div>
                   </div>
 
-                  {/* 체크마크 버튼 - 파스텔톤 */}
+                  {/* 체크박스 - 확인용 */}
                   <button
                     onClick={() => toggleMastered(word.id)}
                     style={{
-                      width: '34px',
-                      height: '34px',
-                      background: word.mastered 
-                        ? 'linear-gradient(135deg, #d1fae5, #a7f3d0)' 
-                        : 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
-                      border: word.mastered ? '2px solid #6ee7b7' : '2px solid #cbd5e1',
-                      borderRadius: '8px',
+                      width: '28px',
+                      height: '28px',
+                      background: word.mastered ? '#10b981' : '#ffffff',
+                      border: word.mastered ? '2px solid #10b981' : '2px solid #d1d5db',
+                      borderRadius: '6px',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -9607,10 +9591,8 @@ if (currentView === 'list' && selectedBook) {
                       e.target.style.transform = 'scale(1)';
                     }}
                   >
-                    {word.mastered ? (
-                      <Check size={18} strokeWidth={2.5} style={{ color: '#047857' }} />
-                    ) : (
-                      <Star size={18} strokeWidth={2.5} style={{ color: '#94a3b8' }} />
+                    {word.mastered && (
+                      <Check size={18} strokeWidth={3} style={{ color: '#ffffff' }} />
                     )}
                   </button>
                 </div>
