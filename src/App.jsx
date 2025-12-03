@@ -2912,7 +2912,7 @@ const addWordFromClick = async (clickedWord) => {
           }
           @font-face {
             font-family: 'Uiyeun';
-            src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+            src: url('/uiyeun.ttf') format('truetype');
             font-weight: normal;
             font-style: normal;
           }
