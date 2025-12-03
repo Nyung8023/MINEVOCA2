@@ -2448,17 +2448,53 @@ const addWordFromClick = async (clickedWord) => {
     // 원래 단어장으로 복원 (originalBookId가 없으면 bookId 사용)
     const targetBookId = word.originalBookId || word.bookId;
 
+    // 동기화할 관련 단어 ID들 찾기
+    const relatedWordIds = [wordId];
+
+    // Case 1: 교재 단어장에서 다시 외우러 가기 → "이번 시험범위"의 복사본도 같이 처리
+    if (targetBookId !== 1) {
+      const copyInExamScope = words.find(w =>
+        w.bookId === 1 &&
+        w.copiedFrom === targetBookId &&
+        w.english === word.english
+      );
+      if (copyInExamScope) {
+        relatedWordIds.push(copyInExamScope.id);
+      }
+    }
+
+    // Case 2: "이번 시험범위"에서 다시 외우러 가기 → 원본도 같이 처리
+    if (word.bookId === 1 && word.copiedFrom) {
+      const original = words.find(w =>
+        w.bookId === word.copiedFrom &&
+        w.english === word.english
+      );
+      if (original) {
+        relatedWordIds.push(original.id);
+      }
+    }
+
     // mastered를 false로 바꾸고 원래 단어장으로 이동
     setWords(words.map(w =>
-      w.id === wordId
-        ? { ...w, mastered: false, bookId: targetBookId }
+      relatedWordIds.includes(w.id)
+        ? { ...w, mastered: false, bookId: w.originalBookId || w.bookId }
         : w
     ));
 
-    // 원래 단어장의 wordCount 증가
+    // 영향받는 단어장들의 wordCount 증가
+    const affectedBookIds = relatedWordIds.map(id => {
+      const w = words.find(word => word.id === id);
+      return w ? (w.originalBookId || w.bookId) : null;
+    }).filter(Boolean);
+
+    const bookCountChanges = {};
+    affectedBookIds.forEach(bookId => {
+      bookCountChanges[bookId] = (bookCountChanges[bookId] || 0) + 1;
+    });
+
     setBooks(books.map(b =>
-      b.id === targetBookId
-        ? { ...b, wordCount: b.wordCount + 1 }
+      bookCountChanges[b.id]
+        ? { ...b, wordCount: b.wordCount + bookCountChanges[b.id] }
         : b
     ));
   };
@@ -2468,16 +2504,51 @@ const addWordFromClick = async (clickedWord) => {
     const word = words.find(w => w.id === wordId);
     if (!word) return;
 
-    // 현재 단어장에서 wordCount 감소
+    // 동기화할 관련 단어 ID들 찾기
+    const relatedWordIds = [wordId];
+
+    // Case 1: 교재 단어장에서 암기완료 → "이번 시험범위"의 복사본도 같이 처리
+    if (word.bookId !== 1) {
+      const copyInExamScope = words.find(w =>
+        w.bookId === 1 &&
+        w.copiedFrom === word.bookId &&
+        w.english === word.english
+      );
+      if (copyInExamScope) {
+        relatedWordIds.push(copyInExamScope.id);
+      }
+    }
+
+    // Case 2: "이번 시험범위"에서 암기완료 → 원본도 같이 처리
+    if (word.bookId === 1 && word.copiedFrom) {
+      const original = words.find(w =>
+        w.bookId === word.copiedFrom &&
+        w.english === word.english
+      );
+      if (original) {
+        relatedWordIds.push(original.id);
+      }
+    }
+
+    // 영향받는 단어장들의 wordCount 감소
+    const affectedBookIds = words
+      .filter(w => relatedWordIds.includes(w.id))
+      .map(w => w.bookId);
+
+    const bookCountChanges = {};
+    affectedBookIds.forEach(bookId => {
+      bookCountChanges[bookId] = (bookCountChanges[bookId] || 0) + 1;
+    });
+
     setBooks(books.map(b =>
-      b.id === word.bookId
-        ? { ...b, wordCount: Math.max(0, b.wordCount - 1) }
+      bookCountChanges[b.id]
+        ? { ...b, wordCount: Math.max(0, b.wordCount - bookCountChanges[b.id]) }
         : b
     ));
 
-    // mastered = true로 설정
+    // 관련된 모든 단어를 mastered = true로 설정
     setWords(words.map(w =>
-      w.id === wordId ? { ...w, mastered: true } : w
+      relatedWordIds.includes(w.id) ? { ...w, mastered: true } : w
     ));
   };
 
