@@ -2552,6 +2552,25 @@ const addWordFromClick = async (clickedWord) => {
     ));
   };
 
+  // 이번 시험범위 초기화 (모든 단어 삭제)
+  const resetExamScope = () => {
+    if (!window.confirm('이번 시험범위의 모든 단어를 삭제하시겠습니까?\n(원본 단어장은 유지됩니다)')) {
+      return;
+    }
+
+    // 1. bookId === 1인 모든 단어 삭제
+    setWords(words.filter(w => w.bookId !== 1));
+
+    // 2. 모든 단어장의 isExamRange를 false로 변경
+    setBooks(books.map(b =>
+      b.id === 1
+        ? { ...b, wordCount: 0 }
+        : { ...b, isExamRange: false }
+    ));
+
+    alert('이번 시험범위가 초기화되었습니다!');
+  };
+
   // 오답노트 추가/제거
   const toggleWrongNote = (wordId) => {
     setWords(words.map(w =>
@@ -5365,6 +5384,33 @@ if (currentView === 'quizModeSelect') {
                       학습중 {words.filter(w => w.bookId === book.id && !w.mastered).length}개
                     </div>
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      resetExamScope();
+                    }}
+                    style={{
+                      padding: '6px 10px',
+                      background: '#fee2e2',
+                      border: '1px solid #fca5a5',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.7rem',
+                      color: '#dc2626',
+                      fontWeight: '600',
+                      flexShrink: 0,
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#fecaca';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#fee2e2';
+                    }}
+                    title="이번 시험범위의 모든 단어 삭제"
+                  >
+                    초기화
+                  </button>
                   <div style={{ fontSize: '1.2rem', color: '#94a3b8', flexShrink: 0 }}>→</div>
                 </div>
               ))}
