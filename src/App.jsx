@@ -2894,8 +2894,9 @@ const addWordFromClick = async (clickedWord) => {
     : [];
 
   // Day 필터링된 단어들 (selectedDay가 null이면 Day 그리드 표시, 'all'이면 전체, 숫자면 해당 Day만)
+  // 단, "이번 시험범위"는 Day 없이 항상 전체 표시
   const displayWords = selectedDay === null
-    ? currentBookWords  // Day 그리드 화면에서는 사용 안함
+    ? (selectedBook?.id === 1 ? currentBookWords : currentBookWords)  // 이번 시험범위는 Day 없이 전체 표시
     : selectedDay === 'all'
     ? currentBookWords  // 전체 보기
     : currentBookWords.filter(w => String(w.day) === String(selectedDay));  // 특정 Day만 (타입 안전 비교)
@@ -9346,8 +9347,8 @@ if (currentView === 'list' && selectedBook) {
           <div style={{ width: '80px' }}></div>
         </div>
 
-        {/* Day 그리드 선택 화면 */}
-        {availableDays.length > 0 && selectedDay === null ? (
+        {/* Day 그리드 선택 화면 (이번 시험범위에서는 숨김) */}
+        {availableDays.length > 0 && selectedDay === null && selectedBook.id !== 1 ? (
           <div>
             <div style={{
               background: 'white',
@@ -9452,8 +9453,8 @@ if (currentView === 'list' && selectedBook) {
           </div>
         ) : null}
 
-       {/* 학습 버튼들 */}
-        {(availableDays.length === 0 || selectedDay !== null) && (
+       {/* 학습 버튼들 (이번 시험범위는 Day 없이 바로 표시) */}
+        {(availableDays.length === 0 || selectedDay !== null || selectedBook.id === 1) && (
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(2, 1fr)', 
@@ -9505,8 +9506,8 @@ if (currentView === 'list' && selectedBook) {
         </div>
         )}
 
-        {/* 단어 추가 버튼 */}
-        {(availableDays.length === 0 || selectedDay !== null) && (
+        {/* 단어 추가 버튼 (이번 시험범위는 Day 없이 바로 표시) */}
+        {(availableDays.length === 0 || selectedDay !== null || selectedBook.id === 1) && (
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           style={{
@@ -9532,7 +9533,7 @@ if (currentView === 'list' && selectedBook) {
         )}
 
         {/* 단어 추가 폼 */}
-        {(availableDays.length === 0 || selectedDay !== null) && showAddForm && (
+        {(availableDays.length === 0 || selectedDay !== null || selectedBook.id === 1) && showAddForm && (
           <div style={{
             background: 'white',
             borderRadius: '16px',
