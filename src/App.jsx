@@ -4316,8 +4316,16 @@ if (currentView === 'quizModeSelect') {
   boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)',  // 👈 그림자도 변경
   border: '2px solid #a5f3fc'  // 👈 테두리도 밝게
 }}>
-  <span style={{ fontSize: '0.6rem' }}>❄️</span>
-  beta v0.5
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '2px',
+    lineHeight: '1.2'
+  }}>
+    <span style={{ fontSize: '0.7rem', fontWeight: '800' }}>✨ v1.0 ✨</span>
+    <span style={{ fontSize: '0.55rem', fontWeight: '600', opacity: 0.9 }}>BY 인영쌤 💚</span>
+  </div>
 </div>
       </div>
 
