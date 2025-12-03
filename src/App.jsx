@@ -2910,6 +2910,12 @@ const addWordFromClick = async (clickedWord) => {
             font-family: 'Locus_sangsang';
             src: url('/locus_sangsang.ttf') format('truetype');
           }
+          @font-face {
+            font-family: 'Uiyeun';
+            src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+          }
           body { margin: 0 !important; padding: 0 !important; font-family: 'Locus_sangsang', sans-serif; }
           * { font-family: 'Locus_sangsang', sans-serif; }
         `}</style>
@@ -4311,7 +4317,7 @@ if (currentView === 'quizModeSelect') {
   fontSize: '0.65rem',
   fontWeight: '700',
   borderRadius: '20px',
-  fontFamily: '"Ownglyph Yeonche", "온글잎 의연체", "Gamja Flower", cursive',
+  fontFamily: '"Uiyeun", "Gamja Flower", cursive',
   letterSpacing: '0.5px',
   boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)',  // 👈 그림자도 변경
   border: '2px solid #a5f3fc'  // 👈 테두리도 밝게
