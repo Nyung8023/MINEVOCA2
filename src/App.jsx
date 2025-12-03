@@ -2804,28 +2804,11 @@ const addWordFromClick = async (clickedWord) => {
     : [];
 
   // Day 필터링된 단어들 (selectedDay가 null이면 Day 그리드 표시, 'all'이면 전체, 숫자면 해당 Day만)
-  console.log('🔍 선택된 Day:', selectedDay, '타입:', typeof selectedDay);
-  console.log('🔍 전체 단어 수:', currentBookWords.length);
-
   const displayWords = selectedDay === null
     ? currentBookWords  // Day 그리드 화면에서는 사용 안함
     : selectedDay === 'all'
     ? currentBookWords  // 전체 보기
-    : currentBookWords.filter(w => {
-        const match = String(w.day) === String(selectedDay);
-        return match;
-      });  // 특정 Day만 (타입 안전 비교)
-
-  console.log('🔍 필터링된 단어 수:', displayWords.length);
-  if (displayWords.length > 0 && displayWords.length < 100) {
-    console.log('🔍 처음 5개 단어의 상세 정보:', displayWords.slice(0, 5).map(w => ({
-      english: w.english,
-      day: w.day,
-      dayType: typeof w.day,
-      mastered: w.mastered,
-      bookId: w.bookId
-    })));
-  }
+    : currentBookWords.filter(w => String(w.day) === String(selectedDay));  // 특정 Day만 (타입 안전 비교)
 
   if (loading) {
     return (
@@ -9514,22 +9497,6 @@ if (currentView === 'list' && selectedBook) {
           </div>
         )}
 
-       {/* 디버그 정보 */}
-        {selectedDay !== null && selectedDay !== 'all' && (
-          <div style={{
-            background: '#fef3c7',
-            border: '2px solid #fbbf24',
-            borderRadius: '12px',
-            padding: '12px',
-            marginBottom: '12px',
-            fontSize: '0.9rem',
-            fontWeight: '600',
-            color: '#92400e'
-          }}>
-            🔍 디버그: Day {selectedDay} 선택 | 표시될 단어 수: {displayWords.length}개
-          </div>
-        )}
-
        {/* 단어 목록 - 파스텔톤 (Day 선택 시에만 표시) */}
         {selectedDay !== null && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -9576,24 +9543,9 @@ if (currentView === 'list' && selectedBook) {
                     fontSize: '0.85rem',
                     fontWeight: '700',
                     color: '#0369a1',
-                    flexShrink: 0,
-                    position: 'relative'
+                    flexShrink: 0
                   }}>
                     {index + 1}
-                    {/* Day 값 표시 - 디버그용 */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '-8px',
-                      right: '-8px',
-                      background: word.day === selectedDay ? '#10b981' : '#ef4444',
-                      color: 'white',
-                      fontSize: '0.6rem',
-                      padding: '2px 4px',
-                      borderRadius: '4px',
-                      fontWeight: '700'
-                    }}>
-                      D{word.day}
-                    </div>
                   </div>
 
                   {/* 단어 영역 */}
