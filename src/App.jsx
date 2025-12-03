@@ -4318,13 +4318,14 @@ if (currentView === 'quizModeSelect') {
 }}>
   <div style={{
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: '2px',
-    lineHeight: '1.2'
+    gap: '8px',
+    padding: '0 8px'
   }}>
-    <span style={{ fontSize: '0.7rem', fontWeight: '800' }}>✨ v1.0 ✨</span>
-    <span style={{ fontSize: '0.55rem', fontWeight: '600', opacity: 0.9 }}>BY 인영쌤 💚</span>
+    <span style={{ fontSize: '0.7rem', fontWeight: '800' }}>✨ v4.6</span>
+    <span style={{ fontSize: '0.65rem', fontWeight: '300', opacity: 0.6 }}>|</span>
+    <span style={{ fontSize: '0.6rem', fontWeight: '600' }}>BY 인영쌤 💚</span>
   </div>
 </div>
       </div>
