@@ -2818,10 +2818,12 @@ const addWordFromClick = async (clickedWord) => {
 
   console.log('🔍 필터링된 단어 수:', displayWords.length);
   if (displayWords.length > 0 && displayWords.length < 100) {
-    console.log('🔍 처음 5개 단어의 day 값:', displayWords.slice(0, 5).map(w => ({
+    console.log('🔍 처음 5개 단어의 상세 정보:', displayWords.slice(0, 5).map(w => ({
       english: w.english,
       day: w.day,
-      dayType: typeof w.day
+      dayType: typeof w.day,
+      mastered: w.mastered,
+      bookId: w.bookId
     })));
   }
 
