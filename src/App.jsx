@@ -5298,56 +5298,6 @@ if (currentView === 'quizModeSelect') {
                 </div>
               ))}
 
-              {/* 암기완료 */}
-              <div
-                onClick={() => setCurrentView('memorized')}
-                style={{
-                  background: 'white',
-                  border: '2px solid #10b981',
-                  borderRadius: '12px',
-                  padding: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '10px',
-                  background: '#d1fae5',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  fontSize: '1.3rem'
-                }}>
-                  ✅
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    color: '#1e293b',
-                    marginBottom: '2px'
-                  }}>
-                    암기완료
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    완료 {words.filter(w => w.mastered).length}개
-                  </div>
-                </div>
-                <div style={{ fontSize: '1.2rem', color: '#94a3b8', flexShrink: 0 }}>→</div>
-              </div>
-
               {/* 오답노트 */}
               <div
                 onClick={() => setCurrentView('wrongNote')}
@@ -5393,6 +5343,56 @@ if (currentView === 'quizModeSelect') {
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     등록 {words.filter(w => w.wrongNote).length}개
+                  </div>
+                </div>
+                <div style={{ fontSize: '1.2rem', color: '#94a3b8', flexShrink: 0 }}>→</div>
+              </div>
+
+              {/* 암기완료 */}
+              <div
+                onClick={() => setCurrentView('memorized')}
+                style={{
+                  background: 'white',
+                  border: '2px solid #10b981',
+                  borderRadius: '12px',
+                  padding: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '10px',
+                  background: '#d1fae5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  fontSize: '1.3rem'
+                }}>
+                  ✅
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    color: '#1e293b',
+                    marginBottom: '2px'
+                  }}>
+                    암기완료
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    완료 {words.filter(w => w.mastered).length}개
                   </div>
                 </div>
                 <div style={{ fontSize: '1.2rem', color: '#94a3b8', flexShrink: 0 }}>→</div>
