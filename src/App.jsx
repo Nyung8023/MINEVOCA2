@@ -4311,7 +4311,7 @@ if (currentView === 'quizModeSelect') {
   fontSize: '0.65rem',
   fontWeight: '700',
   borderRadius: '20px',
-  fontFamily: '"Gamja Flower", cursive',
+  fontFamily: '"Ownglyph Yeonche", "온글잎 의연체", "Gamja Flower", cursive',
   letterSpacing: '0.5px',
   boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)',  // 👈 그림자도 변경
   border: '2px solid #a5f3fc'  // 👈 테두리도 밝게
