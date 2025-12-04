@@ -2870,7 +2870,8 @@ const addWordFromClick = async (clickedWord) => {
     : words.filter(w => w.bookId === selectedBook?.id && !w.mastered);
 
   // 현재 단어장에서 사용 가능한 모든 Day 목록 (오름차순 정렬)
-  const availableDays = selectedBook
+  // 이번 시험범위는 Day 구분 없이 전체 보기만 사용
+  const availableDays = selectedBook && !selectedBook.isExamRange
     ? [...new Set(currentBookWords.filter(w => w.day !== null && w.day !== undefined).map(w => w.day))].sort((a, b) => a - b)
     : [];
 
