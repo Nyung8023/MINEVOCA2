@@ -4081,6 +4081,10 @@ if (currentView === 'quizModeSelect') {
           font-family: 'Locus_sangsang';
           src: url('/locus_sangsang.ttf') format('truetype');
         }
+        @font-face {
+          font-family: 'Uiyeun';
+          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+        }
         html, body, #root, .app-container {
           margin: 0 !important;
           padding: 0 !important;
@@ -5975,6 +5979,23 @@ if (currentView === 'quizModeSelect') {
         </div>
       );
       })()}
+
+      {/* 하단 푸터 */}
+      <div style={{
+        textAlign: 'center',
+        padding: '20px 0',
+        marginTop: '16px',
+        borderTop: '1px solid rgba(0,0,0,0.05)'
+      }}>
+        <p style={{
+          margin: 0,
+          fontSize: '0.75rem',
+          color: '#9ca3af'
+        }}>
+          <span>✨ v4.6 | </span>
+          <span style={{ fontFamily: 'Uiyeun, sans-serif' }}>BY 인영쌤 💚</span>
+        </p>
+      </div>
 
     </div>
   );
