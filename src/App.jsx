@@ -2302,7 +2302,7 @@ if (userDataDoc.exists()) {
   // 단어장 선택
   const selectBook = (book) => {
     setSelectedBook(book);
-    setSelectedDay(null); // Day 선택 초기화
+    setSelectedDay(book.isExamRange ? 'all' : null); // 이번 시험범위일 경우 자동으로 'all' 선택
     setCurrentView('list');
   };
 
@@ -9301,7 +9301,7 @@ if (currentView === 'list' && selectedBook) {
         </div>
 
         {/* Day 그리드 선택 화면 */}
-        {availableDays.length > 0 && selectedDay === null ? (
+        {availableDays.length > 0 && selectedDay === null && !selectedBook.isExamRange ? (
           <div>
             <div style={{
               background: 'white',
