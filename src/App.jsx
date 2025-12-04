@@ -9655,7 +9655,7 @@ if (currentView === 'list' && selectedBook) {
 
                   {/* 체크마크 버튼 - 파스텔톤 */}
                   <button
-                    onClick={() => toggleMastered(word.id)}
+                    onClick={() => markAsMastered(word.id)}
                     style={{
                       width: '34px',
                       height: '34px',
