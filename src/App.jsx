@@ -2887,11 +2887,11 @@ const addWordFromClick = async (clickedWord) => {
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
           @font-face {
-            font-family: 'Uiyeun';
-            src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+            font-family: 'Locus_sangsang';
+            src: url('/locus_sangsang.ttf') format('truetype');
           }
-          body { margin: 0 !important; padding: 0 !important; font-family: 'Uiyeun', sans-serif; }
-          * { font-family: 'Uiyeun', sans-serif; }
+          body { margin: 0 !important; padding: 0 !important; font-family: 'Locus_sangsang', sans-serif; }
+          * { font-family: 'Locus_sangsang', sans-serif; }
         `}</style>
         <div className="text-center">
           <div className="text-2xl font-bold" style={{ color: '#172f0b' }}>로딩 중...</div>
@@ -2924,6 +2924,10 @@ if (!isLoggedIn) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
+        }
+        @font-face {
           font-family: 'Uiyeun';
           src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
         }
@@ -2938,7 +2942,7 @@ if (!isLoggedIn) {
           width: 100%;
         }
         body, input, button, textarea, select {
-          font-family: 'Uiyeun', sans-serif;
+          font-family: 'Locus_sangsang', sans-serif;
         }
       `}</style>
 
@@ -3279,13 +3283,13 @@ if (!isLoggedIn) {
         </div>
 
         {/* 하단 정보 */}
-        <div style={{ 
-          textAlign: 'center', 
+        <div style={{
+          textAlign: 'center',
           marginTop: '16px',
           fontSize: '0.8rem',
           color: '#9ca3af'
         }}>
-          <p style={{ margin: 0 }}>
+          <p style={{ margin: 0, fontFamily: 'Uiyeun, sans-serif' }}>
             BY 인영쌤🎃
           </p>
         </div>
@@ -3319,10 +3323,10 @@ if (currentView === 'stats') {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
       <div style={{ width: '100%', maxWidth: '500px', margin: '0 auto', padding: '12px', boxSizing: 'border-box' }}>
@@ -3630,10 +3634,10 @@ if (currentView === 'quizModeSelect') {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
       <div style={{ 
@@ -4074,18 +4078,18 @@ if (currentView === 'quizModeSelect') {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
         html, body, #root, .app-container {
           margin: 0 !important;
           padding: 0 !important;
-          font-family: 'Uiyeun', sans-serif;
+          font-family: 'Locus_sangsang', sans-serif;
           width: 100% !important;
           overflow-x: hidden !important;
         }
         * {
-          font-family: 'Uiyeun', sans-serif;
+          font-family: 'Locus_sangsang', sans-serif;
           box-sizing: border-box;
         }
 
@@ -5999,10 +6003,10 @@ if (currentView === 'adminLogin') {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
       
       <div style={{ width: '100%', maxWidth: '420px', padding: '0 20px', boxSizing: 'border-box' }}>
@@ -6105,10 +6109,10 @@ if (currentView === 'admin' && isAdmin) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
       <div style={{ 
@@ -6814,10 +6818,10 @@ if (currentView === 'studentManagement' && isAdmin) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
       {/* 헤더 */}
@@ -7971,10 +7975,10 @@ if (currentView === 'classWordManagement' && isAdmin) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
       {/* 헤더 */}
@@ -8430,10 +8434,10 @@ if (currentView === 'wordManagement' && isAdmin) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
       {/* 헤더 */}
@@ -8976,10 +8980,10 @@ if (currentView === 'duplicateMerge' && isAdmin) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
       {/* 헤더 */}
@@ -9245,10 +9249,10 @@ if (currentView === 'list' && selectedBook) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
      <div style={{ 
@@ -10127,10 +10131,10 @@ if (currentView === 'memorized') {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
       <div style={{ 
@@ -10404,10 +10408,10 @@ if (currentView === 'wrongNote') {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
       <div style={{
@@ -10779,10 +10783,10 @@ if (currentView === 'flashcard') {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
       <div style={{ 
@@ -11050,10 +11054,10 @@ if (currentView === 'quiz') {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
       `}</style>
 
       <div style={{ 
@@ -11528,10 +11532,10 @@ if (currentView === 'quizResults' && quizResults) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Gamja+Flower&display=swap');
         @font-face {
-          font-family: 'Uiyeun';
-          src: url('/fonts/Uiyeun-Regular.woff2') format('woff2');
+          font-family: 'Locus_sangsang';
+          src: url('/locus_sangsang.ttf') format('truetype');
         }
-        * { font-family: 'Uiyeun', sans-serif; box-sizing: border-box; }
+        * { font-family: 'Locus_sangsang', sans-serif; box-sizing: border-box; }
         @keyframes celebrate {
           0%, 100% { transform: scale(1) rotate(0deg); }
           25% { transform: scale(1.1) rotate(-5deg); }
