@@ -2442,13 +2442,14 @@ const addWordFromClick = async (clickedWord) => {
   };
 
   // 체크박스 토글 (단순 확인용, 단어는 사라지지 않음)
-  const toggleMastered = (wordId) => {
+const toggleChecked = (wordId) => {
     setWords(words.map(w =>
       w.id === wordId
-        ? { ...w, mastered: !w.mastered }
+        ? { ...w, checked: !w.checked }
         : w
     ));
   };
+
 
   // 암기완료 버튼 - 암기완료 처리
   const markAsMastered = (wordId) => {
@@ -2461,6 +2462,29 @@ const addWordFromClick = async (clickedWord) => {
         ? { ...b, wordCount: Math.max(0, b.wordCount - 1) }
         : b
     ));
+
+// 다시 외우러 가기 - 암기완료 취소
+  const unmarkAsMastered = (wordId) => {
+    const word = words.find(w => w.id === wordId);
+    if (!word) return;
+
+    // 원래 단어장으로 복원 (originalBookId가 없으면 bookId 사용)
+    const targetBookId = word.originalBookId || word.bookId;
+
+    // mastered를 false로 바꾸고 원래 단어장으로 이동
+    setWords(words.map(w =>
+      w.id === wordId
+        ? { ...w, mastered: false, bookId: targetBookId }
+        : w
+    ));
+
+    // 원래 단어장의 wordCount 증가
+    setBooks(books.map(b =>
+      b.id === targetBookId
+        ? { ...b, wordCount: b.wordCount + 1 }
+        : b
+    ));
+  };
 
     // mastered = true로 설정
     setWords(words.map(w =>
@@ -9573,12 +9597,12 @@ if (currentView === 'list' && selectedBook) {
 
                   {/* 체크박스 - 확인용 */}
                   <button
-                    onClick={() => toggleMastered(word.id)}
+onClick={() => toggleChecked(word.id)}
                     style={{
                       width: '28px',
                       height: '28px',
-                      background: word.mastered ? '#10b981' : '#ffffff',
-                      border: word.mastered ? '2px solid #10b981' : '2px solid #d1d5db',
+background: word.checked ? '#10b981' : '#ffffff',
+border: word.checked ? '2px solid #10b981' : '2px solid #d1d5db',
                       borderRadius: '6px',
                       cursor: 'pointer',
                       display: 'flex',
@@ -9594,7 +9618,8 @@ if (currentView === 'list' && selectedBook) {
                       e.target.style.transform = 'scale(1)';
                     }}
                   >
-                    {word.mastered && (
+{word.checked && (
+
                       <Check size={18} strokeWidth={3} style={{ color: '#ffffff' }} />
                     )}
                   </button>
@@ -10260,7 +10285,8 @@ if (currentView === 'memorized') {
                 {/* 취소 버튼 */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button
-                    onClick={() => toggleMastered(word.id)}
+onClick={() => unmarkAsMastered(word.id)}
+
                     style={{
                       padding: '6px 12px',
                       background: '#f0f5ee',
