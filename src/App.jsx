@@ -2302,7 +2302,8 @@ if (userDataDoc.exists()) {
   // 단어장 선택
   const selectBook = (book) => {
     setSelectedBook(book);
-    setSelectedDay(null); // Day 선택 초기화
+    setSelectedDay(book.isExamRange ? 'all' : null); // 이번 시험범위일 경우 자동으로 'all' 선택, 아니면 Day 선택 초기화
+
     setCurrentView('list');
   };
 
@@ -2784,8 +2785,8 @@ const addWordFromClick = async (clickedWord) => {
     ? words.filter(w => w.wrongNote === true)
     : words.filter(w => w.bookId === selectedBook?.id);
 
-  // 현재 단어장에서 사용 가능한 모든 Day 목록 (오름차순 정렬)
-  const availableDays = selectedBook
+  // 이번 시험범위는 Day 구분 없이 전체 보기만 사용
+  const availableDays = selectedBook && !selectedBook.isExamRange
     ? [...new Set(currentBookWords.filter(w => w.day !== null && w.day !== undefined).map(w => w.day))].sort((a, b) => a - b)
     : [];
 
