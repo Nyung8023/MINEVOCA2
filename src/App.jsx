@@ -2783,7 +2783,9 @@ const addWordFromClick = async (clickedWord) => {
     ? words.filter(w => w.mastered === true)
     : selectedBook?.id === 'wrongNote'
     ? words.filter(w => w.wrongNote === true)
-    : words.filter(w => w.bookId === selectedBook?.id);
+    : words.filter(w => w.bookId === selectedBook?.id && !w.mastered);
+
+
 
   // 이번 시험범위는 Day 구분 없이 전체 보기만 사용
   const availableDays = selectedBook && !selectedBook.isExamRange
