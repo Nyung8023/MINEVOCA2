@@ -9751,6 +9751,36 @@ border: word.checked ? '2px solid #10b981' : '2px solid #d1d5db',
                         }}
                       />
                     </div>
+                    {/* 예문 편집 */}
+                    <div style={{ marginTop: '8px' }}>
+                      <label style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '4px' }}>
+                        예문 (Example)
+                      </label>
+                      <textarea
+                        value={word.example || ''}
+                        onChange={(e) => {
+                          const updatedWords = words.map(w =>
+                            w.id === word.id
+                              ? { ...w, example: e.target.value }
+                              : w
+                          );
+                          setWords(updatedWords);
+                        }}
+                        placeholder="예: The firefighters rescued the family from the burning building."
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '2px solid #93c5fd',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          background: '#eff6ff',
+                          outline: 'none',
+                          minHeight: '60px',
+                          resize: 'vertical',
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div>
@@ -9869,6 +9899,35 @@ border: word.checked ? '2px solid #10b981' : '2px solid #d1d5db',
                       )}
                     </div>
                     )}
+                  </div>
+                )}
+
+                {/* 예문 표시 (읽기 모드) */}
+                {!editingWordId && word.example && word.example.trim() && (
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{
+                      fontSize: '0.7rem',
+                      color: '#3b82f6',
+                      fontWeight: '700',
+                      marginBottom: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      📝 예문 (Example)
+                    </div>
+                    <div style={{
+                      padding: '10px 12px',
+                      background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+                      border: '2px solid #93c5fd',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      color: '#1e40af',
+                      lineHeight: '1.6',
+                      fontStyle: 'italic'
+                    }}>
+                      {word.example}
+                    </div>
                   </div>
                 )}
 
