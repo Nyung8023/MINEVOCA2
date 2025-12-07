@@ -812,8 +812,10 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
           );
 
           // 📌 Firestore에 메타데이터만 저장 (words는 빈 배열)
+          // userData에서 words 필드 제거 후 스프레드 (1MB 제한 회피)
+          const { words: _oldWords, ...userDataWithoutWords } = userData;
           await setDoc(userDataRef, {
-            ...userData,
+            ...userDataWithoutWords,
             books: updatedBooks,
             words: [],
             classId: selectedUploadClassId,
@@ -1337,8 +1339,9 @@ if (userDataDoc.exists()) {
 
     // 마이그레이션한 경우 즉시 Firestore에 저장
     console.log('💾 마이그레이션된 단어장을 Firestore에 저장합니다...');
+    const { words: _oldWords1, ...dataWithoutWords1 } = data;
     await setDoc(doc(db, 'userData', userId), {
-      ...data,
+      ...dataWithoutWords1,
       books: migratedBooks,
       words: []  // 📌 words는 서브컬렉션에 저장
     });
@@ -1361,8 +1364,9 @@ if (userDataDoc.exists()) {
     if (cleanedBooks.length !== migratedBooks.length) {
       console.log('🧹 불필요한 단어장 제거:', migratedBooks.length, '→', cleanedBooks.length);
       migratedBooks = cleanedBooks;
+      const { words: _oldWords2, ...dataWithoutWords2 } = data;
       await setDoc(doc(db, 'userData', userId), {
-        ...data,
+        ...dataWithoutWords2,
         books: migratedBooks,
         words: []  // 📌 words는 서브컬렉션에 저장
       });
@@ -1843,8 +1847,10 @@ if (userDataDoc.exists()) {
               }
 
               // 📌 userData에는 books만 저장 (words는 빈 배열)
+              // userData에서 words 필드 제거 후 스프레드 (1MB 제한 회피)
+              const { words: _oldWords, ...userDataWithoutWords } = userData;
               await setDoc(userDataRef, {
-                ...userData,
+                ...userDataWithoutWords,
                 books: updatedBooks,
                 words: [],
                 lastUpdated: new Date().toISOString()
