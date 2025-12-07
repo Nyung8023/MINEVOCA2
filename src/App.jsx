@@ -1351,14 +1351,19 @@ const searchMultipleWordsInDB = async (input) => {
     try {
       console.log(`💾 ${wordsArray.length}개 단어 일괄 저장 시작...`);
 
-      // 배치로 저장 (한번에 너무 많이 하면 성능 문제 있을 수 있으니 청크로 나눔)
-      const chunkSize = 100;
+      // 배치로 저장 (청크 크기 줄이고 딜레이 추가)
+      const chunkSize = 10; // 100 → 10으로 줄임
       for (let i = 0; i < wordsArray.length; i += chunkSize) {
         const chunk = wordsArray.slice(i, i + chunkSize);
         await Promise.all(
           chunk.map(word => saveWordToSubcollection(userId, word))
         );
         console.log(`  ✅ ${i + chunk.length}/${wordsArray.length} 저장 완료`);
+
+        // 🆕 각 청크 사이에 200ms 대기 (Firestore 과부하 방지)
+        if (i + chunkSize < wordsArray.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       }
 
       console.log(`✅ 모든 단어 저장 완료!`);
