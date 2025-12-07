@@ -691,7 +691,8 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
           const userData = userDataDoc.data();
           const existingBooks = userData.books || [];
-          const existingWords = userData.words || [];
+          // 📌 서브컬렉션에서 기존 단어 읽기
+          const existingWords = await loadWordsFromSubcollection(studentId);
 
           // 새 단어장 생성 (기존에 같은 이름이 있으면 속성만 업데이트)
           let targetBook = existingBooks.find(b => b.name === bookName);
@@ -799,18 +800,22 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             }
           }
 
-          // 단어장의 wordCount 업데이트
-          const finalWords = [...existingWords, ...newWords];
-          const bookWordCount = finalWords.filter(w => w.bookId === targetBook.id).length;
+          // 📌 서브컬렉션에 새 단어들 저장
+          if (newWords.length > 0) {
+            await saveAllWordsToSubcollection(studentId, newWords);
+          }
+
+          // 단어장의 wordCount 업데이트 (서브컬렉션 + 새 단어)
+          const totalWordsForBook = [...existingWords, ...newWords].filter(w => w.bookId === targetBook.id).length;
           updatedBooks = updatedBooks.map(b =>
-            b.id === targetBook.id ? { ...b, wordCount: bookWordCount } : b
+            b.id === targetBook.id ? { ...b, wordCount: totalWordsForBook } : b
           );
 
-          // Firestore에 저장 (classId/className도 함께 설정)
+          // 📌 Firestore에 저장 (words는 서브컬렉션에 있으므로 빈 배열)
           await setDoc(userDataRef, {
             ...userData,
             books: updatedBooks,
-            words: finalWords,
+            words: [], // 서브컬렉션에 저장되므로 비움
             classId: selectedUploadClassId,
             className: selectedClass.className,
             lastUpdated: new Date().toISOString()
@@ -1293,6 +1298,76 @@ const searchMultipleWordsInDB = async (input) => {
     }
   };
 
+  // ========== 서브컬렉션 헬퍼 함수들 ==========
+
+  // 1️⃣ 서브컬렉션에서 모든 단어 읽기
+  const loadWordsFromSubcollection = async (userId) => {
+    try {
+      const wordsRef = collection(db, 'userData', userId, 'words');
+      const wordsSnapshot = await getDocs(wordsRef);
+      const loadedWords = [];
+
+      wordsSnapshot.forEach((doc) => {
+        loadedWords.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+
+      console.log(`📚 서브컬렉션에서 ${loadedWords.length}개 단어 로드 완료`);
+      return loadedWords;
+    } catch (error) {
+      console.error('❌ 서브컬렉션 단어 로드 실패:', error);
+      return [];
+    }
+  };
+
+  // 2️⃣ 서브컬렉션에 단어 저장 (단일)
+  const saveWordToSubcollection = async (userId, word) => {
+    try {
+      const wordRef = doc(db, 'userData', userId, 'words', word.id);
+      await setDoc(wordRef, word);
+      console.log(`✅ 단어 저장: ${word.english}`);
+    } catch (error) {
+      console.error('❌ 단어 저장 실패:', error);
+      throw error;
+    }
+  };
+
+  // 3️⃣ 서브컬렉션에서 단어 삭제
+  const deleteWordFromSubcollection = async (userId, wordId) => {
+    try {
+      const wordRef = doc(db, 'userData', userId, 'words', wordId);
+      await deleteDoc(wordRef);
+      console.log(`🗑️ 단어 삭제: ${wordId}`);
+    } catch (error) {
+      console.error('❌ 단어 삭제 실패:', error);
+      throw error;
+    }
+  };
+
+  // 4️⃣ 서브컬렉션에 모든 단어 일괄 저장 (마이그레이션/엑셀 업로드용)
+  const saveAllWordsToSubcollection = async (userId, wordsArray) => {
+    try {
+      console.log(`💾 ${wordsArray.length}개 단어 일괄 저장 시작...`);
+
+      // 배치로 저장 (한번에 너무 많이 하면 성능 문제 있을 수 있으니 청크로 나눔)
+      const chunkSize = 100;
+      for (let i = 0; i < wordsArray.length; i += chunkSize) {
+        const chunk = wordsArray.slice(i, i + chunkSize);
+        await Promise.all(
+          chunk.map(word => saveWordToSubcollection(userId, word))
+        );
+        console.log(`  ✅ ${i + chunk.length}/${wordsArray.length} 저장 완료`);
+      }
+
+      console.log(`✅ 모든 단어 저장 완료!`);
+    } catch (error) {
+      console.error('❌ 일괄 저장 실패:', error);
+      throw error;
+    }
+  };
+
   // 사용자 데이터 로드
   const loadUserData = async (userId) => {
     try {
@@ -1364,14 +1439,36 @@ if (userDataDoc.exists()) {
     }
   }
 
-  // words 설정 (모든 경우에 적용)
-  setWords(data.words || []);
+  // 🔄 words 설정: 서브컬렉션에서 읽기 + 자동 마이그레이션
+  console.log('📚 단어 로딩 시작...');
+
+  // 1단계: 서브컬렉션에서 단어 읽기 시도
+  let loadedWords = await loadWordsFromSubcollection(userId);
+
+  // 2단계: 서브컬렉션이 비어있는데 기존 배열에 데이터가 있으면 마이그레이션
+  const oldWords = data.words || [];
+  if (loadedWords.length === 0 && oldWords.length > 0) {
+    console.log(`🔄 자동 마이그레이션: ${oldWords.length}개 단어를 서브컬렉션으로 이동`);
+    await saveAllWordsToSubcollection(userId, oldWords);
+    loadedWords = oldWords;
+
+    // 마이그레이션 후 기존 userData에서 words 배열 제거 (공간 절약)
+    console.log('🧹 기존 userData.words 배열 제거');
+    await setDoc(doc(db, 'userData', userId), {
+      ...data,
+      books: migratedBooks,
+      words: [] // 빈 배열로 비우기 (나중에 완전히 제거 가능)
+    });
+  }
+
+  setWords(loadedWords);
 
   console.log('📊 마이그레이션 결과:', {
     originalBooksCount: (data.books || []).length,
     finalBooksCount: migratedBooks.length,
-    wordsCount: (data.words || []).length,
-    wasMigrated: needsMigration
+    wordsCount: loadedWords.length,
+    wasMigrated: needsMigration,
+    wordsFromSubcollection: true
   });
 
   // 교재단어장 디버깅
@@ -1987,21 +2084,12 @@ if (userDataDoc.exists()) {
       const existingDoc = await getDoc(userDataRef);
       const existingData = existingDoc.exists() ? existingDoc.data() : {};
 
-      // 저장하기 전에 모든 단어에서 품사 표시 제거
-      const cleanedWords = words.map(word => ({
-        ...word,
-        definition: word.definition ? removePartOfSpeechTags(word.definition) : word.definition,
-        synonyms: Array.isArray(word.synonyms)
-          ? word.synonyms.map(s => removePartOfSpeechTags(s)).filter(s => s)
-          : word.synonyms,
-        antonyms: Array.isArray(word.antonyms)
-          ? word.antonyms.map(a => removePartOfSpeechTags(a)).filter(a => a)
-          : word.antonyms
-      }));
-
+      // 📌 변경: words는 서브컬렉션에 저장되므로 여기서는 제외
+      // books, learningStats 등 메타데이터만 저장
       const dataToSave = {
         books: books,
-        words: cleanedWords,
+        // words는 서브컬렉션에 저장되므로 제거 (호환성을 위해 빈 배열 유지)
+        words: [],
         learningStats: learningStats,
         examName: examName,
         examDate: examDate,
@@ -2013,14 +2101,15 @@ if (userDataDoc.exists()) {
       };
       console.log('💾 데이터 저장 중:', currentUser.email);
       console.log('  - 단어장 수:', dataToSave.books.length);
-      console.log('  - 단어 수:', dataToSave.words.length);
+      console.log('  - 단어 수 (서브컬렉션):', words.length);
       console.log('  - classId:', dataToSave.classId);
       console.log('  - className:', dataToSave.className);
       console.log('  - userName:', dataToSave.userName);
       console.log('  - examName:', dataToSave.examName);
       console.log('  - examDate:', dataToSave.examDate);
       await setDoc(userDataRef, dataToSave);
-      console.log('✅ 데이터 저장 성공!');
+      console.log('✅ 데이터 저장 성공 (메타데이터만)!');
+      console.log('ℹ️  단어는 서브컬렉션에 별도 저장됩니다.');
     } catch (error) {
       console.error('❌ 데이터 저장 오류:', error);
     }
@@ -2444,19 +2533,37 @@ const addWordFromClick = async (clickedWord) => {
   };
 
   // 체크박스 토글 (단순 확인용, 단어는 사라지지 않음)
-const toggleChecked = (wordId) => {
+const toggleChecked = async (wordId) => {
+    const word = words.find(w => w.id === wordId);
+    if (!word || !currentUser) return;
+
+    const updatedWord = { ...word, checked: !word.checked };
+
+    // 1️⃣ State 업데이트
     setWords(words.map(w =>
-      w.id === wordId
-        ? { ...w, checked: !w.checked }
-        : w
+      w.id === wordId ? updatedWord : w
     ));
+
+    // 2️⃣ 서브컬렉션에 저장
+    try {
+      await saveWordToSubcollection(currentUser.uid, updatedWord);
+    } catch (error) {
+      console.error('❌ toggleChecked 저장 실패:', error);
+    }
   };
 
 
   // 암기완료 버튼 - 암기완료 처리
-  const markAsMastered = (wordId) => {
+  const markAsMastered = async (wordId) => {
     const word = words.find(w => w.id === wordId);
-    if (!word) return;
+    if (!word || !currentUser) return;
+
+    const updatedWord = { ...word, mastered: true };
+
+    // 1️⃣ State 업데이트
+    setWords(words.map(w =>
+      w.id === wordId ? updatedWord : w
+    ));
 
     // 현재 단어장에서 wordCount 감소
     setBooks(books.map(b =>
@@ -2465,19 +2572,27 @@ const toggleChecked = (wordId) => {
         : b
     ));
 
-// 다시 외우러 가기 - 암기완료 취소
-  const unmarkAsMastered = (wordId) => {
+    // 2️⃣ 서브컬렉션에 저장
+    try {
+      await saveWordToSubcollection(currentUser.uid, updatedWord);
+    } catch (error) {
+      console.error('❌ markAsMastered 저장 실패:', error);
+    }
+  };
+
+  // 다시 외우러 가기 - 암기완료 취소
+  const unmarkAsMastered = async (wordId) => {
     const word = words.find(w => w.id === wordId);
-    if (!word) return;
+    if (!word || !currentUser) return;
 
     // 원래 단어장으로 복원 (originalBookId가 없으면 bookId 사용)
     const targetBookId = word.originalBookId || word.bookId;
 
-    // mastered를 false로 바꾸고 원래 단어장으로 이동
+    const updatedWord = { ...word, mastered: false, bookId: targetBookId };
+
+    // 1️⃣ State 업데이트
     setWords(words.map(w =>
-      w.id === wordId
-        ? { ...w, mastered: false, bookId: targetBookId }
-        : w
+      w.id === wordId ? updatedWord : w
     ));
 
     // 원래 단어장의 wordCount 증가
@@ -2486,19 +2601,33 @@ const toggleChecked = (wordId) => {
         ? { ...b, wordCount: b.wordCount + 1 }
         : b
     ));
-  };
 
-    // mastered = true로 설정
-    setWords(words.map(w =>
-      w.id === wordId ? { ...w, mastered: true } : w
-    ));
+    // 2️⃣ 서브컬렉션에 저장
+    try {
+      await saveWordToSubcollection(currentUser.uid, updatedWord);
+    } catch (error) {
+      console.error('❌ unmarkAsMastered 저장 실패:', error);
+    }
   };
 
   // 오답노트 추가/제거
-  const toggleWrongNote = (wordId) => {
+  const toggleWrongNote = async (wordId) => {
+    const word = words.find(w => w.id === wordId);
+    if (!word || !currentUser) return;
+
+    const updatedWord = { ...word, wrongNote: !word.wrongNote };
+
+    // 1️⃣ State 업데이트
     setWords(words.map(w =>
-      w.id === wordId ? { ...w, wrongNote: !w.wrongNote } : w
+      w.id === wordId ? updatedWord : w
     ));
+
+    // 2️⃣ 서브컬렉션에 저장
+    try {
+      await saveWordToSubcollection(currentUser.uid, updatedWord);
+    } catch (error) {
+      console.error('❌ toggleWrongNote 저장 실패:', error);
+    }
   };
 
   // 음성 출력
