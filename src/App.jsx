@@ -1922,19 +1922,26 @@ if (userDataDoc.exists()) {
           if (userDataDoc.exists()) {
             const userData = userDataDoc.data();
             const existingBooks = userData.books || [];
-            const existingWords = userData.words || [];
+            // 📌 서브컬렉션에서 단어 읽기
+            const existingWords = await loadWordsFromSubcollection(studentId);
 
             // 해당 단어장 찾기
             const targetBook = existingBooks.find(b => b.name === bookName);
             if (targetBook) {
               // 단어장과 해당 단어장의 단어들 삭제
               const updatedBooks = existingBooks.filter(b => b.name !== bookName);
-              const updatedWords = existingWords.filter(w => w.bookId !== targetBook.id);
 
+              // 📌 서브컬렉션에서 해당 단어장의 단어들 삭제
+              const wordsToDelete = existingWords.filter(w => w.bookId === targetBook.id);
+              for (const word of wordsToDelete) {
+                await deleteWordFromSubcollection(studentId, word.id);
+              }
+
+              // 📌 userData에는 books만 저장 (words는 빈 배열)
               await setDoc(userDataRef, {
                 ...userData,
                 books: updatedBooks,
-                words: updatedWords,
+                words: [],
                 lastUpdated: new Date().toISOString()
               });
               successCount++;
