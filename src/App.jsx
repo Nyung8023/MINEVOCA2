@@ -691,7 +691,8 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
           const userData = userDataDoc.data();
           const existingBooks = userData.books || [];
-          const existingWords = userData.words || [];
+          // 📌 서브컬렉션에서 단어 읽기
+          const existingWords = await loadWordsFromSubcollection(studentId);
 
           // 새 단어장 생성 (기존에 같은 이름이 있으면 속성만 업데이트)
           let targetBook = existingBooks.find(b => b.name === bookName);
@@ -797,6 +798,12 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             }
           }
 
+          // 📌 새 단어들을 서브컬렉션에 저장
+          if (newWords.length > 0) {
+            console.log(`💾 ${studentId}: ${newWords.length}개 새 단어 서브컬렉션에 저장`);
+            await saveAllWordsToSubcollection(studentId, newWords);
+          }
+
           // 단어장의 wordCount 업데이트
           const finalWords = [...existingWords, ...newWords];
           const bookWordCount = finalWords.filter(w => w.bookId === targetBook.id).length;
@@ -804,11 +811,11 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             b.id === targetBook.id ? { ...b, wordCount: bookWordCount } : b
           );
 
-          // Firestore에 저장 (classId/className도 함께 설정)
+          // 📌 Firestore에 메타데이터만 저장 (words는 빈 배열)
           await setDoc(userDataRef, {
             ...userData,
             books: updatedBooks,
-            words: finalWords,
+            words: [],
             classId: selectedUploadClassId,
             className: selectedClass.className,
             lastUpdated: new Date().toISOString()
@@ -1332,7 +1339,8 @@ if (userDataDoc.exists()) {
     console.log('💾 마이그레이션된 단어장을 Firestore에 저장합니다...');
     await setDoc(doc(db, 'userData', userId), {
       ...data,
-      books: migratedBooks
+      books: migratedBooks,
+      words: []  // 📌 words는 서브컬렉션에 저장
     });
   } else {
     // 기존 사용자: 불필요한 기본 단어장(id 3, 4, 5)만 제거
@@ -1355,7 +1363,8 @@ if (userDataDoc.exists()) {
       migratedBooks = cleanedBooks;
       await setDoc(doc(db, 'userData', userId), {
         ...data,
-        books: migratedBooks
+        books: migratedBooks,
+        words: []  // 📌 words는 서브컬렉션에 저장
       });
     } else {
       console.log('⚠️ 제거할 단어장이 없음 (길이 동일:', migratedBooks.length, ')');
