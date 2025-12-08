@@ -1327,7 +1327,8 @@ const searchMultipleWordsInDB = async (input) => {
   // 2️⃣ 서브컬렉션에 단어 저장 (단일)
   const saveWordToSubcollection = async (userId, word) => {
     try {
-      const wordRef = doc(db, 'userData', userId, 'words', word.id);
+      // 📌 Firestore 문서 ID는 반드시 문자열이어야 함
+      const wordRef = doc(db, 'userData', userId, 'words', String(word.id));
       await setDoc(wordRef, word);
       console.log(`✅ 단어 저장: ${word.english}`);
     } catch (error) {
@@ -1339,7 +1340,8 @@ const searchMultipleWordsInDB = async (input) => {
   // 3️⃣ 서브컬렉션에서 단어 삭제
   const deleteWordFromSubcollection = async (userId, wordId) => {
     try {
-      const wordRef = doc(db, 'userData', userId, 'words', wordId);
+      // 📌 Firestore 문서 ID는 반드시 문자열이어야 함
+      const wordRef = doc(db, 'userData', userId, 'words', String(wordId));
       await deleteDoc(wordRef);
       console.log(`🗑️ 단어 삭제: ${wordId}`);
     } catch (error) {
