@@ -812,11 +812,11 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
           );
 
           // 📌 Firestore에 저장 (words는 서브컬렉션에 있으므로 빈 배열)
-          // userData에서 words 필드 제거 후 스프레드 (1MB 제한 회피)
-          const { words: _oldWords, ...userDataWithoutWords } = userData;
+          // userData에서 words, books 필드 제거 후 스프레드 (정확한 업데이트 보장)
+          const { words: _oldWords, books: _oldBooks, ...userDataWithoutWordsAndBooks } = userData;
           await setDoc(userDataRef, {
-            ...userDataWithoutWords,
-            books: updatedBooks,
+            ...userDataWithoutWordsAndBooks,
+            books: updatedBooks,  // 새로 업데이트된 books
             words: [], // 서브컬렉션에 저장되므로 비움
             classId: selectedUploadClassId,
             className: selectedClass.className,
