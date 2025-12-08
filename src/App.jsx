@@ -2580,11 +2580,24 @@ const addWordFromClick = async (clickedWord) => {
           !voice.name.includes('Korean')
         );
 
-        // 우선순위: en-US > en-GB > 기타 영어 음성
-        let englishVoice = englishVoices.find(v => v.lang === 'en-US') ||
-                          englishVoices.find(v => v.lang === 'en-GB') ||
-                          englishVoices.find(v => v.lang.startsWith('en-')) ||
-                          englishVoices[0];
+        // 고품질 여성 음성 우선 선택 (Google, Microsoft 등)
+        let englishVoice =
+          // 1순위: Google 여성 음성 (en-US)
+          englishVoices.find(v => v.name.includes('Google') && v.lang === 'en-US') ||
+          // 2순위: Microsoft 여성 음성 (Zira, etc)
+          englishVoices.find(v =>
+            (v.name.includes('Microsoft') || v.name.includes('Zira') || v.name.includes('Female')) &&
+            v.lang === 'en-US'
+          ) ||
+          // 3순위: en-US 음성 중 아무거나
+          englishVoices.find(v => v.lang === 'en-US') ||
+          // 4순위: Google 여성 음성 (en-GB)
+          englishVoices.find(v => v.name.includes('Google') && v.lang === 'en-GB') ||
+          // 5순위: en-GB 음성
+          englishVoices.find(v => v.lang === 'en-GB') ||
+          // 6순위: 기타 영어 음성
+          englishVoices.find(v => v.lang.startsWith('en-')) ||
+          englishVoices[0];
 
         if (englishVoice) {
           utterance.voice = englishVoice;
