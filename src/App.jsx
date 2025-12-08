@@ -10851,6 +10851,20 @@ if (currentView === 'wrongNote') {
                         <div style={{ fontSize: '0.8rem', color: '#7f1d1d', lineHeight: '1.4' }}>{word.definition}</div>
                       </div>
                     )}
+
+                    {/* 예문 */}
+                    {word.example && word.example.trim() && (
+                      <div style={{
+                        background: '#fefce8',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        marginBottom: '8px',
+                        border: '1px solid #fef08a'
+                      }}>
+                        <div style={{ fontSize: '0.75rem', color: '#854d0e', fontWeight: '600', marginBottom: '4px' }}>예문</div>
+                        <div style={{ fontSize: '0.8rem', color: '#713f12', lineHeight: '1.4', fontStyle: 'italic' }}>{word.example}</div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -11077,6 +11091,24 @@ if (currentView === 'flashcard') {
                 }}>
                   <div style={{ fontWeight: '700', color: '#334155', marginBottom: '4px' }}>📖 Definition</div>
                   {currentWord.definition}
+                </div>
+              )}
+
+              {/* 예문 */}
+              {currentWord.example && currentWord.example.trim() && (
+                <div style={{
+                  fontSize: '0.85rem',
+                  color: '#713f12',
+                  background: 'rgba(254, 252, 232, 0.9)',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  marginBottom: '12px',
+                  lineHeight: '1.5',
+                  border: '1px solid #fef08a',
+                  fontStyle: 'italic'
+                }}>
+                  <div style={{ fontWeight: '700', color: '#854d0e', marginBottom: '4px', fontStyle: 'normal' }}>💬 Example</div>
+                  {currentWord.example}
                 </div>
               )}
 
