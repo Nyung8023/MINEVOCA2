@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc, addDoc, writeBatch } from 'firebase/firestore';
 import { Volume2, Check, X, Plus, Trash2, Edit2, BookOpen, Album, Brain, GraduationCap, Star, Eye, Settings, Gift, Target, TrendingUp, Award, Calendar, BarChart3, Shuffle, Headphones, Pencil, Lightbulb, ClipboardList, CheckCircle, Book, Link, ArrowLeftRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -1350,29 +1350,35 @@ const searchMultipleWordsInDB = async (input) => {
     }
   };
 
-  // 4️⃣ 서브컬렉션에 모든 단어 일괄 저장 (마이그레이션/엑셀 업로드용)
+  // 4️⃣ 서브컬렉션에 모든 단어 일괄 저장 (Firestore Batch 사용)
   const saveAllWordsToSubcollection = async (userId, wordsArray) => {
     try {
-      console.log(`💾 ${wordsArray.length}개 단어 일괄 저장 시작...`);
+      console.log(`💾 ${wordsArray.length}개 단어 Batch 저장 시작...`);
 
-      // 배치로 저장 (청크 크기 줄이고 딜레이 추가)
-      const chunkSize = 10; // 100 → 10으로 줄임
-      for (let i = 0; i < wordsArray.length; i += chunkSize) {
-        const chunk = wordsArray.slice(i, i + chunkSize);
-        await Promise.all(
-          chunk.map(word => saveWordToSubcollection(userId, word))
-        );
-        console.log(`  ✅ ${i + chunk.length}/${wordsArray.length} 저장 완료`);
+      // Firestore Batch는 최대 500개 작업까지 가능
+      const batchSize = 500;
+      const batches = [];
 
-        // 🆕 각 청크 사이에 200ms 대기 (Firestore 과부하 방지)
-        if (i + chunkSize < wordsArray.length) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
+      for (let i = 0; i < wordsArray.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const chunk = wordsArray.slice(i, Math.min(i + batchSize, wordsArray.length));
+
+        chunk.forEach(word => {
+          const wordRef = doc(db, 'userData', userId, 'words', String(word.id));
+          batch.set(wordRef, word);
+        });
+
+        batches.push(batch);
+        console.log(`  📦 Batch ${batches.length} 준비: ${chunk.length}개 단어`);
       }
 
-      console.log(`✅ 모든 단어 저장 완료!`);
+      // 모든 배치 커밋 (한 번에 전송!)
+      console.log(`🚀 ${batches.length}개 배치 커밋 중...`);
+      await Promise.all(batches.map(batch => batch.commit()));
+
+      console.log(`✅ 모든 단어 저장 완료! (${wordsArray.length}개)`);
     } catch (error) {
-      console.error('❌ 일괄 저장 실패:', error);
+      console.error('❌ Batch 저장 실패:', error);
       throw error;
     }
   };
