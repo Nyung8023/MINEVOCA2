@@ -632,8 +632,8 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
       if (dataRows.length === 0) {
         const formatGuide = hasDayColumn
-          ? '📋 열 순서 (Day 포함):\n1열: Day (숫자, 선택)\n2열: 영어\n3열: 한글 뜻\n4열: 동의어 (선택, 쉼표로 구분)\n5열: 반의어 (선택, 쉼표로 구분)\n6열: 영영풀이 (선택)'
-          : '📋 열 순서 (Day 없음):\n1열: 영어\n2열: 한글 뜻\n3열: 동의어 (선택, 쉼표로 구분)\n4열: 반의어 (선택, 쉼표로 구분)\n5열: 영영풀이 (선택)';
+          ? '📋 열 순서 (Day 포함):\n1열: Day (숫자, 선택)\n2열: 영어\n3열: 한글 뜻\n4열: 동의어 (선택, 쉼표로 구분)\n5열: 반의어 (선택, 쉼표로 구분)\n6열: 영영풀이 (선택)\n7열: 예문 (선택)'
+          : '📋 열 순서 (Day 없음):\n1열: 영어\n2열: 한글 뜻\n3열: 동의어 (선택, 쉼표로 구분)\n4열: 반의어 (선택, 쉼표로 구분)\n5열: 영영풀이 (선택)\n6열: 예문 (선택)';
         const detectionInfo = `\n\n🔍 Day 컬럼 감지: ${hasDayColumn ? 'Day 있음' : 'Day 없음'}`;
         setExcelUploadStatus('❌ 엑셀 파일에 단어가 없습니다.\n\n' + formatGuide + detectionInfo);
         setIsExcelUploading(false);
@@ -727,7 +727,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
           const newWords = [];
           for (const row of dataRows) {
             // Day 컬럼 유무에 따라 인덱스 조정
-            let dayRaw, english, korean, synonymsRaw, antonymsRaw, definitionRaw;
+            let dayRaw, english, korean, synonymsRaw, antonymsRaw, definitionRaw, exampleRaw;
 
             if (hasDayColumn) {
               dayRaw = String(row[0] || '').trim();
@@ -736,6 +736,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
               synonymsRaw = String(row[3] || '').trim();
               antonymsRaw = String(row[4] || '').trim();
               definitionRaw = String(row[5] || '').trim();
+              exampleRaw = String(row[6] || '').trim();
 
               // 영어 단어 앞에 Day 숫자가 붙어있는 경우 (예: "1 provide")
               const dayPrefixMatch = english.match(/^(\d+)\s+(.+)$/);
@@ -753,6 +754,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
               synonymsRaw = String(row[2] || '').trim();
               antonymsRaw = String(row[3] || '').trim();
               definitionRaw = String(row[4] || '').trim();
+              exampleRaw = String(row[5] || '').trim();
             }
 
             if (!english || !korean) continue;
@@ -782,7 +784,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
                 originalBookId: targetBook.id,
                 english: english,
                 korean: korean,
-                example: '',
+                example: exampleRaw || '',
                 pronunciation: '',
                 synonyms: synonyms,
                 antonyms: antonyms,
@@ -8779,7 +8781,23 @@ book,책`}
                           border: '2px solid #e2e8f0',
                           borderRadius: '8px',
                           fontSize: '0.85rem',
-                          marginBottom: '12px'
+                          marginBottom: '8px'
+                        }}
+                      />
+                      <textarea
+                        value={editingWord.example || ''}
+                        onChange={(e) => setEditingWord({ ...editingWord, example: e.target.value })}
+                        placeholder="예문 (선택)"
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '2px solid #e2e8f0',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          marginBottom: '12px',
+                          minHeight: '60px',
+                          resize: 'vertical',
+                          fontFamily: 'inherit'
                         }}
                       />
                       <div style={{ display: 'flex', gap: '8px' }}>
@@ -8789,7 +8807,8 @@ book,책`}
                             korean: editingWord.korean,
                             definition: editingWord.definition || '',
                             synonyms: editingWord.synonyms || '',
-                            antonyms: editingWord.antonyms || ''
+                            antonyms: editingWord.antonyms || '',
+                            example: editingWord.example || ''
                           })}
                           style={{
                             flex: 1,
