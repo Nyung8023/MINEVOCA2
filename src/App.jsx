@@ -8986,6 +8986,23 @@ book,책`}
                           </div>
                         )}
 
+                        {/* 예문 */}
+                        {word.example && word.example.trim() && (
+                          <div style={{
+                            fontSize: '0.85rem',
+                            color: '#713f12',
+                            padding: '8px',
+                            background: 'rgba(254, 252, 232, 0.8)',
+                            borderRadius: '6px',
+                            marginBottom: '6px',
+                            borderLeft: '3px solid #f59e0b',
+                            fontStyle: 'italic'
+                          }}>
+                            <div style={{ fontWeight: '600', color: '#d97706', marginBottom: '2px', fontStyle: 'normal' }}>💬 Example</div>
+                            {word.example}
+                          </div>
+                        )}
+
                         {/* 동의어 */}
                         {word.synonyms && (
                           <div style={{
