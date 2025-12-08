@@ -2569,17 +2569,29 @@ const addWordFromClick = async (clickedWord) => {
       // 사용 가능한 음성 목록에서 영어 음성 찾기
       const setVoiceAndSpeak = () => {
         const voices = window.speechSynthesis.getVoices();
-        const englishVoice = voices.find(voice =>
-          voice.lang.startsWith('en-') ||
-          voice.lang === 'en-US' ||
-          voice.lang === 'en-GB'
+
+        // 디버깅: 사용 가능한 모든 음성 출력
+        console.log('🎤 사용 가능한 음성들:', voices.map(v => `${v.name} (${v.lang})`));
+
+        // 한국어 음성을 명시적으로 제외하고 영어 음성만 필터링
+        const englishVoices = voices.filter(voice =>
+          voice.lang.startsWith('en-') &&
+          !voice.lang.startsWith('ko-') &&
+          !voice.name.includes('Korean')
         );
+
+        // 우선순위: en-US > en-GB > 기타 영어 음성
+        let englishVoice = englishVoices.find(v => v.lang === 'en-US') ||
+                          englishVoices.find(v => v.lang === 'en-GB') ||
+                          englishVoices.find(v => v.lang.startsWith('en-')) ||
+                          englishVoices[0];
 
         if (englishVoice) {
           utterance.voice = englishVoice;
-          console.log('✅ 영어 음성 사용:', englishVoice.name);
+          console.log('✅ 영어 음성 사용:', englishVoice.name, '(', englishVoice.lang, ')');
         } else {
-          console.log('⚠️ 영어 음성을 찾을 수 없습니다. 기본 음성 사용.');
+          console.warn('⚠️ 영어 음성을 찾을 수 없습니다. 기본 음성을 사용하면 발음이 이상할 수 있습니다.');
+          console.warn('💡 브라우저 설정에서 영어(미국) 음성을 추가해주세요.');
         }
 
         window.speechSynthesis.speak(utterance);
