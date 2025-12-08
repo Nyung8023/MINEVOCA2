@@ -724,13 +724,48 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             );
           }
 
+          // 📌 헤더 기반 컬럼 매핑 (빈 컬럼 제거 영향 받지 않음)
+          let columnMap = {};
+          if (hasHeader && cleanedData[dataStartIndex - 1]) {
+            const headers = cleanedData[dataStartIndex - 1];
+            headers.forEach((header, index) => {
+              if (!header) return;
+              const headerStr = String(header).toLowerCase().trim();
+              if (headerStr.includes('day')) columnMap.day = index;
+              if (headerStr.includes('영어') || headerStr.includes('english')) columnMap.english = index;
+              if (headerStr.includes('한글') || headerStr.includes('korean') || headerStr.includes('뜻')) columnMap.korean = index;
+              if (headerStr.includes('동의어') || headerStr.includes('synonym')) columnMap.synonyms = index;
+              if (headerStr.includes('반의어') || headerStr.includes('antonym')) columnMap.antonyms = index;
+              if (headerStr.includes('영영풀이') || headerStr.includes('definition')) columnMap.definition = index;
+              if (headerStr.includes('예문') || headerStr.includes('example')) columnMap.example = index;
+            });
+            console.log('📋 컬럼 매핑:', columnMap);
+          }
+
           // 단어 추가 (중복 체크)
           const newWords = [];
           for (const row of dataRows) {
-            // Day 컬럼 유무에 따라 인덱스 조정
             let dayRaw, english, korean, synonymsRaw, antonymsRaw, definitionRaw, exampleRaw;
 
-            if (hasDayColumn) {
+            // 헤더 기반 매핑 사용 (우선순위)
+            if (Object.keys(columnMap).length > 0) {
+              dayRaw = columnMap.day !== undefined ? String(row[columnMap.day] || '').trim() : '';
+              english = columnMap.english !== undefined ? String(row[columnMap.english] || '').trim() : '';
+              korean = columnMap.korean !== undefined ? String(row[columnMap.korean] || '').trim() : '';
+              synonymsRaw = columnMap.synonyms !== undefined ? String(row[columnMap.synonyms] || '').trim() : '';
+              antonymsRaw = columnMap.antonyms !== undefined ? String(row[columnMap.antonyms] || '').trim() : '';
+              definitionRaw = columnMap.definition !== undefined ? String(row[columnMap.definition] || '').trim() : '';
+              exampleRaw = columnMap.example !== undefined ? String(row[columnMap.example] || '').trim() : '';
+
+              // 영어 단어 앞에 Day 숫자가 붙어있는 경우 처리
+              const dayPrefixMatch = english.match(/^(\d+)\s+(.+)$/);
+              if (dayPrefixMatch && !dayRaw) {
+                dayRaw = dayPrefixMatch[1];
+                english = dayPrefixMatch[2];
+              }
+            }
+            // 폴백: Day 컬럼 유무에 따라 인덱스 조정 (헤더 없을 때)
+            else if (hasDayColumn) {
               dayRaw = String(row[0] || '').trim();
               english = String(row[1] || '').trim();
               korean = String(row[2] || '').trim();
