@@ -470,7 +470,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
       if (jsonData.length > 0 && jsonData[0]) {
         const firstRow = jsonData[0];
-        const headerKeywords = ['day', 'english', 'korean', '영어', '한글', '뜻', 'synonym', 'antonym', 'definition', '동의어', '반의어', '영영풀이'];
+        const headerKeywords = ['day', 'english', 'korean', '영어', '한글', '뜻', 'synonym', 'antonym', 'definition', 'example', '동의어', '반의어', '영영풀이', '예문'];
 
         // 첫 번째 행의 셀들을 검사
         const hasHeaderKeyword = firstRow.some(cell => {
