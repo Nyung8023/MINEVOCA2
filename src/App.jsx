@@ -1623,7 +1623,37 @@ if (userDataDoc.exists()) {
         if (studentStatsDoc.exists()) {
           const data = studentStatsDoc.data();
           stats = data.learningStats;
-          
+
+          // 현재 날짜 기준으로 통계 재계산
+          if (stats && stats.studyHistory) {
+            const today = new Date().toISOString().split('T')[0];
+
+            // 오늘 공부한 단어 수
+            stats.todayStudied = stats.studyHistory
+              .filter(h => h.date === today)
+              .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+            // 이번 주 공부한 단어 수 (최근 7일)
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const weekAgoStr = weekAgo.toISOString().split('T')[0];
+            stats.weekStudied = stats.studyHistory
+              .filter(h => h.date >= weekAgoStr)
+              .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+            // 이번 달 공부한 단어 수 (최근 30일)
+            const monthAgo = new Date();
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            const monthAgoStr = monthAgo.toISOString().split('T')[0];
+            stats.monthStudied = stats.studyHistory
+              .filter(h => h.date >= monthAgoStr)
+              .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+            // 전체 공부한 단어 수
+            stats.totalStudied = stats.studyHistory
+              .reduce((sum, h) => sum + h.wordsStudied, 0);
+          }
+
           if (stats && stats.lastStudyDate) {
             lastStudyDate = stats.lastStudyDate;
             const today = new Date();
