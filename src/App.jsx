@@ -2730,39 +2730,65 @@ const addWordFromClick = async (clickedWord) => {
     const separatorSplit = answer.split(/[,;\/，]/).map(s => s.trim()).filter(s => s);
 
     separatorSplit.forEach(part => {
-      // 2. 대괄호 [] 안의 내용 추출 및 분리
-      const bracketMatches = part.match(/\[([^\]]+)\]/g);
-      if (bracketMatches) {
-        bracketMatches.forEach(match => {
-          const innerText = match.replace(/[\[\]]/g, '');
-          allWords.push(innerText);
-          // 대괄호 안의 내용도 띄어쓰기로 분리
-          const innerSplit = innerText.split(/\s+/).filter(s => s);
-          allWords.push(...innerSplit);
-        });
-      }
+      // 2. 대괄호 [] 패턴 처리 - 대체 옵션으로 모든 조합 생성
+      // 예: "제안[제공]하다" → ["제안하다", "제공하다"]
+      const generateBracketCombinations = (text) => {
+        const combinations = [];
+        const bracketPattern = /\[([^\]]+)\]/;
+        const match = text.match(bracketPattern);
 
-      // 3. 소괄호 () 안의 내용 추출 및 분리
-      const parenMatches = part.match(/\(([^\)]+)\)/g);
-      if (parenMatches) {
-        parenMatches.forEach(match => {
-          const innerText = match.replace(/[\(\)]/g, '');
-          allWords.push(innerText);
-          // 소괄호 안의 내용도 띄어쓰기로 분리
-          const innerSplit = innerText.split(/\s+/).filter(s => s);
-          allWords.push(...innerSplit);
-        });
-      }
+        if (match) {
+          const beforeBracket = text.substring(0, match.index);
+          const insideBracket = match[1];
+          const afterBracket = text.substring(match.index + match[0].length);
 
-      // 4. 대괄호와 소괄호를 제거한 원본 텍스트
-      const withoutBrackets = part.replace(/\[([^\]]+)\]/g, '').replace(/\(([^\)]+)\)/g, '').trim();
-      if (withoutBrackets) {
-        allWords.push(withoutBrackets);
+          // 대괄호 앞 내용을 포함하는 조합
+          const withBefore = beforeBracket + afterBracket;
+          if (withBefore.trim()) combinations.push(withBefore.trim());
 
-        // 5. 띄어쓰기로도 분리
-        const spaceSplit = withoutBrackets.split(/\s+/).filter(s => s);
-        allWords.push(...spaceSplit);
-      }
+          // 대괄호 안 내용을 포함하는 조합
+          const withInside = beforeBracket + insideBracket + afterBracket;
+          if (withInside.trim()) combinations.push(withInside.trim());
+
+          // 재귀적으로 남은 대괄호 처리
+          combinations.forEach(combo => {
+            if (combo.includes('[')) {
+              const subCombinations = generateBracketCombinations(combo);
+              combinations.push(...subCombinations);
+            }
+          });
+        } else {
+          combinations.push(text);
+        }
+
+        return combinations;
+      };
+
+      const bracketCombinations = generateBracketCombinations(part);
+
+      bracketCombinations.forEach(combo => {
+        // 3. 소괄호 () 안의 내용 추출 및 분리
+        const parenMatches = combo.match(/\(([^\)]+)\)/g);
+        if (parenMatches) {
+          parenMatches.forEach(match => {
+            const innerText = match.replace(/[\(\)]/g, '');
+            allWords.push(innerText);
+            // 소괄호 안의 내용도 띄어쓰기로 분리
+            const innerSplit = innerText.split(/\s+/).filter(s => s);
+            allWords.push(...innerSplit);
+          });
+        }
+
+        // 4. 소괄호를 제거한 텍스트
+        const withoutParens = combo.replace(/\(([^\)]+)\)/g, '').trim();
+        if (withoutParens) {
+          allWords.push(withoutParens);
+
+          // 5. 띄어쓰기로도 분리
+          const spaceSplit = withoutParens.split(/\s+/).filter(s => s);
+          allWords.push(...spaceSplit);
+        }
+      });
     });
 
     // 6. 각 단어를 정규화하고 중복 제거
