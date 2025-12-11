@@ -770,31 +770,25 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             // 영영풀이에서도 품사 표시 제거
             const definition = removePartOfSpeechTags(definitionRaw);
 
-            // 이미 같은 단어장에 같은 영어 단어가 있는지 확인
-            const isDuplicate = existingWords.some(
-              w => w.bookId === targetBook.id && w.english.toLowerCase() === english.toLowerCase()
-            );
-
-            if (!isDuplicate) {
-              newWords.push({
-                id: Date.now() + Math.random(),
-                bookId: targetBook.id,
-                originalBookId: targetBook.id,
-                english: english,
-                korean: korean,
-                example: '',
-                pronunciation: '',
-                synonyms: synonyms,
-                antonyms: antonyms,
-                definition: definition,
-                day: day,
-                mastered: false,
-                nextReviewDate: new Date().toISOString(),
-                lastReviewDate: null,
-                reviewCount: 0,
-                correctStreak: 0
-              });
-            }
+            // 중복 체크 없이 모두 추가
+            newWords.push({
+              id: Date.now() + Math.random(),
+              bookId: targetBook.id,
+              originalBookId: targetBook.id,
+              english: english,
+              korean: korean,
+              example: '',
+              pronunciation: '',
+              synonyms: synonyms,
+              antonyms: antonyms,
+              definition: definition,
+              day: day,
+              mastered: false,
+              nextReviewDate: new Date().toISOString(),
+              lastReviewDate: null,
+              reviewCount: 0,
+              correctStreak: 0
+            });
           }
 
           // 단어장의 wordCount 업데이트
