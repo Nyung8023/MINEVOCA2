@@ -3015,8 +3015,9 @@ const toggleChecked = async (wordId) => {
       }
     } else {
       console.log('🎉 퀴즈 완료! 결과 계산 중...');
-      const finalCorrect = score.correct + (quizResult ? 1 : 0);
-      const finalTotal = score.total + 1;
+      // checkAnswer에서 이미 점수가 업데이트되었으므로 그대로 사용
+      const finalCorrect = score.correct;
+      const finalTotal = score.total;
       const percentage = Math.round((finalCorrect / finalTotal) * 100);
       console.log(`  - 최종 점수: ${finalCorrect}/${finalTotal} = ${percentage}%`);
 
