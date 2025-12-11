@@ -1533,7 +1533,9 @@ if (userDataDoc.exists()) {
   console.log('📖 나의학습단어장:', otherBooks.length, '개', otherBooks.map(b => ({ name: b.name, category: b.category })));
 
   setBooks(migratedBooks);
-        setLearningStats(data.learningStats || {
+
+        // 학습 통계 로드 및 현재 날짜 기준으로 재계산
+        let stats = data.learningStats || {
           todayStudied: 0,
           weekStudied: 0,
           monthStudied: 0,
@@ -1541,7 +1543,39 @@ if (userDataDoc.exists()) {
           streak: 0,
           lastStudyDate: null,
           studyHistory: []
-        });
+        };
+
+        // studyHistory를 기반으로 현재 날짜 기준 통계 재계산
+        if (stats.studyHistory && stats.studyHistory.length > 0) {
+          const today = new Date().toISOString().split('T')[0];
+
+          // 오늘 공부한 단어 수
+          stats.todayStudied = stats.studyHistory
+            .filter(h => h.date === today)
+            .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+          // 이번 주 공부한 단어 수 (최근 7일)
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          const weekAgoStr = weekAgo.toISOString().split('T')[0];
+          stats.weekStudied = stats.studyHistory
+            .filter(h => h.date >= weekAgoStr)
+            .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+          // 이번 달 공부한 단어 수 (최근 30일)
+          const monthAgo = new Date();
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          const monthAgoStr = monthAgo.toISOString().split('T')[0];
+          stats.monthStudied = stats.studyHistory
+            .filter(h => h.date >= monthAgoStr)
+            .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+          // 전체 공부한 단어 수
+          stats.totalStudied = stats.studyHistory
+            .reduce((sum, h) => sum + h.wordsStudied, 0);
+        }
+
+        setLearningStats(stats);
         setExamName(data.examName || '');
         setExamDate(data.examDate || '');
         setClassId(data.classId || '');
