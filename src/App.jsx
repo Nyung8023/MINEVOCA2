@@ -7871,16 +7871,21 @@ if (currentView === 'testManagement' && isAdmin) {
                     const userDataDoc = await getDoc(doc(db, 'userData', studentId));
                     if (userDataDoc.exists()) {
                       const userData = userDataDoc.data();
-                      const studentWords = userData.words || [];
+                        const studentWords = await loadWordsFromSubcollection(studentId);  // ← 서브컬렉션에서 읽기
+console.log(`  📚 학생 ${studentId} 단어 수:`, studentWords.length);
+console.log(`  🔍 첫 단어 bookId:`, studentWords[0]?.bookId);
+console.log(`  🎯 찾는 bookId들:`, selectedTestBookIds);
 
-                      // 선택된 단어장의 단어만 필터링 (Day 선택이 있으면 Day도 필터링)
-                      const filteredWords = studentWords.filter(w => {
-                        const isInSelectedBook = selectedTestBookIds.includes(w.bookId);
-                        const isInSelectedDay = selectedTestDays.length === 0 || selectedTestDays.includes(String(w.day));
-                        return isInSelectedBook && isInSelectedDay;
-                      });
+// 선택된 단어장의 단어만 필터링 (Day 선택이 있으면 Day도 필터링)
+const filteredWords = studentWords.filter(w => {
+  const isInSelectedBook = selectedTestBookIds.includes(w.bookId);
+  const isInSelectedDay = selectedTestDays.length === 0 || selectedTestDays.includes(String(w.day));
+  return isInSelectedBook && isInSelectedDay;
+});
+console.log(`  ✅ 필터링된 단어 수:`, filteredWords.length);
 
-                      allClassWords.push(...filteredWords);
+allClassWords.push(...filteredWords);
+
                     }
                   } catch (error) {
                     console.error('학생 단어 로드 오류:', studentId, error);
