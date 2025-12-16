@@ -808,12 +808,26 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             // 영영풀이에서도 품사 표시 제거
             const definition = removePartOfSpeechTags(definitionRaw);
 
-            // 이미 같은 단어장에 같은 영어 단어가 있는지 확인
-            const isDuplicate = existingWords.some(
-              w => w.bookId === targetBook.id && w.english.toLowerCase() === english.toLowerCase()
+            // 스마트 중복 체크: 같은 영어 단어 + 같은 Day만 중복으로 간주
+            const existingWord = existingWords.find(
+              w => w.bookId === targetBook.id && 
+                   w.english.toLowerCase() === english.toLowerCase() &&
+                   w.day === day
             );
 
-            if (!isDuplicate) {
+            if (existingWord) {
+              // 이미 있으면 업데이트
+              const updatedWord = {
+                ...existingWord,
+                korean: korean,
+                synonyms: synonyms.length > 0 ? synonyms : existingWord.synonyms,
+                antonyms: antonyms.length > 0 ? antonyms : existingWord.antonyms,
+                definition: definition || existingWord.definition,
+                example: exampleRaw || existingWord.example
+              };
+              existingWords = existingWords.map(w => w.id === existingWord.id ? updatedWord : w);
+            } else {
+              // 새 단어 추가
               newWords.push({
                 id: Date.now() + Math.random(),
                 bookId: targetBook.id,
