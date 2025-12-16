@@ -4526,9 +4526,18 @@ if (currentView === 'quizModeSelect') {
   border: '2px solid #a5f3fc'  // 👈 테두리도 밝게
 }}>
   <span style={{ fontSize: '0.6rem' }}>❄️</span>
-  beta v0.5
+  v1.0
 </div>
+        <div style={{
+          textAlign: 'center',
+          marginTop: '8px',
+          fontSize: '0.7rem',
+          color: '#9ca3af'
+        }}>
+          BY 인영쌤✨
+        </div>
       </div>
+
 
       {/* 단어장 편집 모달 */}
       {showEditModal && editingBook && (
