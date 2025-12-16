@@ -1,0 +1,260 @@
+diff --git a/src/App.jsx b/src/App.jsx
+index 6da953e..d05e248 100644
+--- a/src/App.jsx
++++ b/src/App.jsx
+@@ -2440,27 +2440,13 @@ const addWordFromClick = async (clickedWord) => {
+     }
+   };
+ 
+-  // 암기 완료 토글 (다시 외우러 가기)
++  // 체크박스 토글 (단순 확인용, 단어는 사라지지 않음)
+   const toggleMastered = (wordId) => {
+-    const word = words.find(w => w.id === wordId);
+-    if (!word) return;
+-
+-    // 원래 단어장으로 복원 (originalBookId가 없으면 bookId 사용)
+-    const targetBookId = word.originalBookId || word.bookId;
+-
+-    // mastered를 false로 바꾸고 원래 단어장으로 이동
+     setWords(words.map(w =>
+       w.id === wordId
+-        ? { ...w, mastered: false, bookId: targetBookId }
++        ? { ...w, mastered: !w.mastered }
+         : w
+     ));
+-
+-    // 원래 단어장의 wordCount 증가
+-    setBooks(books.map(b =>
+-      b.id === targetBookId
+-        ? { ...b, wordCount: b.wordCount + 1 }
+-        : b
+-    ));
+   };
+ 
+   // 암기완료 버튼 - 암기완료 처리
+@@ -2796,7 +2782,7 @@ const addWordFromClick = async (clickedWord) => {
+     ? words.filter(w => w.mastered === true)
+     : selectedBook?.id === 'wrongNote'
+     ? words.filter(w => w.wrongNote === true)
+-    : words.filter(w => w.bookId === selectedBook?.id && !w.mastered);
++    : words.filter(w => w.bookId === selectedBook?.id);
+ 
+   // 현재 단어장에서 사용 가능한 모든 Day 목록 (오름차순 정렬)
+   const availableDays = selectedBook
+@@ -2804,28 +2790,11 @@ const addWordFromClick = async (clickedWord) => {
+     : [];
+ 
+   // Day 필터링된 단어들 (selectedDay가 null이면 Day 그리드 표시, 'all'이면 전체, 숫자면 해당 Day만)
+-  console.log('🔍 선택된 Day:', selectedDay, '타입:', typeof selectedDay);
+-  console.log('🔍 전체 단어 수:', currentBookWords.length);
+-
+   const displayWords = selectedDay === null
+     ? currentBookWords  // Day 그리드 화면에서는 사용 안함
+     : selectedDay === 'all'
+     ? currentBookWords  // 전체 보기
+-    : currentBookWords.filter(w => {
+-        const match = String(w.day) === String(selectedDay);
+-        return match;
+-      });  // 특정 Day만 (타입 안전 비교)
+-
+-  console.log('🔍 필터링된 단어 수:', displayWords.length);
+-  if (displayWords.length > 0 && displayWords.length < 100) {
+-    console.log('🔍 처음 5개 단어의 상세 정보:', displayWords.slice(0, 5).map(w => ({
+-      english: w.english,
+-      day: w.day,
+-      dayType: typeof w.day,
+-      mastered: w.mastered,
+-      bookId: w.bookId
+-    })));
+-  }
++    : currentBookWords.filter(w => String(w.day) === String(selectedDay));  // 특정 Day만 (타입 안전 비교)
+ 
+   if (loading) {
+     return (
+@@ -5315,12 +5284,12 @@ if (currentView === 'quizModeSelect') {
+                 </div>
+               ))}
+ 
+-              {/* 암기완료 */}
++              {/* 오답노트 */}
+               <div
+-                onClick={() => setCurrentView('memorized')}
++                onClick={() => setCurrentView('wrongNote')}
+                 style={{
+                   background: 'white',
+-                  border: '2px solid #10b981',
++                  border: '2px solid #ef4444',
+                   borderRadius: '12px',
+                   padding: '14px',
+                   cursor: 'pointer',
+@@ -5340,14 +5309,14 @@ if (currentView === 'quizModeSelect') {
+                   width: '40px',
+                   height: '40px',
+                   borderRadius: '10px',
+-                  background: '#d1fae5',
++                  background: '#fee2e2',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   flexShrink: 0,
+                   fontSize: '1.3rem'
+                 }}>
+-                  ✅
++                  📝
+                 </div>
+                 <div style={{ flex: 1, minWidth: 0 }}>
+                   <div style={{
+@@ -5356,21 +5325,21 @@ if (currentView === 'quizModeSelect') {
+                     color: '#1e293b',
+                     marginBottom: '2px'
+                   }}>
+-                    암기완료
++                    오답노트
+                   </div>
+                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+-                    완료 {words.filter(w => w.mastered).length}개
++                    등록 {words.filter(w => w.wrongNote).length}개
+                   </div>
+                 </div>
+                 <div style={{ fontSize: '1.2rem', color: '#94a3b8', flexShrink: 0 }}>→</div>
+               </div>
+ 
+-              {/* 오답노트 */}
++              {/* 암기완료 */}
+               <div
+-                onClick={() => setCurrentView('wrongNote')}
++                onClick={() => setCurrentView('memorized')}
+                 style={{
+                   background: 'white',
+-                  border: '2px solid #ef4444',
++                  border: '2px solid #10b981',
+                   borderRadius: '12px',
+                   padding: '14px',
+                   cursor: 'pointer',
+@@ -5390,14 +5359,14 @@ if (currentView === 'quizModeSelect') {
+                   width: '40px',
+                   height: '40px',
+                   borderRadius: '10px',
+-                  background: '#fee2e2',
++                  background: '#d1fae5',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center',
+                   flexShrink: 0,
+                   fontSize: '1.3rem'
+                 }}>
+-                  📝
++                  ✅
+                 </div>
+                 <div style={{ flex: 1, minWidth: 0 }}>
+                   <div style={{
+@@ -5406,10 +5375,10 @@ if (currentView === 'quizModeSelect') {
+                     color: '#1e293b',
+                     marginBottom: '2px'
+                   }}>
+-                    오답노트
++                    암기완료
+                   </div>
+                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+-                    등록 {words.filter(w => w.wrongNote).length}개
++                    완료 {words.filter(w => w.mastered).length}개
+                   </div>
+                 </div>
+                 <div style={{ fontSize: '1.2rem', color: '#94a3b8', flexShrink: 0 }}>→</div>
+@@ -9514,23 +9483,8 @@ if (currentView === 'list' && selectedBook) {
+           </div>
+         )}
+ 
+-       {/* 디버그 정보 */}
+-        {selectedDay !== null && selectedDay !== 'all' && (
+-          <div style={{
+-            background: '#fef3c7',
+-            border: '2px solid #fbbf24',
+-            borderRadius: '12px',
+-            padding: '12px',
+-            marginBottom: '12px',
+-            fontSize: '0.9rem',
+-            fontWeight: '600',
+-            color: '#92400e'
+-          }}>
+-            🔍 디버그: Day {selectedDay} 선택 | 표시될 단어 수: {displayWords.length}개
+-          </div>
+-        )}
+-
+-       {/* 단어 목록 - 파스텔톤 */}
++       {/* 단어 목록 - 파스텔톤 (Day 선택 시 또는 Day가 없을 때 표시) */}
++        {(selectedDay !== null || availableDays.length === 0) && (
+         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+           {displayWords.length === 0 ? (
+             <div style={{
+@@ -9575,24 +9529,9 @@ if (currentView === 'list' && selectedBook) {
+                     fontSize: '0.85rem',
+                     fontWeight: '700',
+                     color: '#0369a1',
+-                    flexShrink: 0,
+-                    position: 'relative'
++                    flexShrink: 0
+                   }}>
+                     {index + 1}
+-                    {/* Day 값 표시 - 디버그용 */}
+-                    <div style={{
+-                      position: 'absolute',
+-                      top: '-8px',
+-                      right: '-8px',
+-                      background: word.day === selectedDay ? '#10b981' : '#ef4444',
+-                      color: 'white',
+-                      fontSize: '0.6rem',
+-                      padding: '2px 4px',
+-                      borderRadius: '4px',
+-                      fontWeight: '700'
+-                    }}>
+-                      D{word.day}
+-                    </div>
+                   </div>
+ 
+                   {/* 단어 영역 */}
+@@ -9629,17 +9568,15 @@ if (currentView === 'list' && selectedBook) {
+                     </div>
+                   </div>
+ 
+-                  {/* 체크마크 버튼 - 파스텔톤 */}
++                  {/* 체크박스 - 확인용 */}
+                   <button
+                     onClick={() => toggleMastered(word.id)}
+                     style={{
+-                      width: '34px',
+-                      height: '34px',
+-                      background: word.mastered 
+-                        ? 'linear-gradient(135deg, #d1fae5, #a7f3d0)' 
+-                        : 'linear-gradient(135deg, #f1f5f9, #e2e8f0)',
+-                      border: word.mastered ? '2px solid #6ee7b7' : '2px solid #cbd5e1',
+-                      borderRadius: '8px',
++                      width: '28px',
++                      height: '28px',
++                      background: word.mastered ? '#10b981' : '#ffffff',
++                      border: word.mastered ? '2px solid #10b981' : '2px solid #d1d5db',
++                      borderRadius: '6px',
+                       cursor: 'pointer',
+                       display: 'flex',
+                       alignItems: 'center',
+@@ -9654,10 +9591,8 @@ if (currentView === 'list' && selectedBook) {
+                       e.target.style.transform = 'scale(1)';
+                     }}
+                   >
+-                    {word.mastered ? (
+-                      <Check size={18} strokeWidth={2.5} style={{ color: '#047857' }} />
+-                    ) : (
+-                      <Star size={18} strokeWidth={2.5} style={{ color: '#94a3b8' }} />
++                    {word.mastered && (
++                      <Check size={18} strokeWidth={3} style={{ color: '#ffffff' }} />
+                     )}
+                   </button>
+                 </div>
+@@ -10077,6 +10012,7 @@ if (currentView === 'list' && selectedBook) {
+             ))
+           )}
+         </div>
++        )}
+       </div>
+     </div>
+   );

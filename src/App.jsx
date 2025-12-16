@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, updateDoc, addDoc, writeBatch } from 'firebase/firestore';
 import { Volume2, Check, X, Plus, Trash2, Edit2, BookOpen, Album, Brain, GraduationCap, Star, Eye, Settings, Gift, Target, TrendingUp, Award, Calendar, BarChart3, Shuffle, Headphones, Pencil, Lightbulb, ClipboardList, CheckCircle, Book, Link, ArrowLeftRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -470,7 +470,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
       if (jsonData.length > 0 && jsonData[0]) {
         const firstRow = jsonData[0];
-        const headerKeywords = ['day', 'english', 'korean', '영어', '한글', '뜻', 'synonym', 'antonym', 'definition', '동의어', '반의어', '영영풀이'];
+        const headerKeywords = ['day', 'english', 'korean', '영어', '한글', '뜻', 'synonym', 'antonym', 'definition', 'example', '동의어', '반의어', '영영풀이', '예문'];
 
         // 첫 번째 행의 셀들을 검사
         const hasHeaderKeyword = firstRow.some(cell => {
@@ -612,16 +612,18 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
       // 헤더 제외하고 데이터만 추출 (dataStartIndex 사용)
       const dataRows = cleanedData.slice(dataStartIndex).filter(row => {
+        if (!row || row.length === 0) return false;
+
         if (hasDayColumn) {
           // Day 있음: English(row[1])와 Korean(row[2]) 필수
           const english = String(row[1] || '').trim();
           const korean = String(row[2] || '').trim();
-          return row.length >= 3 && english && korean;
+          return english && korean;
         } else {
           // Day 없음: English(row[0])와 Korean(row[1]) 필수
           const english = String(row[0] || '').trim();
           const korean = String(row[1] || '').trim();
-          return row.length >= 2 && english && korean;
+          return english && korean;
         }
       });
 
@@ -632,8 +634,8 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
       if (dataRows.length === 0) {
         const formatGuide = hasDayColumn
-          ? '📋 열 순서 (Day 포함):\n1열: Day (숫자, 선택)\n2열: 영어\n3열: 한글 뜻\n4열: 동의어 (선택, 쉼표로 구분)\n5열: 반의어 (선택, 쉼표로 구분)\n6열: 영영풀이 (선택)'
-          : '📋 열 순서 (Day 없음):\n1열: 영어\n2열: 한글 뜻\n3열: 동의어 (선택, 쉼표로 구분)\n4열: 반의어 (선택, 쉼표로 구분)\n5열: 영영풀이 (선택)';
+          ? '📋 열 순서 (Day 포함):\n1열: Day (숫자, 선택)\n2열: 영어\n3열: 한글 뜻\n4열: 동의어 (선택, 쉼표로 구분)\n5열: 반의어 (선택, 쉼표로 구분)\n6열: 영영풀이 (선택)\n7열: 예문 (선택)'
+          : '📋 열 순서 (Day 없음):\n1열: 영어\n2열: 한글 뜻\n3열: 동의어 (선택, 쉼표로 구분)\n4열: 반의어 (선택, 쉼표로 구분)\n5열: 영영풀이 (선택)\n6열: 예문 (선택)';
         const detectionInfo = `\n\n🔍 Day 컬럼 감지: ${hasDayColumn ? 'Day 있음' : 'Day 없음'}`;
         setExcelUploadStatus('❌ 엑셀 파일에 단어가 없습니다.\n\n' + formatGuide + detectionInfo);
         setIsExcelUploading(false);
@@ -691,7 +693,8 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
           const userData = userDataDoc.data();
           const existingBooks = userData.books || [];
-          const existingWords = userData.words || [];
+          // 📌 서브컬렉션에서 기존 단어 읽기
+          let existingWords = await loadWordsFromSubcollection(studentId);
 
           // 새 단어장 생성 (기존에 같은 이름이 있으면 속성만 업데이트)
           let targetBook = existingBooks.find(b => b.name === bookName);
@@ -723,19 +726,55 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             );
           }
 
+          // 📌 헤더 기반 컬럼 매핑 (빈 컬럼 제거 영향 받지 않음)
+          let columnMap = {};
+          if (hasHeader && cleanedData[dataStartIndex - 1]) {
+            const headers = cleanedData[dataStartIndex - 1];
+            headers.forEach((header, index) => {
+              if (!header) return;
+              const headerStr = String(header).toLowerCase().trim();
+              if (headerStr.includes('day')) columnMap.day = index;
+              if (headerStr.includes('영어') || headerStr.includes('english')) columnMap.english = index;
+              if (headerStr.includes('한글') || headerStr.includes('korean') || headerStr.includes('뜻')) columnMap.korean = index;
+              if (headerStr.includes('동의어') || headerStr.includes('synonym')) columnMap.synonyms = index;
+              if (headerStr.includes('반의어') || headerStr.includes('antonym')) columnMap.antonyms = index;
+              if (headerStr.includes('영영풀이') || headerStr.includes('definition')) columnMap.definition = index;
+              if (headerStr.includes('예문') || headerStr.includes('example')) columnMap.example = index;
+            });
+            console.log('📋 컬럼 매핑:', columnMap);
+          }
+
           // 단어 추가 (중복 체크)
           const newWords = [];
           for (const row of dataRows) {
-            // Day 컬럼 유무에 따라 인덱스 조정
-            let dayRaw, english, korean, synonymsRaw, antonymsRaw, definitionRaw;
+            let dayRaw, english, korean, synonymsRaw, antonymsRaw, definitionRaw, exampleRaw;
 
-            if (hasDayColumn) {
+            // 헤더 기반 매핑 사용 (우선순위)
+            if (Object.keys(columnMap).length > 0) {
+              dayRaw = columnMap.day !== undefined ? String(row[columnMap.day] || '').trim() : '';
+              english = columnMap.english !== undefined ? String(row[columnMap.english] || '').trim() : '';
+              korean = columnMap.korean !== undefined ? String(row[columnMap.korean] || '').trim() : '';
+              synonymsRaw = columnMap.synonyms !== undefined ? String(row[columnMap.synonyms] || '').trim() : '';
+              antonymsRaw = columnMap.antonyms !== undefined ? String(row[columnMap.antonyms] || '').trim() : '';
+              definitionRaw = columnMap.definition !== undefined ? String(row[columnMap.definition] || '').trim() : '';
+              exampleRaw = columnMap.example !== undefined ? String(row[columnMap.example] || '').trim() : '';
+
+              // 영어 단어 앞에 Day 숫자가 붙어있는 경우 처리
+              const dayPrefixMatch = english.match(/^(\d+)\s+(.+)$/);
+              if (dayPrefixMatch && !dayRaw) {
+                dayRaw = dayPrefixMatch[1];
+                english = dayPrefixMatch[2];
+              }
+            }
+            // 폴백: Day 컬럼 유무에 따라 인덱스 조정 (헤더 없을 때)
+            else if (hasDayColumn) {
               dayRaw = String(row[0] || '').trim();
               english = String(row[1] || '').trim();
               korean = String(row[2] || '').trim();
               synonymsRaw = String(row[3] || '').trim();
               antonymsRaw = String(row[4] || '').trim();
               definitionRaw = String(row[5] || '').trim();
+              exampleRaw = String(row[6] || '').trim();
 
               // 영어 단어 앞에 Day 숫자가 붙어있는 경우 (예: "1 provide")
               const dayPrefixMatch = english.match(/^(\d+)\s+(.+)$/);
@@ -753,6 +792,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
               synonymsRaw = String(row[2] || '').trim();
               antonymsRaw = String(row[3] || '').trim();
               definitionRaw = String(row[4] || '').trim();
+              exampleRaw = String(row[5] || '').trim();
             }
 
             if (!english || !korean) continue;
@@ -770,19 +810,33 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             // 영영풀이에서도 품사 표시 제거
             const definition = removePartOfSpeechTags(definitionRaw);
 
-            // 이미 같은 단어장에 같은 영어 단어가 있는지 확인
-            const isDuplicate = existingWords.some(
-              w => w.bookId === targetBook.id && w.english.toLowerCase() === english.toLowerCase()
+            // 스마트 중복 체크: 같은 영어 단어 + 같은 Day만 중복으로 간주
+            const existingWord = existingWords.find(
+              w => w.bookId === targetBook.id && 
+                   w.english.toLowerCase() === english.toLowerCase() &&
+                   w.day === day
             );
 
-            if (!isDuplicate) {
+            if (existingWord) {
+              // 이미 있으면 업데이트
+              const updatedWord = {
+                ...existingWord,
+                korean: korean,
+                synonyms: synonyms.length > 0 ? synonyms : existingWord.synonyms,
+                antonyms: antonyms.length > 0 ? antonyms : existingWord.antonyms,
+                definition: definition || existingWord.definition,
+                example: exampleRaw || existingWord.example
+              };
+              existingWords = existingWords.map(w => w.id === existingWord.id ? updatedWord : w);
+            } else {
+              // 새 단어 추가
               newWords.push({
                 id: Date.now() + Math.random(),
                 bookId: targetBook.id,
                 originalBookId: targetBook.id,
                 english: english,
                 korean: korean,
-                example: '',
+                example: exampleRaw || '',
                 pronunciation: '',
                 synonyms: synonyms,
                 antonyms: antonyms,
@@ -797,18 +851,24 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
             }
           }
 
-          // 단어장의 wordCount 업데이트
-          const finalWords = [...existingWords, ...newWords];
-          const bookWordCount = finalWords.filter(w => w.bookId === targetBook.id).length;
+          // 📌 서브컬렉션에 새 단어들 저장
+          if (newWords.length > 0) {
+            await saveAllWordsToSubcollection(studentId, newWords);
+          }
+
+          // 단어장의 wordCount 업데이트 (서브컬렉션 + 새 단어)
+          const totalWordsForBook = [...existingWords, ...newWords].filter(w => w.bookId === targetBook.id).length;
           updatedBooks = updatedBooks.map(b =>
-            b.id === targetBook.id ? { ...b, wordCount: bookWordCount } : b
+            b.id === targetBook.id ? { ...b, wordCount: totalWordsForBook } : b
           );
 
-          // Firestore에 저장 (classId/className도 함께 설정)
+          // 📌 Firestore에 저장 (words는 서브컬렉션에 있으므로 빈 배열)
+          // userData에서 words, books 필드 제거 후 스프레드 (정확한 업데이트 보장)
+          const { words: _oldWords, books: _oldBooks, ...userDataWithoutWordsAndBooks } = userData;
           await setDoc(userDataRef, {
-            ...userData,
-            books: updatedBooks,
-            words: finalWords,
+            ...userDataWithoutWordsAndBooks,
+            books: updatedBooks,  // 새로 업데이트된 books
+            words: [], // 서브컬렉션에 저장되므로 비움
             classId: selectedUploadClassId,
             className: selectedClass.className,
             lastUpdated: new Date().toISOString()
@@ -1291,6 +1351,89 @@ const searchMultipleWordsInDB = async (input) => {
     }
   };
 
+  // ========== 서브컬렉션 헬퍼 함수들 ==========
+
+  // 1️⃣ 서브컬렉션에서 모든 단어 읽기
+  const loadWordsFromSubcollection = async (userId) => {
+    try {
+      const wordsRef = collection(db, 'userData', userId, 'words');
+      const wordsSnapshot = await getDocs(wordsRef);
+      const loadedWords = [];
+
+      wordsSnapshot.forEach((doc) => {
+        loadedWords.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+
+      console.log(`📚 서브컬렉션에서 ${loadedWords.length}개 단어 로드 완료`);
+      return loadedWords;
+    } catch (error) {
+      console.error('❌ 서브컬렉션 단어 로드 실패:', error);
+      return [];
+    }
+  };
+
+  // 2️⃣ 서브컬렉션에 단어 저장 (단일)
+  const saveWordToSubcollection = async (userId, word) => {
+    try {
+      // 📌 Firestore 문서 ID는 반드시 문자열이어야 함
+      const wordRef = doc(db, 'userData', userId, 'words', String(word.id));
+      await setDoc(wordRef, word);
+      console.log(`✅ 단어 저장: ${word.english}`);
+    } catch (error) {
+      console.error('❌ 단어 저장 실패:', error);
+      throw error;
+    }
+  };
+
+  // 3️⃣ 서브컬렉션에서 단어 삭제
+  const deleteWordFromSubcollection = async (userId, wordId) => {
+    try {
+      // 📌 Firestore 문서 ID는 반드시 문자열이어야 함
+      const wordRef = doc(db, 'userData', userId, 'words', String(wordId));
+      await deleteDoc(wordRef);
+      console.log(`🗑️ 단어 삭제: ${wordId}`);
+    } catch (error) {
+      console.error('❌ 단어 삭제 실패:', error);
+      throw error;
+    }
+  };
+
+  // 4️⃣ 서브컬렉션에 모든 단어 일괄 저장 (Firestore Batch 사용)
+  const saveAllWordsToSubcollection = async (userId, wordsArray) => {
+    try {
+      console.log(`💾 ${wordsArray.length}개 단어 Batch 저장 시작...`);
+
+      // Firestore Batch는 최대 500개 작업까지 가능
+      const batchSize = 500;
+      const batches = [];
+
+      for (let i = 0; i < wordsArray.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const chunk = wordsArray.slice(i, Math.min(i + batchSize, wordsArray.length));
+
+        chunk.forEach(word => {
+          const wordRef = doc(db, 'userData', userId, 'words', String(word.id));
+          batch.set(wordRef, word);
+        });
+
+        batches.push(batch);
+        console.log(`  📦 Batch ${batches.length} 준비: ${chunk.length}개 단어`);
+      }
+
+      // 모든 배치 커밋 (한 번에 전송!)
+      console.log(`🚀 ${batches.length}개 배치 커밋 중...`);
+      await Promise.all(batches.map(batch => batch.commit()));
+
+      console.log(`✅ 모든 단어 저장 완료! (${wordsArray.length}개)`);
+    } catch (error) {
+      console.error('❌ Batch 저장 실패:', error);
+      throw error;
+    }
+  };
+
   // 사용자 데이터 로드
   const loadUserData = async (userId) => {
     try {
@@ -1330,9 +1473,11 @@ if (userDataDoc.exists()) {
 
     // 마이그레이션한 경우 즉시 Firestore에 저장
     console.log('💾 마이그레이션된 단어장을 Firestore에 저장합니다...');
+    const { words: _oldWords1, ...dataWithoutWords1 } = data;
     await setDoc(doc(db, 'userData', userId), {
-      ...data,
-      books: migratedBooks
+      ...dataWithoutWords1,
+      books: migratedBooks,
+      words: []  // 📌 words는 서브컬렉션에 저장
     });
   } else {
     // 기존 사용자: 불필요한 기본 단어장(id 3, 4, 5)만 제거
@@ -1353,23 +1498,48 @@ if (userDataDoc.exists()) {
     if (cleanedBooks.length !== migratedBooks.length) {
       console.log('🧹 불필요한 단어장 제거:', migratedBooks.length, '→', cleanedBooks.length);
       migratedBooks = cleanedBooks;
+      const { words: _oldWords2, ...dataWithoutWords2 } = data;
       await setDoc(doc(db, 'userData', userId), {
-        ...data,
-        books: migratedBooks
+        ...dataWithoutWords2,
+        books: migratedBooks,
+        words: []  // 📌 words는 서브컬렉션에 저장
       });
     } else {
       console.log('⚠️ 제거할 단어장이 없음 (길이 동일:', migratedBooks.length, ')');
     }
   }
 
-  // words 설정 (모든 경우에 적용)
-  setWords(data.words || []);
+  // 🔄 words 설정: 서브컬렉션에서 읽기 + 자동 마이그레이션
+  console.log('📚 단어 로딩 시작...');
+
+  // 1단계: 서브컬렉션에서 단어 읽기 시도
+  let loadedWords = await loadWordsFromSubcollection(userId);
+
+  // 2단계: 서브컬렉션이 비어있는데 기존 배열에 데이터가 있으면 마이그레이션
+  const oldWords = data.words || [];
+  if (loadedWords.length === 0 && oldWords.length > 0) {
+    console.log(`🔄 자동 마이그레이션: ${oldWords.length}개 단어를 서브컬렉션으로 이동`);
+    await saveAllWordsToSubcollection(userId, oldWords);
+    loadedWords = oldWords;
+
+    // 마이그레이션 후 기존 userData에서 words 배열 제거 (공간 절약)
+    console.log('🧹 기존 userData.words 배열 제거');
+    const { words: _oldWords3, ...dataWithoutWords3 } = data;
+    await setDoc(doc(db, 'userData', userId), {
+      ...dataWithoutWords3,
+      books: migratedBooks,
+      words: [] // 빈 배열로 비우기 (나중에 완전히 제거 가능)
+    });
+  }
+
+  setWords(loadedWords);
 
   console.log('📊 마이그레이션 결과:', {
     originalBooksCount: (data.books || []).length,
     finalBooksCount: migratedBooks.length,
-    wordsCount: (data.words || []).length,
-    wasMigrated: needsMigration
+    wordsCount: loadedWords.length,
+    wasMigrated: needsMigration,
+    wordsFromSubcollection: true
   });
 
   // 교재단어장 디버깅
@@ -1379,7 +1549,9 @@ if (userDataDoc.exists()) {
   console.log('📖 나의학습단어장:', otherBooks.length, '개', otherBooks.map(b => ({ name: b.name, category: b.category })));
 
   setBooks(migratedBooks);
-        setLearningStats(data.learningStats || {
+
+        // 학습 통계 로드 및 현재 날짜 기준으로 재계산
+        let stats = data.learningStats || {
           todayStudied: 0,
           weekStudied: 0,
           monthStudied: 0,
@@ -1387,7 +1559,39 @@ if (userDataDoc.exists()) {
           streak: 0,
           lastStudyDate: null,
           studyHistory: []
-        });
+        };
+
+        // studyHistory를 기반으로 현재 날짜 기준 통계 재계산
+        if (stats.studyHistory && stats.studyHistory.length > 0) {
+          const today = new Date().toISOString().split('T')[0];
+
+          // 오늘 공부한 단어 수
+          stats.todayStudied = stats.studyHistory
+            .filter(h => h.date === today)
+            .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+          // 이번 주 공부한 단어 수 (최근 7일)
+          const weekAgo = new Date();
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          const weekAgoStr = weekAgo.toISOString().split('T')[0];
+          stats.weekStudied = stats.studyHistory
+            .filter(h => h.date >= weekAgoStr)
+            .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+          // 이번 달 공부한 단어 수 (최근 30일)
+          const monthAgo = new Date();
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          const monthAgoStr = monthAgo.toISOString().split('T')[0];
+          stats.monthStudied = stats.studyHistory
+            .filter(h => h.date >= monthAgoStr)
+            .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+          // 전체 공부한 단어 수
+          stats.totalStudied = stats.studyHistory
+            .reduce((sum, h) => sum + h.wordsStudied, 0);
+        }
+
+        setLearningStats(stats);
         setExamName(data.examName || '');
         setExamDate(data.examDate || '');
         setClassId(data.classId || '');
@@ -1469,7 +1673,37 @@ if (userDataDoc.exists()) {
         if (studentStatsDoc.exists()) {
           const data = studentStatsDoc.data();
           stats = data.learningStats;
-          
+
+          // 현재 날짜 기준으로 통계 재계산
+          if (stats && stats.studyHistory) {
+            const today = new Date().toISOString().split('T')[0];
+
+            // 오늘 공부한 단어 수
+            stats.todayStudied = stats.studyHistory
+              .filter(h => h.date === today)
+              .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+            // 이번 주 공부한 단어 수 (최근 7일)
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const weekAgoStr = weekAgo.toISOString().split('T')[0];
+            stats.weekStudied = stats.studyHistory
+              .filter(h => h.date >= weekAgoStr)
+              .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+            // 이번 달 공부한 단어 수 (최근 30일)
+            const monthAgo = new Date();
+            monthAgo.setMonth(monthAgo.getMonth() - 1);
+            const monthAgoStr = monthAgo.toISOString().split('T')[0];
+            stats.monthStudied = stats.studyHistory
+              .filter(h => h.date >= monthAgoStr)
+              .reduce((sum, h) => sum + h.wordsStudied, 0);
+
+            // 전체 공부한 단어 수
+            stats.totalStudied = stats.studyHistory
+              .reduce((sum, h) => sum + h.wordsStudied, 0);
+          }
+
           if (stats && stats.lastStudyDate) {
             lastStudyDate = stats.lastStudyDate;
             const today = new Date();
@@ -1818,19 +2052,39 @@ if (userDataDoc.exists()) {
           if (userDataDoc.exists()) {
             const userData = userDataDoc.data();
             const existingBooks = userData.books || [];
-            const existingWords = userData.words || [];
+            // 📌 서브컬렉션에서 단어 읽기
+            let existingWords = await loadWordsFromSubcollection(studentId);
 
             // 해당 단어장 찾기
             const targetBook = existingBooks.find(b => b.name === bookName);
             if (targetBook) {
               // 단어장과 해당 단어장의 단어들 삭제
               const updatedBooks = existingBooks.filter(b => b.name !== bookName);
-              const updatedWords = existingWords.filter(w => w.bookId !== targetBook.id);
 
+              // 📌 서브컬렉션에서 해당 단어장의 단어들 삭제 (Batch 처리)
+const wordsToDelete = existingWords.filter(w => w.bookId === targetBook.id);
+
+const batchSize = 500;
+for (let i = 0; i < wordsToDelete.length; i += batchSize) {
+  const batch = writeBatch(db);
+  const batchWords = wordsToDelete.slice(i, i + batchSize);
+  
+  for (const word of batchWords) {
+    const wordRef = doc(db, 'userData', studentId, 'words', String(word.id));
+    batch.delete(wordRef);
+  }
+  
+  await batch.commit();
+}
+
+
+              // 📌 userData에는 books만 저장 (words는 빈 배열)
+              // userData에서 words 필드 제거 후 스프레드 (1MB 제한 회피)
+              const { words: _oldWords, ...userDataWithoutWords } = userData;
               await setDoc(userDataRef, {
-                ...userData,
+                ...userDataWithoutWords,
                 books: updatedBooks,
-                words: updatedWords,
+                words: [],
                 lastUpdated: new Date().toISOString()
               });
               successCount++;
@@ -1985,21 +2239,12 @@ if (userDataDoc.exists()) {
       const existingDoc = await getDoc(userDataRef);
       const existingData = existingDoc.exists() ? existingDoc.data() : {};
 
-      // 저장하기 전에 모든 단어에서 품사 표시 제거
-      const cleanedWords = words.map(word => ({
-        ...word,
-        definition: word.definition ? removePartOfSpeechTags(word.definition) : word.definition,
-        synonyms: Array.isArray(word.synonyms)
-          ? word.synonyms.map(s => removePartOfSpeechTags(s)).filter(s => s)
-          : word.synonyms,
-        antonyms: Array.isArray(word.antonyms)
-          ? word.antonyms.map(a => removePartOfSpeechTags(a)).filter(a => a)
-          : word.antonyms
-      }));
-
+      // 📌 변경: words는 서브컬렉션에 저장되므로 여기서는 제외
+      // books, learningStats 등 메타데이터만 저장
       const dataToSave = {
         books: books,
-        words: cleanedWords,
+        // words는 서브컬렉션에 저장되므로 제거 (호환성을 위해 빈 배열 유지)
+        words: [],
         learningStats: learningStats,
         examName: examName,
         examDate: examDate,
@@ -2011,14 +2256,15 @@ if (userDataDoc.exists()) {
       };
       console.log('💾 데이터 저장 중:', currentUser.email);
       console.log('  - 단어장 수:', dataToSave.books.length);
-      console.log('  - 단어 수:', dataToSave.words.length);
+      console.log('  - 단어 수 (서브컬렉션):', words.length);
       console.log('  - classId:', dataToSave.classId);
       console.log('  - className:', dataToSave.className);
       console.log('  - userName:', dataToSave.userName);
       console.log('  - examName:', dataToSave.examName);
       console.log('  - examDate:', dataToSave.examDate);
       await setDoc(userDataRef, dataToSave);
-      console.log('✅ 데이터 저장 성공!');
+      console.log('✅ 데이터 저장 성공 (메타데이터만)!');
+      console.log('ℹ️  단어는 서브컬렉션에 별도 저장됩니다.');
     } catch (error) {
       console.error('❌ 데이터 저장 오류:', error);
     }
@@ -2302,7 +2548,8 @@ if (userDataDoc.exists()) {
   // 단어장 선택
   const selectBook = (book) => {
     setSelectedBook(book);
-    setSelectedDay(null); // Day 선택 초기화
+    setSelectedDay(book.isExamRange ? 'all' : null); // 이번 시험범위일 경우 자동으로 'all' 선택, 아니면 Day 선택 초기화
+
     setCurrentView('list');
   };
 
@@ -2441,18 +2688,37 @@ const addWordFromClick = async (clickedWord) => {
   };
 
   // 체크박스 토글 (단순 확인용, 단어는 사라지지 않음)
-  const toggleMastered = (wordId) => {
+const toggleChecked = async (wordId) => {
+    const word = words.find(w => w.id === wordId);
+    if (!word || !currentUser) return;
+
+    const updatedWord = { ...word, checked: !word.checked };
+
+    // 1️⃣ State 업데이트
     setWords(words.map(w =>
-      w.id === wordId
-        ? { ...w, mastered: !w.mastered }
-        : w
+      w.id === wordId ? updatedWord : w
     ));
+
+    // 2️⃣ 서브컬렉션에 저장
+    try {
+      await saveWordToSubcollection(currentUser.uid, updatedWord);
+    } catch (error) {
+      console.error('❌ toggleChecked 저장 실패:', error);
+    }
   };
 
+
   // 암기완료 버튼 - 암기완료 처리
-  const markAsMastered = (wordId) => {
+  const markAsMastered = async (wordId) => {
     const word = words.find(w => w.id === wordId);
-    if (!word) return;
+    if (!word || !currentUser) return;
+
+    const updatedWord = { ...word, mastered: true };
+
+    // 1️⃣ State 업데이트
+    setWords(words.map(w =>
+      w.id === wordId ? updatedWord : w
+    ));
 
     // 현재 단어장에서 wordCount 감소
     setBooks(books.map(b =>
@@ -2461,17 +2727,62 @@ const addWordFromClick = async (clickedWord) => {
         : b
     ));
 
-    // mastered = true로 설정
+    // 2️⃣ 서브컬렉션에 저장
+    try {
+      await saveWordToSubcollection(currentUser.uid, updatedWord);
+    } catch (error) {
+      console.error('❌ markAsMastered 저장 실패:', error);
+    }
+  };
+
+  // 다시 외우러 가기 - 암기완료 취소
+  const unmarkAsMastered = async (wordId) => {
+    const word = words.find(w => w.id === wordId);
+    if (!word || !currentUser) return;
+
+    // 원래 단어장으로 복원 (originalBookId가 없으면 bookId 사용)
+    const targetBookId = word.originalBookId || word.bookId;
+
+    const updatedWord = { ...word, mastered: false, bookId: targetBookId };
+
+    // 1️⃣ State 업데이트
     setWords(words.map(w =>
-      w.id === wordId ? { ...w, mastered: true } : w
+      w.id === wordId ? updatedWord : w
     ));
+
+    // 원래 단어장의 wordCount 증가
+    setBooks(books.map(b =>
+      b.id === targetBookId
+        ? { ...b, wordCount: b.wordCount + 1 }
+        : b
+    ));
+
+    // 2️⃣ 서브컬렉션에 저장
+    try {
+      await saveWordToSubcollection(currentUser.uid, updatedWord);
+    } catch (error) {
+      console.error('❌ unmarkAsMastered 저장 실패:', error);
+    }
   };
 
   // 오답노트 추가/제거
-  const toggleWrongNote = (wordId) => {
+  const toggleWrongNote = async (wordId) => {
+    const word = words.find(w => w.id === wordId);
+    if (!word || !currentUser) return;
+
+    const updatedWord = { ...word, wrongNote: !word.wrongNote };
+
+    // 1️⃣ State 업데이트
     setWords(words.map(w =>
-      w.id === wordId ? { ...w, wrongNote: !w.wrongNote } : w
+      w.id === wordId ? updatedWord : w
     ));
+
+    // 2️⃣ 서브컬렉션에 저장
+    try {
+      await saveWordToSubcollection(currentUser.uid, updatedWord);
+    } catch (error) {
+      console.error('❌ toggleWrongNote 저장 실패:', error);
+    }
   };
 
   // 음성 출력
@@ -2731,8 +3042,9 @@ const addWordFromClick = async (clickedWord) => {
       }
     } else {
       console.log('🎉 퀴즈 완료! 결과 계산 중...');
-      const finalCorrect = score.correct + (quizResult ? 1 : 0);
-      const finalTotal = score.total + 1;
+      // checkAnswer에서 이미 점수가 업데이트되었으므로 그대로 사용
+      const finalCorrect = score.correct;
+      const finalTotal = score.total;
       const percentage = Math.round((finalCorrect / finalTotal) * 100);
       console.log(`  - 최종 점수: ${finalCorrect}/${finalTotal} = ${percentage}%`);
 
@@ -2782,10 +3094,12 @@ const addWordFromClick = async (clickedWord) => {
     ? words.filter(w => w.mastered === true)
     : selectedBook?.id === 'wrongNote'
     ? words.filter(w => w.wrongNote === true)
-    : words.filter(w => w.bookId === selectedBook?.id);
+    : words.filter(w => w.bookId === selectedBook?.id && !w.mastered);
 
-  // 현재 단어장에서 사용 가능한 모든 Day 목록 (오름차순 정렬)
-  const availableDays = selectedBook
+
+
+  // 이번 시험범위는 Day 구분 없이 전체 보기만 사용
+  const availableDays = selectedBook && !selectedBook.isExamRange
     ? [...new Set(currentBookWords.filter(w => w.day !== null && w.day !== undefined).map(w => w.day))].sort((a, b) => a - b)
     : [];
 
@@ -7959,7 +8273,7 @@ if (currentView === 'classWordManagement' && isAdmin) {
               엑셀 파일명 = 단어장 이름 (예: 3과.xlsx)
             </p>
             <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '4px 0 0 0', lineHeight: '1.4' }}>
-              📋 열 순서: 1열-Day(선택) | 2열-영어 | 3열-한글뜻 | 4열-동의어(선택) | 5열-반의어(선택) | 6열-영영풀이(선택)
+              📋 열 순서: 1열-Day(선택) | 2열-영어 | 3열-한글뜻 | 4열-동의어(선택) | 5열-반의어(선택) | 6열-영영풀이(선택) | 7열-예문(선택)
             </p>
           </div>
 
@@ -8007,7 +8321,7 @@ if (currentView === 'classWordManagement' && isAdmin) {
               }}
             />
             <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: '6px 0 0 0' }}>
-              첫 번째 행: 헤더 (Day, 영어, 한글, 동의어, 반의어, 영영풀이) | 두 번째 행부터: 단어 데이터
+              첫 번째 행: 헤더 (Day, 영어, 한글, 동의어, 반의어, 영영풀이, 예문) | 두 번째 행부터: 단어 데이터
             </p>
           </div>
 
@@ -8761,6 +9075,23 @@ book,책`}
                           }}>
                             <div style={{ fontWeight: '600', color: '#6366f1', marginBottom: '2px' }}>📖 Definition</div>
                             {word.definition}
+                          </div>
+                        )}
+
+                        {/* 예문 */}
+                        {word.example && word.example.trim() && (
+                          <div style={{
+                            fontSize: '0.85rem',
+                            color: '#713f12',
+                            padding: '8px',
+                            background: 'rgba(254, 252, 232, 0.8)',
+                            borderRadius: '6px',
+                            marginBottom: '6px',
+                            borderLeft: '3px solid #f59e0b',
+                            fontStyle: 'italic'
+                          }}>
+                            <div style={{ fontWeight: '600', color: '#d97706', marginBottom: '2px', fontStyle: 'normal' }}>💬 Example</div>
+                            {word.example}
                           </div>
                         )}
 
@@ -9570,12 +9901,12 @@ if (currentView === 'list' && selectedBook) {
 
                   {/* 체크박스 - 확인용 */}
                   <button
-                    onClick={() => toggleMastered(word.id)}
+onClick={() => toggleChecked(word.id)}
                     style={{
                       width: '28px',
                       height: '28px',
-                      background: word.mastered ? '#10b981' : '#ffffff',
-                      border: word.mastered ? '2px solid #10b981' : '2px solid #d1d5db',
+background: word.checked ? '#10b981' : '#ffffff',
+border: word.checked ? '2px solid #10b981' : '2px solid #d1d5db',
                       borderRadius: '6px',
                       cursor: 'pointer',
                       display: 'flex',
@@ -9591,7 +9922,8 @@ if (currentView === 'list' && selectedBook) {
                       e.target.style.transform = 'scale(1)';
                     }}
                   >
-                    {word.mastered && (
+{word.checked && (
+
                       <Check size={18} strokeWidth={3} style={{ color: '#ffffff' }} />
                     )}
                   </button>
@@ -9721,6 +10053,36 @@ if (currentView === 'list' && selectedBook) {
                         }}
                       />
                     </div>
+                    {/* 예문 편집 */}
+                    <div style={{ marginTop: '8px' }}>
+                      <label style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '600', display: 'block', marginBottom: '4px' }}>
+                        예문 (Example)
+                      </label>
+                      <textarea
+                        value={word.example || ''}
+                        onChange={(e) => {
+                          const updatedWords = words.map(w =>
+                            w.id === word.id
+                              ? { ...w, example: e.target.value }
+                              : w
+                          );
+                          setWords(updatedWords);
+                        }}
+                        placeholder="예: The firefighters rescued the family from the burning building."
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          border: '2px solid #93c5fd',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          background: '#eff6ff',
+                          outline: 'none',
+                          minHeight: '60px',
+                          resize: 'vertical',
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div>
@@ -9839,6 +10201,35 @@ if (currentView === 'list' && selectedBook) {
                       )}
                     </div>
                     )}
+                  </div>
+                )}
+
+                {/* 예문 표시 (읽기 모드) */}
+                {!editingWordId && word.example && word.example.trim() && (
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{
+                      fontSize: '0.7rem',
+                      color: '#3b82f6',
+                      fontWeight: '700',
+                      marginBottom: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      📝 예문 (Example)
+                    </div>
+                    <div style={{
+                      padding: '10px 12px',
+                      background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+                      border: '2px solid #93c5fd',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      color: '#1e40af',
+                      lineHeight: '1.6',
+                      fontStyle: 'italic'
+                    }}>
+                      {word.example}
+                    </div>
                   </div>
                 )}
 
@@ -10257,7 +10648,8 @@ if (currentView === 'memorized') {
                 {/* 취소 버튼 */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button
-                    onClick={() => toggleMastered(word.id)}
+onClick={() => unmarkAsMastered(word.id)}
+
                     style={{
                       padding: '6px 12px',
                       background: '#f0f5ee',
@@ -10603,6 +10995,20 @@ if (currentView === 'wrongNote') {
                         <div style={{ fontSize: '0.8rem', color: '#7f1d1d', lineHeight: '1.4' }}>{word.definition}</div>
                       </div>
                     )}
+
+                    {/* 예문 */}
+                    {word.example && word.example.trim() && (
+                      <div style={{
+                        background: '#fefce8',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        marginBottom: '8px',
+                        border: '1px solid #fef08a'
+                      }}>
+                        <div style={{ fontSize: '0.75rem', color: '#854d0e', fontWeight: '600', marginBottom: '4px' }}>예문</div>
+                        <div style={{ fontSize: '0.8rem', color: '#713f12', lineHeight: '1.4', fontStyle: 'italic' }}>{word.example}</div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -10829,6 +11235,24 @@ if (currentView === 'flashcard') {
                 }}>
                   <div style={{ fontWeight: '700', color: '#334155', marginBottom: '4px' }}>📖 Definition</div>
                   {currentWord.definition}
+                </div>
+              )}
+
+              {/* 예문 */}
+              {currentWord.example && currentWord.example.trim() && (
+                <div style={{
+                  fontSize: '0.85rem',
+                  color: '#713f12',
+                  background: 'rgba(254, 252, 232, 0.9)',
+                  padding: '12px 16px',
+                  borderRadius: '10px',
+                  marginBottom: '12px',
+                  lineHeight: '1.5',
+                  border: '1px solid #fef08a',
+                  fontStyle: 'italic'
+                }}>
+                  <div style={{ fontWeight: '700', color: '#854d0e', marginBottom: '4px', fontStyle: 'normal' }}>💬 Example</div>
+                  {currentWord.example}
                 </div>
               )}
 
