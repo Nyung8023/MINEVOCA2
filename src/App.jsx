@@ -4523,7 +4523,7 @@ if (currentView === 'quizModeSelect') {
   boxShadow: '0 4px 12px rgba(6, 182, 212, 0.4)',
   border: '2px solid #a5f3fc'
 }}>
-  ❄️ v1.0 BY 인영쌤🎃
+  v1.0 BY 인영쌤🎃
 </div>
 
       </div>
