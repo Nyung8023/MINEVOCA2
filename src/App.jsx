@@ -694,7 +694,7 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
           const userData = userDataDoc.data();
           const existingBooks = userData.books || [];
           // 📌 서브컬렉션에서 기존 단어 읽기
-          const existingWords = await loadWordsFromSubcollection(studentId);
+          let existingWords = await loadWordsFromSubcollection(studentId);
 
           // 새 단어장 생성 (기존에 같은 이름이 있으면 속성만 업데이트)
           let targetBook = existingBooks.find(b => b.name === bookName);
@@ -2053,7 +2053,7 @@ if (userDataDoc.exists()) {
             const userData = userDataDoc.data();
             const existingBooks = userData.books || [];
             // 📌 서브컬렉션에서 단어 읽기
-            const existingWords = await loadWordsFromSubcollection(studentId);
+            let existingWords = await loadWordsFromSubcollection(studentId);
 
             // 해당 단어장 찾기
             const targetBook = existingBooks.find(b => b.name === bookName);
@@ -2061,11 +2061,22 @@ if (userDataDoc.exists()) {
               // 단어장과 해당 단어장의 단어들 삭제
               const updatedBooks = existingBooks.filter(b => b.name !== bookName);
 
-              // 📌 서브컬렉션에서 해당 단어장의 단어들 삭제
-              const wordsToDelete = existingWords.filter(w => w.bookId === targetBook.id);
-              for (const word of wordsToDelete) {
-                await deleteWordFromSubcollection(studentId, word.id);
-              }
+              // 📌 서브컬렉션에서 해당 단어장의 단어들 삭제 (Batch 처리)
+const wordsToDelete = existingWords.filter(w => w.bookId === targetBook.id);
+
+const batchSize = 500;
+for (let i = 0; i < wordsToDelete.length; i += batchSize) {
+  const batch = writeBatch(db);
+  const batchWords = wordsToDelete.slice(i, i + batchSize);
+  
+  for (const word of batchWords) {
+    const wordRef = doc(db, 'userData', studentId, 'words', String(word.id));
+    batch.delete(wordRef);
+  }
+  
+  await batch.commit();
+}
+
 
               // 📌 userData에는 books만 저장 (words는 빈 배열)
               // userData에서 words 필드 제거 후 스프레드 (1MB 제한 회피)
