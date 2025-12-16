@@ -4510,33 +4510,24 @@ if (currentView === 'quizModeSelect') {
         transform: 'translateX(-50%)',
         zIndex: 1000
       }}>
-        <div style={{
+               <div style={{
   display: 'inline-flex',
   alignItems: 'center',
   gap: '6px',
-  padding: '5px 14px',
-  background: 'linear-gradient(135deg, #67e8f9, #22d3ee)',  // 👈 시아노(청록) 파스텔
-  color: '#0e7490',  // 👈 텍스트 색상도 변경
-  fontSize: '0.65rem',
-  fontWeight: '700',
+  padding: '6px 16px',
+  background: 'linear-gradient(135deg, #67e8f9, #22d3ee)',
+  color: '#164e63',
+  fontSize: '0.75rem',
+  fontWeight: '600',
   borderRadius: '20px',
-  fontFamily: '"Consolas", Monaco, monospace',
-  letterSpacing: '1px',
-  boxShadow: '0 4px 12px rgba(6, 182, 212, 0.3)',  // 👈 그림자도 변경
-  border: '2px solid #a5f3fc'  // 👈 테두리도 밝게
+  boxShadow: '0 4px 12px rgba(6, 182, 212, 0.4)',
+  border: '2px solid #a5f3fc'
 }}>
-  <span style={{ fontSize: '0.6rem' }}>❄️</span>
-  v1.0
+  ❄️ v1.0 BY 인영쌤🎃
 </div>
-        <div style={{
-          textAlign: 'center',
-          marginTop: '8px',
-          fontSize: '0.7rem',
-          color: '#9ca3af'
-        }}>
-          BY 인영쌤✨
-        </div>
+
       </div>
+
 
 
       {/* 단어장 편집 모달 */}
