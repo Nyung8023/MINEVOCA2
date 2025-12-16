@@ -612,16 +612,18 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
       // 헤더 제외하고 데이터만 추출 (dataStartIndex 사용)
       const dataRows = cleanedData.slice(dataStartIndex).filter(row => {
+        if (!row || row.length === 0) return false;
+
         if (hasDayColumn) {
           // Day 있음: English(row[1])와 Korean(row[2]) 필수
           const english = String(row[1] || '').trim();
           const korean = String(row[2] || '').trim();
-          return row.length >= 3 && english && korean;
+          return english && korean;
         } else {
           // Day 없음: English(row[0])와 Korean(row[1]) 필수
           const english = String(row[0] || '').trim();
           const korean = String(row[1] || '').trim();
-          return row.length >= 2 && english && korean;
+          return english && korean;
         }
       });
 
