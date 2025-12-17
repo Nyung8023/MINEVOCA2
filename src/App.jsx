@@ -4797,7 +4797,7 @@ if (currentView === 'quizModeSelect') {
         </div>
 
 
-      {/* 새 단어장 입력 + 단어 검색 */}
+      {/* 새 단어장 입력 */}
       {showBookInput && (
         <div style={{ width: '100%', padding: '0 24px', marginBottom: '20px' }}>
           <div style={{
@@ -4805,248 +4805,64 @@ if (currentView === 'quizModeSelect') {
             borderRadius: '16px',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
             padding: '20px',
-            border: '2px solid rgba(226, 232, 240, 0.5)'
+            border: '2px solid rgba(226, 232, 240, 0.5)',
+            display: 'flex',
+            gap: '8px'
           }}>
-            {/* 단어장 이름 입력 */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#475569' }}>
-                단어장 이름
-              </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="text"
-                  value={newBookName}
-                  onChange={(e) => setNewBookName(e.target.value)}
-                  placeholder="예: 나만의 단어장"
-                  style={{
-                    flex: 1,
-                    padding: '12px 14px',
-                    border: '2px solid #e2e8f0',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
-                    outline: 'none'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#8b5cf6'}
-                  onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            {/* 구분선 */}
-            <div style={{ borderTop: '1px solid #e2e8f0', margin: '16px 0' }}></div>
-
-            {/* 단어 검색 섹션 */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#475569' }}>
-                단어 검색 및 추가
-              </label>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                <input
-                  type="text"
-                  placeholder="영어 단어를 입력하세요..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && searchQuery.trim()) {
-                      searchWord(searchQuery);
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '12px 14px',
-                    border: '2px solid #e2e8f0',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
-                    outline: 'none'
-                  }}
-                  onFocus={(e) => e.target.style.borderColor = '#60a5fa'}
-                  onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                />
-                <button
-                  onClick={() => searchQuery.trim() && searchWord(searchQuery)}
-                  disabled={isSearching || !searchQuery.trim()}
-                  style={{
-                    padding: '12px 20px',
-                    background: isSearching ? '#cbd5e1' : 'linear-gradient(135deg, #60a5fa, #3b82f6)',
-                    border: 'none',
-                    borderRadius: '12px',
-                    color: 'white',
-                    fontSize: '0.9rem',
-                    fontWeight: '600',
-                    cursor: isSearching ? 'not-allowed' : 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {isSearching ? '검색 중...' : '검색'}
-                </button>
-              </div>
-
-              {/* 검색 결과 */}
-              {searchResults && (
-                searchResults.error ? (
-                  <div style={{
-                    padding: '16px',
-                    background: '#fef2f2',
-                    borderRadius: '10px',
-                    border: '1px solid #fecaca',
-                    color: '#dc2626',
-                    fontSize: '0.9rem'
-                  }}>
-                    {searchResults.error}
-                  </div>
-                ) : (
-                  <div style={{
-                    padding: '16px',
-                    background: '#f8fafc',
-                    borderRadius: '10px',
-                    border: '1px solid #e2e8f0',
-                    maxHeight: '300px',
-                    overflowY: 'auto'
-                  }}>
-                    <div style={{ marginBottom: '12px' }}>
-                      <h4 style={{
-                        margin: '0 0 4px 0',
-                        fontSize: '1.2rem',
-                        fontWeight: '700',
-                        color: '#1e40af'
-                      }}>
-                        {searchResults.word}
-                      </h4>
-                      {searchResults.phonetic && (
-                        <p style={{
-                          margin: '0 0 8px 0',
-                          fontSize: '0.85rem',
-                          color: '#64748b',
-                          fontStyle: 'italic'
-                        }}>
-                          {searchResults.phonetic}
-                        </p>
-                      )}
-                    </div>
-
-                    {searchResults.meanings.slice(0, 2).map((meaning, idx) => (
-                      <div key={idx} style={{ marginBottom: '12px' }}>
-                        <div style={{
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#8b5cf6',
-                          marginBottom: '6px'
-                        }}>
-                          {meaning.partOfSpeech}
-                        </div>
-                        {meaning.definitions.slice(0, 2).map((def, defIdx) => (
-                          <p key={defIdx} style={{
-                            margin: '0 0 6px 0',
-                            fontSize: '0.85rem',
-                            color: '#334155'
-                          }}>
-                            • {def.definition}
-                          </p>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                )
-              )}
-            </div>
-
-            {/* 버튼들 */}
-            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-              <button
-                onClick={() => {
-                  setShowBookInput(false);
-                  setNewBookName('');
-                  setSearchQuery('');
-                  setSearchResults(null);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  background: '#f1f5f9',
-                  color: '#64748b',
-                  borderRadius: '12px',
-                  border: 'none',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  fontSize: '0.9rem'
-                }}
-              >
-                취소
-              </button>
-              <button
-                onClick={addBook}
-                disabled={!newBookName.trim()}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  background: newBookName.trim() ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : '#cbd5e1',
-                  color: 'white',
-                  borderRadius: '12px',
-                  border: 'none',
-                  fontWeight: 600,
-                  cursor: newBookName.trim() ? 'pointer' : 'not-allowed',
-                  fontSize: '0.9rem',
-                  boxShadow: newBookName.trim() ? '0 2px 8px rgba(139, 92, 246, 0.3)' : 'none',
-                  transition: 'all 0.2s'
-                }}
-              >
-                단어장 만들기
-              </button>
-              {searchResults && !searchResults.error && (
-                <button
-                  onClick={async () => {
-                    if (!newBookName.trim()) {
-                      alert('먼저 단어장 이름을 입력해주세요!');
-                      return;
-                    }
-
-                    // 단어장 먼저 생성
-                    const newBook = {
-                      id: Date.now(),
-                      name: newBookName,
-                      wordCount: 0,
-                      icon: '📖',
-                      isExamRange: false
-                    };
-                    const updatedBooks = [...books, newBook];
-                    setBooks(updatedBooks);
-
-                    // Firebase에 저장
-                    if (currentUser) {
-                      const userDataRef = doc(db, 'userData', currentUser.uid);
-                      await updateDoc(userDataRef, {
-                        books: updatedBooks,
-                        lastUpdated: new Date().toISOString()
-                      });
-                    }
-
-                    // 검색한 단어 추가
-                    await addSearchedWordToBook(searchResults, newBook.id);
-
-                    // 초기화
-                    setShowBookInput(false);
-                    setNewBookName('');
-                    setSearchQuery('');
-                    setSearchResults(null);
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '12px',
-                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                    color: 'white',
-                    borderRadius: '12px',
-                    border: 'none',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
-                  }}
-                >
-                  단어 포함해서 만들기
-                </button>
-              )}
-            </div>
+            <input
+              type="text"
+              value={newBookName}
+              onChange={(e) => setNewBookName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && newBookName.trim() && addBook()}
+              placeholder="새 단어장 이름을 입력하세요"
+              style={{
+                flex: 1,
+                padding: '12px 14px',
+                border: '2px solid #e2e8f0',
+                borderRadius: '12px',
+                fontSize: '0.95rem',
+                outline: 'none'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#8b5cf6'}
+              onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+              autoFocus
+            />
+            <button
+              onClick={addBook}
+              disabled={!newBookName.trim()}
+              style={{
+                padding: '12px 20px',
+                background: newBookName.trim() ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)' : '#cbd5e1',
+                color: 'white',
+                borderRadius: '12px',
+                border: 'none',
+                fontWeight: 600,
+                cursor: newBookName.trim() ? 'pointer' : 'not-allowed',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              추가
+            </button>
+            <button
+              onClick={() => {
+                setShowBookInput(false);
+                setNewBookName('');
+              }}
+              style={{
+                padding: '12px 20px',
+                background: '#f1f5f9',
+                color: '#64748b',
+                borderRadius: '12px',
+                border: 'none',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              취소
+            </button>
           </div>
         </div>
       )}
@@ -10026,6 +9842,147 @@ if (currentView === 'list' && selectedBook) {
             <Brain size={20} />
             퀴즈
           </button>
+        </div>
+        )}
+
+        {/* 단어 검색 & 추가 */}
+        {(availableDays.length === 0 || selectedDay !== null) && (
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          padding: '20px',
+          marginBottom: '16px',
+          boxShadow: '0 2px 8px rgba(23, 124, 76, 0.1)',
+          border: '2px solid #d1fae5'
+        }}>
+          <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#172f0b', marginBottom: '10px' }}>
+            🔍 단어 검색 & 추가
+          </div>
+          <input
+            type="text"
+            placeholder="단어를 검색하세요..."
+            value={wordSearchQuery}
+            onChange={(e) => setWordSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              borderRadius: '10px',
+              border: '2px solid #d1fae5',
+              fontSize: '0.9rem',
+              outline: 'none',
+              transition: 'border-color 0.2s'
+            }}
+            onFocus={(e) => e.target.style.borderColor = '#167c4c'}
+            onBlur={(e) => e.target.style.borderColor = '#d1fae5'}
+          />
+
+          {/* 검색 결과 */}
+          {(() => {
+            const searchedBookWords = wordSearchQuery.trim()
+              ? words.filter(w =>
+                  w.bookId !== selectedBook.id && (
+                    w.english.toLowerCase().includes(wordSearchQuery.toLowerCase()) ||
+                    w.korean.includes(wordSearchQuery)
+                  )
+                )
+              : [];
+
+            return searchedBookWords.length > 0 && (
+              <div style={{ marginTop: '12px', maxHeight: '200px', overflowY: 'auto' }}>
+                {searchedBookWords.slice(0, 5).map(word => (
+                  <div
+                    key={word.id}
+                    onClick={async () => {
+                      if (!selectedBook) {
+                        alert('단어장을 먼저 선택해주세요.');
+                        return;
+                      }
+
+                      // 이미 단어장에 있는지 확인
+                      const exists = words.some(w =>
+                        w.bookId === selectedBook.id &&
+                        w.english.toLowerCase() === word.english.toLowerCase()
+                      );
+
+                      if (exists) {
+                        alert('이미 이 단어장에 있는 단어예요!');
+                        return;
+                      }
+
+                      // 단어 복사해서 추가
+                      const newWord = {
+                        id: Date.now() + Math.random(),
+                        bookId: selectedBook.id,
+                        originalBookId: selectedBook.id,
+                        english: word.english,
+                        korean: word.korean,
+                        example: word.example || '',
+                        pronunciation: word.pronunciation || '',
+                        synonyms: word.synonyms || [],
+                        antonyms: word.antonyms || [],
+                        definition: word.definition || word.korean,
+                        day: selectedDay,
+                        mastered: false,
+                        wrongNote: false,
+                        nextReviewDate: new Date().toISOString(),
+                        lastReviewDate: null,
+                        reviewCount: 0,
+                        correctStreak: 0
+                      };
+
+                      await saveWordToSubcollection(currentUser.uid, newWord);
+                      setWords([...words, newWord]);
+
+                      // 단어장 wordCount 업데이트
+                      const updatedBooks = books.map(b =>
+                        b.id === selectedBook.id
+                          ? { ...b, wordCount: (b.wordCount || 0) + 1 }
+                          : b
+                      );
+                      setBooks(updatedBooks);
+
+                      if (currentUser) {
+                        const userDataRef = doc(db, 'userData', currentUser.uid);
+                        await updateDoc(userDataRef, {
+                          books: updatedBooks,
+                          lastUpdated: new Date().toISOString()
+                        });
+                      }
+
+                      setWordSearchQuery('');
+                      alert('✅ 단어가 추가되었습니다!');
+                    }}
+                    style={{
+                      padding: '10px',
+                      background: '#f0fdf4',
+                      borderRadius: '8px',
+                      marginBottom: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      border: '1px solid #d1fae5',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#ecfdf5';
+                      e.currentTarget.style.borderColor = '#167c4c';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#f0fdf4';
+                      e.currentTarget.style.borderColor = '#d1fae5';
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: '600', color: '#172f0b' }}>{word.english}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#166534' }}>{word.korean}</div>
+                    </div>
+                    <div style={{ fontSize: '1.2rem' }}>+</div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
         )}
 
