@@ -22,35 +22,27 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 동의어/반의어 가져오기 함수 추가
-const fetchSynonymsAndAntonyms = async (word) => {
+// 영어를 한글로 번역하는 함수 (MyMemory API)
+const translateToKorean = async (text) => {
+  if (!text || text.trim().length === 0) return '';
+
   try {
-    const synResponse = await fetch(
-      `https://api.datamuse.com/words?rel_syn=${encodeURIComponent(word)}&max=5`
+    const response = await fetch(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ko`
     );
-    let synonyms = [];
-    if (synResponse.ok) {
-      const synData = await synResponse.json();
-      if (Array.isArray(synData)) {
-        synonyms = synData.map(s => s.word).slice(0, 5);
-      }
+
+    if (!response.ok) return text; // 실패 시 원문 반환
+
+    const data = await response.json();
+
+    if (data.responseStatus === 200 && data.responseData?.translatedText) {
+      return data.responseData.translatedText;
     }
 
-    const antResponse = await fetch(
-      `https://api.datamuse.com/words?rel_ant=${encodeURIComponent(word)}&max=5`
-    );
-    let antonyms = [];
-    if (antResponse.ok) {
-      const antData = await antResponse.json();
-      if (Array.isArray(antData)) {
-        antonyms = antData.map(a => a.word).slice(0, 5);
-      }
-    }
-
-    return { synonyms, antonyms };
-  } catch (err) {
-    console.error('API 호출 실패:', err);
-    return { synonyms: [], antonyms: [] };
+    return text; // 번역 실패 시 원문 반환
+  } catch (error) {
+    console.error('번역 실패:', error);
+    return text; // 에러 시 원문 반환
   }
 };
 
@@ -884,18 +876,15 @@ const searchMultipleWordsInDB = async (input) => {
           const wordDoc = await getDoc(doc(db, 'dictionary', word.toLowerCase()));
           console.log(`📄 DB 결과 - 존재: ${wordDoc.exists()}, 데이터:`, wordDoc.exists() ? wordDoc.data() : '없음');
 
-          // API에서 발음과 정의 가져오기
+          // API에서 발음과 한글 뜻 가져오기
           const { pronunciation, definition } = await fetchWordInfo(word);
-
-          // 🆕 동의어/반의어 추가!
-          const { synonyms, antonyms } = await fetchSynonymsAndAntonyms(word);
 
           const result = {
             english: word,
-            korean: wordDoc.exists() ? wordDoc.data().korean : definition, // Firebase DB에 없으면 API 정의 사용
+            korean: wordDoc.exists() ? wordDoc.data().korean : definition, // Firebase DB에 없으면 API 번역 사용
             pronunciation: wordDoc.exists() ? (wordDoc.data().pronunciation || pronunciation) : pronunciation,
-            synonyms: synonyms || [],      // 추가!
-            antonyms: antonyms || [],      // 추가!
+            synonyms: [],
+            antonyms: [],
             exists: wordDoc.exists()
           };
           console.log(`✅ 최종 결과:`, result);
@@ -945,7 +934,9 @@ const searchMultipleWordsInDB = async (input) => {
 
         // 정의 가져오기 (첫 번째 의미의 첫 번째 정의)
         if (data[0].meanings && data[0].meanings[0]?.definitions?.[0]) {
-          definition = data[0].meanings[0].definitions[0].definition || '';
+          const englishDefinition = data[0].meanings[0].definitions[0].definition || '';
+          // 영어 정의를 한글로 번역
+          definition = await translateToKorean(englishDefinition);
         }
       }
 
