@@ -22,30 +22,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 영어를 한글로 번역하는 함수 (MyMemory API)
-const translateToKorean = async (text) => {
-  if (!text || text.trim().length === 0) return '';
-
-  try {
-    const response = await fetch(
-      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ko`
-    );
-
-    if (!response.ok) return text; // 실패 시 원문 반환
-
-    const data = await response.json();
-
-    if (data.responseStatus === 200 && data.responseData?.translatedText) {
-      return data.responseData.translatedText;
-    }
-
-    return text; // 번역 실패 시 원문 반환
-  } catch (error) {
-    console.error('번역 실패:', error);
-    return text; // 에러 시 원문 반환
-  }
-};
-
 // 품사 표시 제거 함수 ([명], [동], [형], [부] 등)
 const removePartOfSpeechTags = (text) => {
   if (!text) return text;
@@ -932,11 +908,9 @@ const searchMultipleWordsInDB = async (input) => {
           pronunciation = phonetic?.text || '';
         }
 
-        // 정의 가져오기 (첫 번째 의미의 첫 번째 정의)
+        // 정의 가져오기 (첫 번째 의미의 첫 번째 정의) - 영어 그대로
         if (data[0].meanings && data[0].meanings[0]?.definitions?.[0]) {
-          const englishDefinition = data[0].meanings[0].definitions[0].definition || '';
-          // 영어 정의를 한글로 번역
-          definition = await translateToKorean(englishDefinition);
+          definition = data[0].meanings[0].definitions[0].definition || '';
         }
       }
 
