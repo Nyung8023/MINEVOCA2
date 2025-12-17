@@ -884,14 +884,15 @@ const searchMultipleWordsInDB = async (input) => {
           const wordDoc = await getDoc(doc(db, 'dictionary', word.toLowerCase()));
           console.log(`📄 DB 결과 - 존재: ${wordDoc.exists()}, 데이터:`, wordDoc.exists() ? wordDoc.data() : '없음');
 
-          const pronunciation = await fetchPronunciation(word);
+          // API에서 발음과 정의 가져오기
+          const { pronunciation, definition } = await fetchWordInfo(word);
 
           // 🆕 동의어/반의어 추가!
           const { synonyms, antonyms } = await fetchSynonymsAndAntonyms(word);
 
           const result = {
             english: word,
-            korean: wordDoc.exists() ? wordDoc.data().korean : '',
+            korean: wordDoc.exists() ? wordDoc.data().korean : definition, // Firebase DB에 없으면 API 정의 사용
             pronunciation: wordDoc.exists() ? (wordDoc.data().pronunciation || pronunciation) : pronunciation,
             synonyms: synonyms || [],      // 추가!
             antonyms: antonyms || [],      // 추가!
@@ -923,23 +924,37 @@ const searchMultipleWordsInDB = async (input) => {
     return [];
   }
 };
-  // 발음기호만 API에서 가져오기
-  const fetchPronunciation = async (word) => {
+  // 발음기호와 영어 정의 API에서 가져오기
+  const fetchWordInfo = async (word) => {
     try {
       const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
       if (!response.ok) {
-        return '';
+        return { pronunciation: '', definition: '' };
       }
       const data = await response.json();
-      if (Array.isArray(data) && data[0]?.phonetics) {
-        const phonetic = data[0].phonetics.find(p => p.text) || data[0].phonetics[0];
-        return phonetic?.text || '';
+
+      let pronunciation = '';
+      let definition = '';
+
+      if (Array.isArray(data) && data[0]) {
+        // 발음 가져오기
+        if (data[0].phonetics) {
+          const phonetic = data[0].phonetics.find(p => p.text) || data[0].phonetics[0];
+          pronunciation = phonetic?.text || '';
+        }
+
+        // 정의 가져오기 (첫 번째 의미의 첫 번째 정의)
+        if (data[0].meanings && data[0].meanings[0]?.definitions?.[0]) {
+          definition = data[0].meanings[0].definitions[0].definition || '';
+        }
       }
+
+      return { pronunciation, definition };
     } catch (error) {
-      // 네트워크 오류나 파싱 오류는 무시하고 빈 문자열 반환
-      console.error('발음기호 가져오기 실패:', error);
+      // 네트워크 오류나 파싱 오류는 무시하고 빈 값 반환
+      console.error('단어 정보 가져오기 실패:', error);
+      return { pronunciation: '', definition: '' };
     }
-    return '';
   };
 
 
