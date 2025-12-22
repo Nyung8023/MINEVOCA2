@@ -2786,15 +2786,15 @@ const toggleChecked = async (wordId) => {
     }
   };
 
-  // 음성 출력 - Google TTS API 사용으로 개선
+  // 음성 출력 - 개선된 영어 발음
   const speakWord = (text) => {
     try {
-      // Google Translate TTS API를 사용하여 고품질 영어 발음 제공
+      // Google Translate TTS API - 미국식 영어 발음 최적화
       const audio = new Audio(
-        `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodeURIComponent(text)}`
+        `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=gtx&ttsspeed=0.8&q=${encodeURIComponent(text)}`
       );
 
-      audio.playbackRate = 0.9; // 조금 천천히
+      audio.playbackRate = 1.0; // 정상 속도 (ttsspeed로 이미 조절)
 
       audio.play().catch(error => {
         console.error('오디오 재생 실패:', error);
@@ -2807,28 +2807,59 @@ const toggleChecked = async (wordId) => {
     }
   };
 
-  // 대체 TTS 방법 (구 버전)
+  // 대체 TTS 방법 - 더 나은 영어 음성 선택
   const fallbackToSpeechSynthesis = (text) => {
     if ('speechSynthesis' in window) {
+      // 기존 음성 정지
+      window.speechSynthesis.cancel();
+
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
-      utterance.rate = 0.9;
+      utterance.rate = 0.85; // 조금 천천히
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
 
       const setVoiceAndSpeak = () => {
         const voices = window.speechSynthesis.getVoices();
-        const englishVoice = voices.find(voice =>
-          voice.lang.startsWith('en-') ||
-          voice.lang === 'en-US' ||
-          voice.lang === 'en-GB'
-        );
 
-        if (englishVoice) {
-          utterance.voice = englishVoice;
+        // 우선순위: Google US English > Microsoft US English > 기타 US English > 영어
+        const preferredVoices = [
+          'Google US English',
+          'Microsoft David - English (United States)',
+          'Microsoft Zira - English (United States)',
+          'Alex',
+          'Samantha'
+        ];
+
+        let selectedVoice = null;
+
+        // 우선순위 음성 찾기
+        for (const preferred of preferredVoices) {
+          selectedVoice = voices.find(voice => voice.name === preferred);
+          if (selectedVoice) break;
+        }
+
+        // 우선순위 음성이 없으면 en-US 언어 찾기
+        if (!selectedVoice) {
+          selectedVoice = voices.find(voice => voice.lang === 'en-US');
+        }
+
+        // en-US도 없으면 en으로 시작하는 것 찾기
+        if (!selectedVoice) {
+          selectedVoice = voices.find(voice => voice.lang.startsWith('en-'));
+        }
+
+        if (selectedVoice) {
+          utterance.voice = selectedVoice;
+          console.log('✅ 선택된 음성:', selectedVoice.name, selectedVoice.lang);
+        } else {
+          console.log('⚠️ 영어 음성을 찾을 수 없습니다. 기본 음성 사용.');
         }
 
         window.speechSynthesis.speak(utterance);
       };
 
+      // 음성 목록이 아직 로드되지 않았을 경우 대비
       if (window.speechSynthesis.getVoices().length > 0) {
         setVoiceAndSpeak();
       } else {
