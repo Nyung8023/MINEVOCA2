@@ -114,6 +114,7 @@ export default function MineVocaApp() {
 
   // 앱 상태
   const [currentView, setCurrentView] = useState('home');
+  const [previousView, setPreviousView] = useState('home'); // 퀴즈 종료 후 돌아갈 화면
   const [selectedBook, setSelectedBook] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null); // null이면 전체 보기
  const [books, setBooks] = useState([]);
@@ -2845,6 +2846,9 @@ const toggleChecked = async (wordId) => {
 
   // 퀴즈 시작
   const startQuiz = (mode = 'typing', direction = 'en-ko') => {
+    // 퀴즈 시작 전 현재 화면을 저장 (나중에 돌아갈 수 있도록)
+    setPreviousView(currentView);
+
     // 모드에 따라 단어 필터링
     let filteredWords = [...displayWords];
 
@@ -12069,7 +12073,7 @@ if (currentView === 'quizResults' && quizResults) {
           <button
             onClick={() => {
               setQuizResults(null);
-              setCurrentView('home');
+              setCurrentView(previousView); // 퀴즈 시작 전 화면으로 돌아가기
             }}
             style={{
               width: '100%',
@@ -12091,7 +12095,7 @@ if (currentView === 'quizResults' && quizResults) {
             onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
             onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
           >
-            홈으로 돌아가기
+            뒤로 가기
           </button>
         </div>
       </div>
