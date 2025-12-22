@@ -358,9 +358,9 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
       let skippedCount = 0;  // 이미 존재하는 단어 (변경 없음)
       let failCount = 0;
 
-      // 배치 처리: 한 번에 50개씩 처리하여 rate limiting 방지
-      const BATCH_SIZE = 50;
-      const DELAY_BETWEEN_BATCHES = 1000; // 1초 대기
+      // 배치 처리: 한 번에 20개씩 처리하여 rate limiting 방지
+      const BATCH_SIZE = 20;
+      const DELAY_BETWEEN_BATCHES = 2000; // 2초 대기
 
       for (let i = 0; i < dataLines.length; i += BATCH_SIZE) {
         const batch = dataLines.slice(i, i + BATCH_SIZE);
@@ -1446,9 +1446,9 @@ const searchMultipleWordsInDB = async (input) => {
         await batches[i].commit();
         console.log(`  ✅ Batch ${i + 1}/${batches.length} 커밋 완료`);
 
-        // 다음 배치 전에 500ms 대기 (rate limiting 방지)
+        // 다음 배치 전에 1.5초 대기 (rate limiting 방지)
         if (i < batches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
       }
 
