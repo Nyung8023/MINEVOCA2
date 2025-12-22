@@ -350,83 +350,99 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
       const text = e.target.result;
       const lines = text.split('\n');
       const dataLines = lines.slice(1).filter(line => line.trim());
-      
-      setUploadStatus(`⚡ 총 ${dataLines.length}개 단어 빠른 저장 중...`);
+
+      setUploadStatus(`⚡ 총 ${dataLines.length}개 단어 저장 중...`);
 
       let newCount = 0;      // 새로 추가된 단어
       let updatedCount = 0;  // 뜻이 업데이트된 단어
       let skippedCount = 0;  // 이미 존재하는 단어 (변경 없음)
       let failCount = 0;
 
-      const promises = dataLines.map(async (line, index) => {
-        // 모든 종류의 공백 문자 제거 (일반 공백, \r, \n, 탭 등)
-        const cleanLine = line.replace(/\r/g, '').trim();
-        const parts = cleanLine.split(',');
-        if (parts.length < 2) {
-          failCount++;
-          return;
-        }
-        // 따옴표 제거 및 공백 정리
-        const english = parts[0].trim().replace(/^["']|["']$/g, '').trim();
-        const korean = parts.slice(1).join(',').trim().replace(/^["']|["']$/g, '').trim();
+      // 배치 처리: 한 번에 50개씩 처리하여 rate limiting 방지
+      const BATCH_SIZE = 50;
+      const DELAY_BETWEEN_BATCHES = 1000; // 1초 대기
 
-        if (!english || !korean) {
-          failCount++;
-          return;
-        }
+      for (let i = 0; i < dataLines.length; i += BATCH_SIZE) {
+        const batch = dataLines.slice(i, i + BATCH_SIZE);
 
-        try {
-          const wordKey = english.toLowerCase().trim(); // 이중 trim
-          const wordRef = doc(db, 'dictionary', wordKey);
+        const promises = batch.map(async (line, batchIndex) => {
+          const index = i + batchIndex;
+          // 모든 종류의 공백 문자 제거 (일반 공백, \r, \n, 탭 등)
+          const cleanLine = line.replace(/\r/g, '').trim();
+          const parts = cleanLine.split(',');
+          if (parts.length < 2) {
+            failCount++;
+            return;
+          }
+          // 따옴표 제거 및 공백 정리
+          const english = parts[0].trim().replace(/^["']|["']$/g, '').trim();
+          const korean = parts.slice(1).join(',').trim().replace(/^["']|["']$/g, '').trim();
 
-          // 기존 단어가 있는지 확인
-          const existingDoc = await getDoc(wordRef);
+          if (!english || !korean) {
+            failCount++;
+            return;
+          }
 
-          if (existingDoc.exists()) {
-            // 이미 있으면 뜻 합치기
-            const existingData = existingDoc.data();
-            const existingKorean = existingData.korean || '';
+          try {
+            const wordKey = english.toLowerCase().trim(); // 이중 trim
+            const wordRef = doc(db, 'dictionary', wordKey);
 
-            // 중복 체크: 이미 같은 뜻이 있으면 추가 안 함
-            const koreanMeanings = existingKorean.split(',').map(m => m.trim());
-            if (!koreanMeanings.includes(korean)) {
-              const combinedKorean = existingKorean + ', ' + korean;
+            // 기존 단어가 있는지 확인
+            const existingDoc = await getDoc(wordRef);
 
-              await setDoc(wordRef, {
-                ...existingData,
-                korean: combinedKorean,
-                updatedAt: new Date().toISOString()
-              });
-              updatedCount++;  // 뜻이 업데이트됨
+            if (existingDoc.exists()) {
+              // 이미 있으면 뜻 합치기
+              const existingData = existingDoc.data();
+              const existingKorean = existingData.korean || '';
+
+              // 중복 체크: 이미 같은 뜻이 있으면 추가 안 함
+              const koreanMeanings = existingKorean.split(',').map(m => m.trim());
+              if (!koreanMeanings.includes(korean)) {
+                const combinedKorean = existingKorean + ', ' + korean;
+
+                await setDoc(wordRef, {
+                  ...existingData,
+                  korean: combinedKorean,
+                  updatedAt: new Date().toISOString()
+                });
+                updatedCount++;  // 뜻이 업데이트됨
+              } else {
+                skippedCount++;  // 이미 같은 뜻이 있어서 건너뜀
+              }
             } else {
-              skippedCount++;  // 이미 같은 뜻이 있어서 건너뜀
+              // 새 단어 추가
+              await setDoc(wordRef, {
+                english: english,
+                korean: korean,
+                pronunciation: '',
+                createdAt: new Date().toISOString()
+              });
+              newCount++;  // 새로 추가됨
             }
-          } else {
-            // 새 단어 추가
-            await setDoc(wordRef, {
-              english: english,
-              korean: korean,
-              pronunciation: '',
-              createdAt: new Date().toISOString()
-            });
-            newCount++;  // 새로 추가됨
-          }
 
-          if (index % 10 === 0) {
-            setUploadStatus(`⚡ 저장 중... ${index + 1}/${dataLines.length}`);
-          }
+            if (index % 10 === 0) {
+              setUploadStatus(`⚡ 저장 중... ${index + 1}/${dataLines.length}`);
+            }
 
-        } catch (error) {
-          console.error(`단어 저장 실패: ${english}`, error);
-          failCount++;
+          } catch (error) {
+            console.error(`단어 저장 실패: ${english}`, error);
+            failCount++;
+          }
+        });
+
+        // 현재 배치의 모든 작업 완료 대기
+        await Promise.all(promises);
+
+        // 다음 배치 전에 잠시 대기 (rate limiting 방지)
+        if (i + BATCH_SIZE < dataLines.length) {
+          setUploadStatus(`⏳ 다음 배치 준비 중... ${i + BATCH_SIZE}/${dataLines.length}`);
+          await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
         }
-      });
-
-      await Promise.all(promises);
+      }
 
       setUploadStatus(`✅ 완료!\n🆕 새 단어: ${newCount}개\n📝 뜻 추가: ${updatedCount}개\n⏭️ 건너뜀: ${skippedCount}개\n❌ 실패: ${failCount}개`);
       setIsUploading(false);
-      
+
       setTimeout(() => {
         setUploadStatus(prev => prev + '\n\n💡 발음기호는 학생들이 단어를 입력할 때 자동으로 추가됩니다!');
       }, 1000);
@@ -1402,7 +1418,7 @@ const searchMultipleWordsInDB = async (input) => {
     }
   };
 
-  // 4️⃣ 서브컬렉션에 모든 단어 일괄 저장 (Firestore Batch 사용)
+  // 4️⃣ 서브컬렉션에 모든 단어 일괄 저장 (Firestore Batch 사용 + Rate Limiting 방지)
   const saveAllWordsToSubcollection = async (userId, wordsArray) => {
     try {
       console.log(`💾 ${wordsArray.length}개 단어 Batch 저장 시작...`);
@@ -1424,9 +1440,17 @@ const searchMultipleWordsInDB = async (input) => {
         console.log(`  📦 Batch ${batches.length} 준비: ${chunk.length}개 단어`);
       }
 
-      // 모든 배치 커밋 (한 번에 전송!)
-      console.log(`🚀 ${batches.length}개 배치 커밋 중...`);
-      await Promise.all(batches.map(batch => batch.commit()));
+      // 배치를 순차적으로 커밋 (Rate Limiting 방지)
+      console.log(`🚀 ${batches.length}개 배치 순차 커밋 중...`);
+      for (let i = 0; i < batches.length; i++) {
+        await batches[i].commit();
+        console.log(`  ✅ Batch ${i + 1}/${batches.length} 커밋 완료`);
+
+        // 다음 배치 전에 500ms 대기 (rate limiting 방지)
+        if (i < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
 
       console.log(`✅ 모든 단어 저장 완료! (${wordsArray.length}개)`);
     } catch (error) {
