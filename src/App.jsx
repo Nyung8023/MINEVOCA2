@@ -351,96 +351,51 @@ const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
       const lines = text.split('\n');
       const dataLines = lines.slice(1).filter(line => line.trim());
 
-      setUploadStatus(`⚡ 총 ${dataLines.length}개 단어 저장 중...`);
+      setUploadStatus(`⚡ 총 ${dataLines.length}개 단어 파싱 중...`);
 
-      let newCount = 0;      // 새로 추가된 단어
-      let updatedCount = 0;  // 뜻이 업데이트된 단어
-      let skippedCount = 0;  // 이미 존재하는 단어 (변경 없음)
-      let failCount = 0;
+      // 1단계: 모든 단어 파싱
+      const wordsToUpload = [];
+      for (const line of dataLines) {
+        const cleanLine = line.replace(/\r/g, '').trim();
+        const parts = cleanLine.split(',');
+        if (parts.length < 2) continue;
 
-      // 배치 처리: 한 번에 20개씩 처리하여 rate limiting 방지
-      const BATCH_SIZE = 20;
-      const DELAY_BETWEEN_BATCHES = 2000; // 2초 대기
+        const english = parts[0].trim().replace(/^["']|["']$/g, '').trim();
+        const korean = parts.slice(1).join(',').trim().replace(/^["']|["']$/g, '').trim();
+        if (!english || !korean) continue;
 
-      for (let i = 0; i < dataLines.length; i += BATCH_SIZE) {
-        const batch = dataLines.slice(i, i + BATCH_SIZE);
-
-        const promises = batch.map(async (line, batchIndex) => {
-          const index = i + batchIndex;
-          // 모든 종류의 공백 문자 제거 (일반 공백, \r, \n, 탭 등)
-          const cleanLine = line.replace(/\r/g, '').trim();
-          const parts = cleanLine.split(',');
-          if (parts.length < 2) {
-            failCount++;
-            return;
-          }
-          // 따옴표 제거 및 공백 정리
-          const english = parts[0].trim().replace(/^["']|["']$/g, '').trim();
-          const korean = parts.slice(1).join(',').trim().replace(/^["']|["']$/g, '').trim();
-
-          if (!english || !korean) {
-            failCount++;
-            return;
-          }
-
-          try {
-            const wordKey = english.toLowerCase().trim(); // 이중 trim
-            const wordRef = doc(db, 'dictionary', wordKey);
-
-            // 기존 단어가 있는지 확인
-            const existingDoc = await getDoc(wordRef);
-
-            if (existingDoc.exists()) {
-              // 이미 있으면 뜻 합치기
-              const existingData = existingDoc.data();
-              const existingKorean = existingData.korean || '';
-
-              // 중복 체크: 이미 같은 뜻이 있으면 추가 안 함
-              const koreanMeanings = existingKorean.split(',').map(m => m.trim());
-              if (!koreanMeanings.includes(korean)) {
-                const combinedKorean = existingKorean + ', ' + korean;
-
-                await setDoc(wordRef, {
-                  ...existingData,
-                  korean: combinedKorean,
-                  updatedAt: new Date().toISOString()
-                });
-                updatedCount++;  // 뜻이 업데이트됨
-              } else {
-                skippedCount++;  // 이미 같은 뜻이 있어서 건너뜀
-              }
-            } else {
-              // 새 단어 추가
-              await setDoc(wordRef, {
-                english: english,
-                korean: korean,
-                pronunciation: '',
-                createdAt: new Date().toISOString()
-              });
-              newCount++;  // 새로 추가됨
-            }
-
-            if (index % 10 === 0) {
-              setUploadStatus(`⚡ 저장 중... ${index + 1}/${dataLines.length}`);
-            }
-
-          } catch (error) {
-            console.error(`단어 저장 실패: ${english}`, error);
-            failCount++;
-          }
-        });
-
-        // 현재 배치의 모든 작업 완료 대기
-        await Promise.all(promises);
-
-        // 다음 배치 전에 잠시 대기 (rate limiting 방지)
-        if (i + BATCH_SIZE < dataLines.length) {
-          setUploadStatus(`⏳ 다음 배치 준비 중... ${i + BATCH_SIZE}/${dataLines.length}`);
-          await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
-        }
+        const wordKey = english.toLowerCase().trim();
+        wordsToUpload.push({ wordKey, english, korean });
       }
 
-      setUploadStatus(`✅ 완료!\n🆕 새 단어: ${newCount}개\n📝 뜻 추가: ${updatedCount}개\n⏭️ 건너뜀: ${skippedCount}개\n❌ 실패: ${failCount}개`);
+      setUploadStatus(`⚡ ${wordsToUpload.length}개 단어 초고속 저장 중...`);
+
+      // 2단계: Firestore Batch로 초고속 저장 (덮어쓰기 모드)
+      const BATCH_SIZE = 500; // Firestore batch 최대 크기
+      let savedCount = 0;
+
+      for (let i = 0; i < wordsToUpload.length; i += BATCH_SIZE) {
+        const batch = writeBatch(db);
+        const chunk = wordsToUpload.slice(i, Math.min(i + BATCH_SIZE, wordsToUpload.length));
+
+        // 각 단어를 배치에 추가 (덮어쓰기)
+        for (const word of chunk) {
+          const wordRef = doc(db, 'dictionary', word.wordKey);
+          batch.set(wordRef, {
+            english: word.english,
+            korean: word.korean,
+            pronunciation: '',
+            createdAt: new Date().toISOString()
+          }, { merge: true }); // merge: 기존 데이터 유지하면서 업데이트
+          savedCount++;
+        }
+
+        // 배치 커밋
+        await batch.commit();
+        setUploadStatus(`⚡ 저장 중... ${savedCount}/${wordsToUpload.length}`);
+      }
+
+      setUploadStatus(`✅ 완료!\n💾 저장된 단어: ${savedCount}개`);
       setIsUploading(false);
 
       setTimeout(() => {
