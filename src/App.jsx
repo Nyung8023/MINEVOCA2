@@ -2785,14 +2785,34 @@ const toggleChecked = async (wordId) => {
     }
   };
 
-  // 음성 출력
+  // 음성 출력 - Google TTS API 사용으로 개선
   const speakWord = (text) => {
+    try {
+      // Google Translate TTS API를 사용하여 고품질 영어 발음 제공
+      const audio = new Audio(
+        `https://translate.google.com/translate_tts?ie=UTF-8&tl=en&client=tw-ob&q=${encodeURIComponent(text)}`
+      );
+
+      audio.playbackRate = 0.9; // 조금 천천히
+
+      audio.play().catch(error => {
+        console.error('오디오 재생 실패:', error);
+        // 대체 방법: 브라우저 내장 TTS 사용
+        fallbackToSpeechSynthesis(text);
+      });
+    } catch (error) {
+      console.error('TTS 오류:', error);
+      fallbackToSpeechSynthesis(text);
+    }
+  };
+
+  // 대체 TTS 방법 (구 버전)
+  const fallbackToSpeechSynthesis = (text) => {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'en-US';
-      utterance.rate = 0.9; // 조금 천천히
+      utterance.rate = 0.9;
 
-      // 사용 가능한 음성 목록에서 영어 음성 찾기
       const setVoiceAndSpeak = () => {
         const voices = window.speechSynthesis.getVoices();
         const englishVoice = voices.find(voice =>
@@ -2803,15 +2823,11 @@ const toggleChecked = async (wordId) => {
 
         if (englishVoice) {
           utterance.voice = englishVoice;
-          console.log('✅ 영어 음성 사용:', englishVoice.name);
-        } else {
-          console.log('⚠️ 영어 음성을 찾을 수 없습니다. 기본 음성 사용.');
         }
 
         window.speechSynthesis.speak(utterance);
       };
 
-      // 음성 목록이 아직 로드되지 않았을 경우 대비
       if (window.speechSynthesis.getVoices().length > 0) {
         setVoiceAndSpeak();
       } else {
