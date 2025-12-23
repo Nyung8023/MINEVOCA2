@@ -2012,11 +2012,11 @@ if (userDataDoc.exists()) {
       // classes.students 배열과 userData.classId 모두에서 학생 찾기
       let studentIds = [...(selectedClass.students || [])];
 
-      // userData에서 해당 반에 속한 학생들도 찾기
-      const userDataSnapshot = await getDocs(collection(db, 'userData'));
+      // userData에서 해당 반에 속한 학생들만 쿼리 (읽기 최적화!)
+      const q = query(collection(db, 'userData'), where('classId', '==', classId));
+      const userDataSnapshot = await getDocs(q);
       userDataSnapshot.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.classId === classId && !studentIds.includes(doc.id)) {
+        if (!studentIds.includes(doc.id)) {
           studentIds.push(doc.id);
         }
       });
