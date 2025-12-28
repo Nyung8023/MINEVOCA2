@@ -1489,35 +1489,16 @@ if (userDataDoc.exists()) {
     }
   }
 
-  // 🔄 words 설정: 서브컬렉션에서 읽기 + 자동 마이그레이션
-  console.log('📚 단어 로딩 시작...');
+  // 🔄 words 설정: 페이지 로드 시 읽지 않음 (필요할 때만 로드)
+  console.log('📚 단어 로딩 생략 (필요할 때만 로드)');
 
-  // 1단계: 서브컬렉션에서 단어 읽기 시도
-  let loadedWords = await loadWordsFromSubcollection(userId);
-
-  // 2단계: 서브컬렉션이 비어있는데 기존 배열에 데이터가 있으면 마이그레이션
-  const oldWords = data.words || [];
-  if (loadedWords.length === 0 && oldWords.length > 0) {
-    console.log(`🔄 자동 마이그레이션: ${oldWords.length}개 단어를 서브컬렉션으로 이동`);
-    await saveAllWordsToSubcollection(userId, oldWords);
-    loadedWords = oldWords;
-
-    // 마이그레이션 후 기존 userData에서 words 배열 제거 (공간 절약)
-    console.log('🧹 기존 userData.words 배열 제거');
-    const { words: _oldWords3, ...dataWithoutWords3 } = data;
-    await setDoc(doc(db, 'userData', userId), {
-      ...dataWithoutWords3,
-      books: migratedBooks,
-      words: [] // 빈 배열로 비우기 (나중에 완전히 제거 가능)
-    });
-  }
-
-  setWords(loadedWords);
+  // 빈 배열로 초기화 (단어장 열 때 로드됨)
+  setWords([]);
 
   console.log('📊 마이그레이션 결과:', {
     originalBooksCount: (data.books || []).length,
     finalBooksCount: migratedBooks.length,
-    wordsCount: loadedWords.length,
+    wordsCount: 0, // 필요할 때만 로드
     wasMigrated: needsMigration,
     wordsFromSubcollection: true
   });
